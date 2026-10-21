@@ -1,0 +1,3 @@
+<UserControl x:Class="AppBox.App.Controls.AppIcon" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Grid><TextBlock Text="▦" FontSize="36" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Icon}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><Image Source="{Binding Icon}" Stretch="Uniform"/></Grid>
+</UserControl>
