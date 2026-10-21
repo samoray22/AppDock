@@ -40,11 +40,11 @@ public partial class App : System.Windows.Application
                 if (!e.Args.Contains("--background")) await instance.SignalAsync(folder);
                 Shutdown(); return;
             }
-            store = new(e.Args.Contains("--smoke-test") ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Environment.ProcessId) : null);
+            store = new(e.Args.Contains("--smoke-test") ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N")) : null);
             config = store.Load();
             if (!e.Args.Contains("--smoke-test")) config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
             ThemeService.Apply(config.Settings.Theme);
-            model = new(config, Launch);
+            model = new(config, Launch, () => store.Save(config));
             launcher = new() { DataContext = model, OpenSettings = OpenSettings };
             MainWindow = launcher;
             var selected = Guid.TryParse(folder, out var id) ? config.Folders.FirstOrDefault(f => f.Id == id) : null;
@@ -102,11 +102,12 @@ public partial class App : System.Windows.Application
     });
     private void ExecuteLaunch(AppEntry entry, Func<ResolvedTarget, bool> approve)
     {
+        if (!model.Interaction.CanLaunch) return;
         launcher.SuppressDismiss = true;
         try
         {
             var result = launchService.Launch(entry, approve);
-            if (result.Success && config.Settings.CloseAfterLaunch) launcher.Hide();
+            if (model.Interaction.DismissAfterLaunch(result.Success, config.Settings.CloseAfterLaunch)) launcher.Hide();
             else if (result.Error is not null) ShowMessage(result.Error);
         }
         finally { launcher.SuppressDismiss = false; }

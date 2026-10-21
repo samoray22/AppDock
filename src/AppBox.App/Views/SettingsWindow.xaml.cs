@@ -28,7 +28,7 @@ public partial class SettingsWindow : Window
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
         if (Model.SelectedFolder is null) { MessageBox.Show(this, "Create a folder first.", "AppBox"); return; }
-        var dialog = new OpenFileDialog { Filter = "Applications and shortcuts|*.exe;*.lnk", Multiselect = true, DereferenceLinks = false };
+        var dialog = new OpenFileDialog { Filter = "Applications and shortcuts|*.exe;*.lnk;*.url", Multiselect = true, DereferenceLinks = false };
         if (dialog.ShowDialog(this) != true) return;
         foreach (var file in dialog.FileNames) Guard(() => Model.Add(new AppEntry { Name = Path.GetFileNameWithoutExtension(file), Target = file, Kind = Path.GetExtension(file).Equals(".lnk", StringComparison.OrdinalIgnoreCase) ? TargetKind.Shortcut : TargetKind.Executable }));
     }

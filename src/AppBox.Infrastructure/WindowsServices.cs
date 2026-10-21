@@ -38,6 +38,16 @@ public sealed class WindowsProcessLauncher : IProcessLauncher
     }
 }
 
+public static class WindowsFileLocation
+{
+    public static void Open(AppEntry entry)
+    {
+        if (entry.Kind == TargetKind.Packaged) throw new ArgumentException("This application does not expose a file location.");
+        TargetPolicy.Validate(entry);
+        using var process = Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), "/select,\"" + entry.Target + "\"") { UseShellExecute = true });
+    }
+}
+
 public static class StartupRegistration
 {
     private const string KeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -112,9 +122,21 @@ public static class ShellIcon
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
     private static extern void SHCreateItemFromParsingName(string name, IntPtr context, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out IShellItemImageFactory factory);
     [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr obj);
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct FileInfo { public IntPtr Icon; public int Index; public uint Attributes; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string Name; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string TypeName; }
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr SHGetFileInfo(string file, uint attributes, out FileInfo info, uint size, uint flags);
+    [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr icon);
 
     public static ImageSource? Get(AppEntry entry)
     {
+        // Use the Windows association icon without honoring a .url file's arbitrary IconFile directive.
+        if (entry.Kind == TargetKind.InternetShortcut)
+        {
+            SHGetFileInfo(".url", 0x80, out var info, (uint)Marshal.SizeOf<FileInfo>(), 0x110);
+            if (info.Icon == IntPtr.Zero) return null;
+            try { var icon = Imaging.CreateBitmapSourceFromHIcon(info.Icon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()); icon.Freeze(); return icon; }
+            finally { DestroyIcon(info.Icon); }
+        }
         IShellItemImageFactory? factory = null;
         IntPtr bitmap = IntPtr.Zero;
         try
