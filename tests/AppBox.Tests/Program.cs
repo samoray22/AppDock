@@ -143,6 +143,7 @@ internal static class Program
             var right = PopupPlacement.Calculate(monitor, new(0, 0, 1872, 1080), new(1900, 500), 1);
             Check(right.X + right.Width == 1862);
         });
+        Phase1CTests.Run(Test, Root);
         Console.WriteLine($"\n{passed} passed; {failures} failed.");
         Directory.Delete(Root, true);
         return failures == 0 ? 0 : 1;

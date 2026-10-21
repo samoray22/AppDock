@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using AppBox.Core;
+using AppBox.Infrastructure;
 
 namespace AppBox.App.ViewModels;
 
@@ -25,7 +26,13 @@ public sealed class SettingsViewModel : ObservableObject
     public void Create(string name) { manager.Create(name); Persist(); }
     public void Rename(string name) { if (SelectedFolder is not null) { manager.Rename(SelectedFolder, name); Persist(); } }
     public void Delete() { if (SelectedFolder is not null) { manager.Delete(SelectedFolder); Persist(); } }
-    public void Add(AppEntry entry) { if (SelectedFolder is null) throw new ArgumentException("Create or select a folder first."); manager.Add(SelectedFolder, entry); Persist(); }
+    public void Add(AppEntry entry)
+    {
+        if (SelectedFolder is null) throw new ArgumentException("Create or select a folder first.");
+        var result = new ApplicationImportService(new WindowsShortcutResolver()).Import(Config, SelectedFolder, [entry.Kind == TargetKind.Packaged ? "shell:AppsFolder\\" + entry.Target : entry.Target]);
+        if (result.Rejected.Count > 0) throw new ArgumentException(result.Rejected[0].Reason);
+        Persist();
+    }
     public void Remove() { if (SelectedFolder is not null && SelectedApplication is not null) { manager.Remove(SelectedFolder, SelectedApplication); Persist(); } }
     public void Move(int offset) { if (SelectedFolder is not null && SelectedApplication is not null) { var app = SelectedApplication; manager.Move(SelectedFolder, app, offset); Persist(); SelectedApplication = app; Changed(nameof(SelectedApplication)); } }
     public void Persist() { save(); Refresh(); }

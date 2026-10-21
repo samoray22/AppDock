@@ -4,7 +4,7 @@ namespace AppBox.Core;
 
 public enum LayoutMode { SingleAppBox, MultipleAppBoxes }
 public enum AppTheme { System, Light, Dark }
-public enum TargetKind { Executable, Shortcut, Packaged }
+public enum TargetKind { Executable, Shortcut, Packaged, InternetShortcut }
 
 public sealed class AppEntry
 {
@@ -53,7 +53,7 @@ public static partial class TargetPolicy
             if (!AppIdPattern().IsMatch(entry.Target)) throw new ArgumentException("Invalid packaged application identity.");
             return;
         }
-        var extension = entry.Kind == TargetKind.Executable ? ".exe" : ".lnk";
+        var extension = entry.Kind switch { TargetKind.Executable => ".exe", TargetKind.InternetShortcut => ".url", _ => ".lnk" };
         if (!Path.IsPathFullyQualified(entry.Target) || entry.Target.StartsWith(@"\\") ||
             !string.Equals(Path.GetExtension(entry.Target), extension, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Choose a local, absolute " + extension + " file.");
@@ -87,6 +87,22 @@ public sealed class FolderManager(Configuration configuration)
         folder.Applications.Add(entry);
     }
     public void Remove(AppFolder folder, AppEntry entry) { RequireFolder(folder); folder.Applications.Remove(entry); }
+    public void RenameApplication(AppFolder folder, AppEntry entry, string name)
+    {
+        RequireFolder(folder);
+        if (!folder.Applications.Contains(entry)) throw new ArgumentException("Application not found in this folder.");
+        entry.Name = CleanName(name);
+    }
+    // insertionIndex identifies a gap in the original list, including the gap after the last item.
+    public void Reorder(AppFolder folder, AppEntry entry, int insertionIndex)
+    {
+        RequireFolder(folder);
+        var from = folder.Applications.IndexOf(entry);
+        if (from < 0 || insertionIndex < 0 || insertionIndex > folder.Applications.Count) throw new ArgumentException("Invalid application position.");
+        if (insertionIndex > from) insertionIndex--;
+        folder.Applications.RemoveAt(from);
+        folder.Applications.Insert(insertionIndex, entry);
+    }
     public void Move(AppFolder folder, AppEntry entry, int offset)
     {
         RequireFolder(folder);
@@ -121,6 +137,7 @@ public sealed class ApplicationLaunchService(IShortcutResolver shortcuts, IProce
     {
         TargetPolicy.Validate(entry);
         if (entry.Kind == TargetKind.Packaged) return new("shell:AppsFolder\\" + entry.Target);
+        if (entry.Kind == TargetKind.InternetShortcut) return new(InternetShortcut.ReadTarget(entry.Target));
         var target = entry.Kind == TargetKind.Shortcut ? shortcuts.Resolve(entry.Target) : new ResolvedTarget(entry.Target);
         TargetPolicy.Validate(new AppEntry { Name = entry.Name, Kind = TargetKind.Executable, Target = target.FileName });
         if (Interpreters.Contains(Path.GetFileName(target.FileName)))

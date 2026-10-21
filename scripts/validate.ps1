@@ -11,6 +11,7 @@ try {
         if (-not $process.WaitForExit(30000)) { throw "Diagnostic run timed out (PID $($process.Id))." }
         if ($process.ExitCode -ne 0) { throw 'Diagnostic run failed; inspect artifacts/smoke-error.txt and artifacts/secondary-error.txt.' }
         Get-Content -LiteralPath 'artifacts/smoke/smoke-result.txt'
+        Get-Content -LiteralPath 'artifacts/smoke/phase-1c-result.txt'
     }
 }
 finally { Pop-Location }
