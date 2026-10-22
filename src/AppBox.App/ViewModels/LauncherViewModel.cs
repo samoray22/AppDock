@@ -10,6 +10,8 @@ public sealed record AppTile(AppEntry Entry, ImageSource? Icon, bool ShowName)
     public string Name => Entry.Name;
 }
 
+public sealed record ContainerTile(AppFolder Folder, ImageSource Icon);
+
 public sealed class LauncherViewModel : ObservableObject
 {
     private readonly Configuration config;
@@ -21,6 +23,22 @@ public sealed class LauncherViewModel : ObservableObject
     private string status = "";
     private bool externalDrop;
     private int columns = 4;
+    public ObservableCollection<ContainerTile> Containers { get; } = [];
+    private bool overview;
+    public bool IsOverview { get => overview; private set { overview = value; Changed(); Changed(nameof(ShowApplications)); Changed(nameof(ContentHeight)); Changed(nameof(DesiredHeight)); } }
+    public bool ShowApplications => !IsOverview;
+    public int IconSize => config.Settings.IconSize;
+    public void ShowHome() { IsOverview = config.Settings.LayoutMode == LayoutMode.SingleAppBox; Refresh(); }
+    public void OpenContainer(AppFolder folder) { SelectedFolder = folder; IsOverview = false; }
+    public void ToggleActive() => ChangeContainer(f => f.IsActive = !f.IsActive);
+    public void RenameContainer(string name) => ChangeContainer(f => manager.Rename(f, name));
+    private void ChangeContainer(Action<AppFolder> change)
+    {
+        if (selected is not { } folder) return;
+        var name = folder.Name; var active = folder.IsActive;
+        try { change(folder); persist(); Refresh(); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { folder.Name = name; folder.IsActive = active; Report("Changes were not saved: " + ex.Message); }
+    }
     public ObservableCollection<AppFolder> Folders { get; } = [];
     public ObservableCollection<AppTile> Applications { get; } = [];
     public bool IsEmpty => Applications.Count == 0;
@@ -31,16 +49,17 @@ public sealed class LauncherViewModel : ObservableObject
     public string Status { get => status; private set { if (status == value) return; status = value; Changed(); Changed(nameof(HasStatus)); } }
     public bool HasStatus => !string.IsNullOrEmpty(Status);
     public bool ExternalDropActive { get => externalDrop; set { externalDrop = value; Changed(); } }
+    public double ContentHeight => IsOverview ? LauncherSizing.GridHeight(Containers.Count, columns) : GridHeight;
     public double GridHeight => LauncherSizing.GridHeight(Applications.Count, columns);
-    public double DesiredHeight => LauncherSizing.DesiredHeight(Applications.Count, IsEditing, columns);
+    public double DesiredHeight => LauncherSizing.DesiredHeight(IsOverview ? Containers.Count : Applications.Count, IsEditing, columns);
     public void SetGridWidth(double width)
     {
         if (!double.IsFinite(width) || width <= 0) return;
         var next = Math.Max(1, (int)(width / LauncherSizing.TileWidth));
         if (next == columns) return;
-        columns = next; Changed(nameof(GridHeight)); Changed(nameof(DesiredHeight));
+        columns = next; Changed(nameof(GridHeight)); Changed(nameof(ContentHeight)); Changed(nameof(DesiredHeight));
     }
-    public string Subtitle => IsEditing ? "Edit mode · changes save automatically" : config.Settings.LayoutMode == LayoutMode.SingleAppBox ? "Your apps, a little closer." : "Multiple AppBoxes · folder selection";
+    public string Subtitle => IsEditing ? "Edit mode · changes save automatically" : config.Settings.LayoutMode == LayoutMode.SingleAppBox ? "Your apps, a little closer." : "Multiple AppDocks · container selection";
     public AppFolder? SelectedFolder
     {
         get => selected;
@@ -56,11 +75,11 @@ public sealed class LauncherViewModel : ObservableObject
         this.importer = importer ?? new(new WindowsShortcutResolver());
         LaunchCommand = new(p => { if (Interaction.CanLaunch && p is AppTile tile) launch(tile.Entry); });
         ToggleEditCommand = new(_ => SetEditing(!IsEditing));
-        Refresh();
+        ShowHome();
     }
     public void SetEditing(bool editing)
     {
-        if (editing) Interaction.BeginEdit(); else Interaction.EndEdit();
+        if (editing) { IsOverview = false; Interaction.BeginEdit(); } else Interaction.EndEdit();
         ExternalDropActive = false; Status = "";
         Changed(nameof(IsEditing)); Changed(nameof(EditButtonText)); Changed(nameof(Subtitle)); Changed(nameof(DesiredHeight));
     }
@@ -77,7 +96,7 @@ public sealed class LauncherViewModel : ObservableObject
     public bool Reorder(Guid folderId, Guid appId, int index)
     {
         if (!IsEditing || selected?.Id != folderId) return false;
-        return Edit(() => { var app = selected.Applications.FirstOrDefault(a => a.Id == appId) ?? throw new ArgumentException("This dragged application is no longer in the folder."); manager.Reorder(selected, app, index); return "Application order saved."; });
+        return Edit(() => { var app = selected.Applications.FirstOrDefault(a => a.Id == appId) ?? throw new ArgumentException("This dragged application is no longer in the container."); manager.Reorder(selected, app, index); return "Application order saved."; });
     }
     public void Rename(AppEntry entry, string name)
     {
@@ -85,7 +104,7 @@ public sealed class LauncherViewModel : ObservableObject
     }
     public void Remove(AppEntry entry)
     {
-        if (IsEditing && selected is not null) Edit(() => { manager.Remove(selected, entry); return "Removed from folder. Application files are unchanged."; });
+        if (IsEditing && selected is not null) Edit(() => { manager.Remove(selected, entry); return "Removed from container. Application files are unchanged."; });
     }
     public void Report(string text) => Status = text;
     private bool Edit(Func<string> change)
@@ -111,8 +130,9 @@ public sealed class LauncherViewModel : ObservableObject
     public void Refresh()
     {
         var selectedId = config.SelectedFolderId;
-        Folders.Clear(); foreach (var folder in config.Folders) Folders.Add(folder);
-        SelectedFolder = config.Folders.FirstOrDefault(f => f.Id == selectedId) ?? config.Folders.FirstOrDefault();
+        Folders.Clear(); Containers.Clear(); foreach (var folder in config.Folders.Where(f => f.IsActive)) { Folders.Add(folder); Containers.Add(new(folder, new ContainerIcons("").Get(folder.Icon))); }
+        SelectedFolder = (IsEditing ? config.Folders : Folders.AsEnumerable()).FirstOrDefault(f => f.Id == selectedId) ?? Folders.FirstOrDefault();
+        Changed(nameof(IconSize));
         Changed(nameof(HasFolders)); Changed(nameof(Subtitle));
     }
     private void RefreshApps()
@@ -121,7 +141,7 @@ public sealed class LauncherViewModel : ObservableObject
         if (selected is not null)
             foreach (var app in selected.Applications) Applications.Add(new(app, ShellIcon.Get(app), config.Settings.ShowApplicationNames));
         Changed(nameof(IsEmpty));
-        Changed(nameof(GridHeight));
+        Changed(nameof(GridHeight)); Changed(nameof(ContentHeight));
         Changed(nameof(DesiredHeight));
     }
 }

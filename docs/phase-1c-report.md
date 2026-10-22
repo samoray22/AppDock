@@ -1,3 +1,5 @@
+> Historical AppBox validation baseline. Current product: **AppDock**. See [Phase 2A](phase-2a-report.md) for current behavior.
+
 # AppBox Phase 1C — interactive editing and adaptive launcher
 
 Version remains 0.1.0. Baseline: `cece3ea80db8bf2c50ae4ebca0d989aa31822eff`. Implementation branch: `feature/phase-1c-interactive-edit`. The existing WPF application, local configuration, folder management, launch approval, single instance behavior, and taskbar identity were extended in place.

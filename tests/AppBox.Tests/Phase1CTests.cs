@@ -68,9 +68,9 @@ internal static class Phase1CTests
         {
             var file = Path.Combine(directory, "Launch website.url"); File.WriteAllText(file, "[InternetShortcut]\nURL=https://example.com/AppBox");
             var process = new RecordingProcess(); var service = new ApplicationLaunchService(new WindowsShortcutResolver(), process);
-            Check(service.Launch(importer.Describe(file), _ => true).Success && process.Last?.FileName == "https://example.com/AppBox");
+            Check(service.Launch(importer.Describe(file)).Success && process.Last?.FileName == "https://example.com/AppBox");
             File.WriteAllText(file, "[InternetShortcut]\nURL=file:///C:/Windows/notepad.exe");
-            Check(!service.Launch(new() { Name = "Unsafe", Target = file, Kind = TargetKind.InternetShortcut }, _ => true).Success);
+            Check(!service.Launch(new() { Name = "Unsafe", Target = file, Kind = TargetKind.InternetShortcut }).Success);
         });
         test("Malformed Shell IDList data is rejected before native resolution", () =>
         {

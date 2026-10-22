@@ -23,12 +23,13 @@ public sealed class SettingsViewModel : ObservableObject
     {
         Config = config; manager = new(config); this.save = save; Refresh();
     }
+    public void ToggleActive() { if (SelectedFolder is not null) { SelectedFolder.IsActive = !SelectedFolder.IsActive; Persist(); } }
     public void Create(string name) { manager.Create(name); Persist(); }
     public void Rename(string name) { if (SelectedFolder is not null) { manager.Rename(SelectedFolder, name); Persist(); } }
     public void Delete() { if (SelectedFolder is not null) { manager.Delete(SelectedFolder); Persist(); } }
     public void Add(AppEntry entry)
     {
-        if (SelectedFolder is null) throw new ArgumentException("Create or select a folder first.");
+        if (SelectedFolder is null) throw new ArgumentException("Create or select a container first.");
         var result = new ApplicationImportService(new WindowsShortcutResolver()).Import(Config, SelectedFolder, [entry.Kind == TargetKind.Packaged ? "shell:AppsFolder\\" + entry.Target : entry.Target]);
         if (result.Rejected.Count > 0) throw new ArgumentException(result.Rejected[0].Reason);
         Persist();

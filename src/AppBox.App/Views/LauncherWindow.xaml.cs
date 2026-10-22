@@ -22,11 +22,13 @@ public partial class LauncherWindow : Window
     private LauncherViewModel Model => (LauncherViewModel)DataContext;
     private WindowPlacement.Anchor? anchor;
     private bool resizeQueued;
+    private bool contextMenuOpen;
     private Point dragStart;
     private AppTile? dragTile;
     private InsertionAdorner? insertion;
     private AdornerLayer? insertionLayer;
     public bool SuppressDismiss { get; set; }
+    public Action<AppFolder>? ChangeIcon { get; set; }
     public Action<string>? OpenSettings { get; set; }
     public LauncherWindow()
     {
@@ -38,7 +40,7 @@ public partial class LauncherWindow : Window
             if (e.NewValue is LauncherViewModel newModel) newModel.PropertyChanged += ModelChanged;
             QueueResize();
         };
-        Deactivated += (_, _) => { if (Model.Interaction.DismissOnFocusLost(SuppressDismiss)) Hide(); };
+        Deactivated += (_, _) => { if (Model.Interaction.DismissOnFocusLost(SuppressDismiss || contextMenuOpen || OwnedWindows.Cast<Window>().Any(w => w.IsVisible))) Hide(); };
         PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { if (Model.IsEditing) Model.SetEditing(false); else Hide(); } };
         IsVisibleChanged += (_, _) => { if (!IsVisible) { Model.SetEditing(false); ClearDragFeedback(); } };
         DpiChanged += (_, _) => QueueResize();
@@ -66,12 +68,9 @@ public partial class LauncherWindow : Window
     }
     private void ApplySizing()
     {
-        Width = LauncherSizing.Width;
-        // Only measure the auto-sized chrome. Keep the scrolling grid constrained at all times.
-        var available = new Size(Width - 52, double.PositiveInfinity);
-        HeaderPane.Measure(available); FolderPane.Measure(available); FooterPane.Measure(available);
-        var gridHeight = Model.Applications.Count == 0 ? 76 : Model.GridHeight;
-        Height = Math.Min(770, Math.Ceiling(46 + HeaderPane.DesiredSize.Height + FolderPane.DesiredSize.Height + FooterPane.DesiredSize.Height + gridHeight) + 2);
+        var count = Model.IsOverview ? Model.Containers.Count : Model.Applications.Count;
+        Width = Math.Min(LauncherSizing.Width, Math.Max(122, Math.Min(4, Math.Max(1, count)) * LauncherSizing.TileWidth + 26));
+        Height = Model.DesiredHeight;
         WindowPlacement.Place(this, anchor);
     }
     private void AppScroller_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -80,7 +79,7 @@ public partial class LauncherWindow : Window
     }
     private void Add_Click(object sender, RoutedEventArgs e)
     {
-        if (!Model.IsEditing) return;
+        if (!Model.IsEditing) Model.SetEditing(true);
         var dialog = new OpenFileDialog { Filter = "Applications and shortcuts|*.exe;*.lnk;*.url", Multiselect = true, DereferenceLinks = false };
         if (dialog.ShowDialog(this) == true) ImportFiles(dialog.FileNames);
     }
@@ -207,7 +206,6 @@ public partial class LauncherWindow : Window
     }
     private void Tile_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (!Model.IsEditing) { e.Handled = true; return; }
         if (sender is Button { DataContext: AppTile tile, ContextMenu: { } menu })
             ((MenuItem)menu.Items[0]).IsEnabled = tile.Entry.Kind != TargetKind.Packaged && File.Exists(tile.Entry.Target);
     }
@@ -216,22 +214,36 @@ public partial class LauncherWindow : Window
         if (sender is MenuItem item && ItemsControl.ItemsControlFromItemContainer(item) is ContextMenu { PlacementTarget: Button { DataContext: AppTile tile } }) return tile.Entry;
         return null;
     }
-    private void Remove_Click(object sender, RoutedEventArgs e) { if (MenuEntry(sender) is { } entry) Model.Remove(entry); }
+    private void Remove_Click(object sender, RoutedEventArgs e) { if (MenuEntry(sender) is { } entry) { Model.SetEditing(true); Model.Remove(entry); } }
     private void Rename_Click(object sender, RoutedEventArgs e)
     {
-        if (!Model.IsEditing || MenuEntry(sender) is not { } entry) return;
-        var name = TextPrompt.Ask(this, "Rename display name", entry.Name); if (name is not null) Model.Rename(entry, name);
+        if (MenuEntry(sender) is not { } entry) return;
+        var name = TextPrompt.Ask(this, "Rename", entry.Name); if (name is not null) { Model.SetEditing(true); Model.Rename(entry, name); }
     }
     private void Location_Click(object sender, RoutedEventArgs e)
     {
-        if (!Model.IsEditing || MenuEntry(sender) is not { } entry || entry.Kind == TargetKind.Packaged) return;
+        if (MenuEntry(sender) is not { } entry || entry.Kind == TargetKind.Packaged) return;
         try
         {
             WindowsFileLocation.Open(entry);
         }
         catch (Exception ex) { Model.Report("File location could not be opened: " + ex.Message); }
     }
+    private void Container_RightClick(object sender, MouseButtonEventArgs e) { if (sender is Button { DataContext: ContainerTile tile }) Model.SelectedFolder = tile.Folder; }
+    private void Container_Click(object sender, RoutedEventArgs e) { if (sender is Button { DataContext: ContainerTile tile }) Model.OpenContainer(tile.Folder); }
+    private void Container_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject source && TileAt(source) is not null) return;
+        if (Frame.ContextMenu is { } menu) for (int i = 0; i < 6; i++) ((MenuItem)menu.Items[i]).IsEnabled = Model.SelectedFolder is not null;
+    }
+    private void Menu_Opened(object sender, RoutedEventArgs e) => contextMenuOpen = true;
+    private void Menu_Closed(object sender, RoutedEventArgs e) => contextMenuOpen = false;
+    private void Launch_Click(object sender, RoutedEventArgs e) { if (MenuEntry(sender) is { } entry) { Model.SetEditing(false); Model.LaunchCommand.Execute(Model.Applications.FirstOrDefault(a => a.Entry == entry)); } }
+    private void EditContainer_Click(object sender, RoutedEventArgs e) => Model.SetEditing(true);
+    private void RenameContainer_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) { var name = TextPrompt.Ask(this, "Rename Container", folder.Name); if (name is not null) Model.RenameContainer(name); } }
+    private void ChangeIcon_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) ChangeIcon?.Invoke(folder); }
+    private void Activate_Click(object sender, RoutedEventArgs e) => Model.ToggleActive();
     private void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings?.Invoke("General");
-    private void Manage_Click(object sender, RoutedEventArgs e) => OpenSettings?.Invoke("Folders");
+    private void Manage_Click(object sender, RoutedEventArgs e) => OpenSettings?.Invoke("Containers");
     private void Dismiss_Click(object sender, RoutedEventArgs e) => Hide();
 }
