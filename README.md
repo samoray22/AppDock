@@ -1,4 +1,4 @@
-# AppDock — Phase 2B
+# AppDock — Phase 2C
 
 AppDock is a native Windows 11 application launcher built with C#, .NET 10 and WPF. Containers hold references to applications; removing a reference never uninstalls or deletes an application. No third-party runtime icon packages, account or telemetry.
 
@@ -19,11 +19,23 @@ Open Settings from the notification-area icon, then **Containers**. Create, rena
 
 In **Single AppDock** mode the main launcher displays active containers with their selected icons. Click one to open its applications. In **Multiple AppDocks** mode each active container has a persistent shortcut with `--container <guid>` arguments. The original `--folder <guid>` alias remains supported.
 
-Normal container popups contain application icons and optional application names. Left-click launches immediately and dismisses the popup. Failures use a nonblocking notification-area balloon (subject to Windows notification settings). Windows security prompts remain under Windows control. Click outside or press Escape to dismiss.
+Normal container popups contain application icons and optional application names. Left-click launches immediately and dismisses the popup when Auto close after launching an app is enabled. Failures use a nonblocking notification-area balloon (subject to Windows notification settings). Windows security prompts remain under Windows control. Click outside or press Escape to dismiss.
 
 Right-click empty container space to edit, add applications, rename, change the icon, open container settings, activate/deactivate or close. Right-click a container tile in the Single launcher to select its management target. Right-click an app to launch, rename, open its file location where available, or remove its reference.
 
 Edit Mode stays open during focus changes. Drop `.exe`, `.lnk`, or HTTP/HTTPS `.url` shortcuts from Explorer; drag existing icons to reorder. Use **Done** to return to normal launching. Changes save automatically; drag/edit state is transient. Settings controls application names, icon size, animations, theme and taskbar layout.
+
+## General Settings and official branding
+
+General follows the approved reference: a compact icon sidebar, two full-card layout selectors with graphical taskbar previews, and four row-wide toggle switches. Single/Multiple selection uses the existing layout setting and preserves containers, activation states, applications and custom icons. Multiple mode creates shortcuts; pinning still requires the Windows Pin to taskbar action.
+
+**Other Options** controls Show app names, Auto close after launching an app, Start AppDock with Windows, and Use Windows 11 style (rounded corners, Mica effect). Changes save automatically; failures restore the prior preference and show an inline error. Startup uses the existing current-user registration service; the Startup page mirrors the same setting. Application icon size is now on Appearance. Navigation remains General, Containers, Appearance, Taskbar, Startup and About; the Taskbar page retains all Phase 2B interaction controls.
+
+On supported Windows 11 builds, the style option requests rounded corners and the documented system backdrop through DWM, verifies API read-back, and enables the required WPF transparent client surface. Windows may render its own solid fallback depending on system conditions. If unavailable, AppDock uses the normal theme surface and explains the fallback; the full option is disabled on Windows versions that lack the supported backdrop API. Layered floating popups use AppDock's own corner/pointer rendering rather than claiming a DWM Mica backdrop. Settings fits the target monitor's working area; constrained layouts scroll instead of losing controls.
+
+The official supplied AppDock artwork is compiled into the executable (16–256 px ICO), embedded for WPF windows, and included as 32/64/128 px PNG branding resources for Settings, About and previews. A persistent external `AppDock.ico` is copied beside the executable for Windows relaunch/shortcut resources. The default `Launchers/AppDock.lnk` uses the main stable AppUserModelID and the official icon. Application Jump List command icons use official branding; container launchers keep their own icons. No runtime path references the original `AppDock_Icon_Pack` directory. The original source pack is left intact and ignored by Git; necessary project resources are tracked.
+
+Windows may cache the previous product icon for existing pins. Close the old instance, start the rebuilt executable, and manually unpin/repin the main AppDock shortcut if the old icon remains. AppDock does not edit taskbar caches or Explorer internals.
 
 ## Container icons
 
@@ -75,4 +87,4 @@ Positioning uses the pointer's monitor/taskbar edge, clamps to screen boundaries
 .\scripts\validate.ps1 -Smoke -Isolated
 ```
 
-The dependency-free console runner must be run explicitly (`dotnet test` does not discover it). The smoke run uses isolated configuration and IPC, real WPF windows, Shell shortcuts, secondary-process IPC and a harmless test executable. Native Jump List tests use temporary diagnostic AppIDs and remove only those lists afterward. It renders Light/Dark captures into ignored `artifacts/smoke`; it does not pin anything or change startup registration. See [Phase 2B results and screenshots](docs/phase-2b-report.md) and the [Phase 2A baseline](docs/phase-2a-report.md) and [Windows integration details](docs/windows-integration.md). Earlier Phase 1/1C reports are historical baselines.
+The dependency-free console runner must be run explicitly (`dotnet test` does not discover it). The smoke run uses isolated configuration and IPC, real WPF windows, Shell shortcuts, secondary-process IPC and a harmless test executable. Native Jump List tests use temporary diagnostic AppIDs and remove only those lists afterward. It renders Light/Dark captures into ignored `artifacts/smoke`; it does not pin anything or change startup registration. See [Phase 2C results and screenshots](docs/phase-2c-report.md), the [Phase 2B integration baseline](docs/phase-2b-report.md) and the [Phase 2A baseline](docs/phase-2a-report.md) and [Windows integration details](docs/windows-integration.md). Earlier Phase 1/1C reports are historical baselines.

@@ -1,0 +1,11 @@
+OS: Microsoft Windows NT 10.0.26300.0
+Available displays captured with diagnostic anchors: 2
+Secondary-process Settings / Manage / Edit routing with correct IDs: True
+Existing settings window reused and retargeted: True
+Repeated click command uses one popup: True
+Native explicit-AppID Jump List publication: True (isolated diagnostic identity)
+Pointer Light/Dark center and clamped edge render: True
+Pointer setting disables pointer: True
+Hover unavailable; click fallback retained; no hover timers/hooks: True
+Physical taskbar right-click/pin/hover and multiple display scale interaction: NOT PERFORMED (computer-use runtime failed on locked F: drive)
+Pointer captures use diagnostic anchors on the actual display, not physical taskbar clicks

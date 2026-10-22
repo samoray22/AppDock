@@ -12,12 +12,13 @@ public sealed class PopupChrome : FrameworkElement
     public Brush Stroke { get => (Brush)GetValue(StrokeProperty); set => SetValue(StrokeProperty, value); }
     public double PointerCenter { get; set; }
     public bool ShowPointer { get; set; }
+    public bool RoundCorners { get; set; } = true;
     protected override void OnRender(DrawingContext dc)
     {
         var depth = ShowPointer ? PopupPointer.Depth : 0;
         if (ActualWidth < 2 || ActualHeight <= depth + 2) return;
         var body = new Rect(0.5, 0.5, ActualWidth - 1, ActualHeight - depth - 1);
-        Geometry geometry = new RectangleGeometry(body, 16, 16);
+        Geometry geometry = new RectangleGeometry(body, RoundCorners ? 16 : 0, RoundCorners ? 16 : 0);
         if (ShowPointer)
         {
             var center = Math.Clamp(PointerCenter, 26, Math.Max(26, ActualWidth - 26));

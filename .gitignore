@@ -4,3 +4,5 @@ obj/
 *.user
 TestResults/
 artifacts/
+# User-supplied source artwork; runtime assets are copied into the project.
+/AppDock_Icon_Pack/

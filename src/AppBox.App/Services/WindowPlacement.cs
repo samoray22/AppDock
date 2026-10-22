@@ -16,6 +16,7 @@ public static class WindowPlacement
     [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
     [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
@@ -23,10 +24,24 @@ public static class WindowPlacement
     public static void Round(Window window, bool dark)
     {
         var hwnd = new WindowInteropHelper(window).EnsureHandle();
-        var corners = 2; DwmSetWindowAttribute(hwnd, 33, ref corners, sizeof(int));
+        var corners = ThemeService.Windows11StyleEnabled ? 2 : 1; DwmSetWindowAttribute(hwnd, 33, ref corners, sizeof(int));
         var theme = dark ? 1 : 0; DwmSetWindowAttribute(hwnd, 20, ref theme, sizeof(int));
     }
 
+    public static void FitSettingsToWorkArea(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle; if (hwnd == IntPtr.Zero) return;
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        if (!GetMonitorInfo(MonitorFromWindow(hwnd, 2), ref info)) return;
+        var scale = GetDpiForWindow(hwnd) / 96.0;
+        var width = (info.Work.Right - info.Work.Left - 16) / scale;
+        var height = (info.Work.Bottom - info.Work.Top - 16) / scale;
+        window.MinWidth = Math.Min(740, width); window.MinHeight = Math.Min(540, height);
+        window.MaxWidth = width; window.MaxHeight = height;
+        window.Width = Math.Min(window.Width, width); window.Height = Math.Min(window.Height, height);
+        if (GetWindowRect(hwnd, out var rect))
+            SetWindowPos(hwnd, IntPtr.Zero, Math.Clamp(rect.Left, info.Work.Left + 8, Math.Max(info.Work.Left + 8, info.Work.Right - (rect.Right - rect.Left) - 8)), Math.Clamp(rect.Top, info.Work.Top + 8, Math.Max(info.Work.Top + 8, info.Work.Bottom - (rect.Bottom - rect.Top) - 8)), 0, 0, 0x15);
+    }
     public static Anchor CaptureAnchor()
     {
         GetCursorPos(out var cursor); return new(new(cursor.X, cursor.Y));

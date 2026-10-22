@@ -9,11 +9,13 @@
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../AppBox.Infrastructure/AppBox.Infrastructure.csproj" /></ItemGroup>
   <ItemGroup><Using Remove="System.Windows.Forms" /><Using Remove="System.Drawing" /></ItemGroup>
-  <ItemGroup><ProjectReference Include="../AppBox.Compatibility/AppBox.Compatibility.csproj" ReferenceOutputAssembly="false"/><Content Include="Resources/AppDock.ico" Link="AppDock.ico" CopyToOutputDirectory="PreserveNewest"/></ItemGroup>
+  <ItemGroup><ProjectReference Include="../AppBox.Compatibility/AppBox.Compatibility.csproj" ReferenceOutputAssembly="false"/></ItemGroup>
+  <Target Name="CopyProductIcon" AfterTargets="Build"><Copy SourceFiles="$(MSBuildProjectDirectory)/Resources/AppDock.ico" DestinationFiles="$(TargetDir)/AppDock.ico" SkipUnchangedFiles="true"/></Target>
   <Target Name="CopyCompatibilityLauncher" AfterTargets="Build">
     <MSBuild Projects="../AppBox.Compatibility/AppBox.Compatibility.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)"><Output TaskParameter="TargetOutputs" ItemName="CompatibilityAssembly"/></MSBuild>
     <PropertyGroup><CompatibilityOutputDirectory>$([System.IO.Path]::GetDirectoryName('@(CompatibilityAssembly)'))</CompatibilityOutputDirectory></PropertyGroup>
     <ItemGroup><CompatibilityFiles Include="$(CompatibilityOutputDirectory)/AppBox.App.*"/></ItemGroup>
     <Copy SourceFiles="@(CompatibilityFiles)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true"/>
   </Target>
+  <ItemGroup><Resource Include="Resources/AppDock.ico"/><Resource Include="Resources/Branding/*.png"/></ItemGroup>
 </Project>

@@ -27,6 +27,7 @@ public sealed class LauncherViewModel : ObservableObject
     private bool overview;
     public bool IsOverview { get => overview; private set { overview = value; Changed(); Changed(nameof(ShowApplications)); Changed(nameof(ContentHeight)); Changed(nameof(DesiredHeight)); } }
     public bool ShowApplications => !IsOverview;
+    public bool UseWindows11Style => config.Settings.UseWindows11Style;
     public bool ShowPopupPointer => config.Settings.ShowPopupPointer;
     public int IconSize => config.Settings.IconSize;
     public void ShowHome() { IsOverview = config.Settings.LayoutMode == LayoutMode.SingleAppBox; Refresh(); }
@@ -133,7 +134,7 @@ public sealed class LauncherViewModel : ObservableObject
         var selectedId = config.SelectedFolderId;
         Folders.Clear(); Containers.Clear(); foreach (var folder in config.Folders.Where(f => f.IsActive)) { Folders.Add(folder); Containers.Add(new(folder, new ContainerIcons("").Get(folder.Icon))); }
         SelectedFolder = (IsEditing ? config.Folders : Folders.AsEnumerable()).FirstOrDefault(f => f.Id == selectedId) ?? Folders.FirstOrDefault();
-        Changed(nameof(IconSize)); Changed(nameof(ShowPopupPointer));
+        Changed(nameof(IconSize)); Changed(nameof(ShowPopupPointer)); Changed(nameof(UseWindows11Style));
         Changed(nameof(HasFolders)); Changed(nameof(Subtitle));
     }
     private void RefreshApps()
