@@ -43,6 +43,7 @@ public sealed class Preferences
     public bool CloseAfterLaunch { get; set; } = true;
     public bool StartWithWindows { get; set; }
     public bool EnableAnimations { get; set; } = true;
+    public bool UseWindows11Style { get; set; } = true;
     public AppTheme Theme { get; set; } = AppTheme.System;
 }
 

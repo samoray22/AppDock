@@ -20,7 +20,7 @@ try {
         $process = Start-Process -FilePath $appExecutable -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
         if (-not $process.WaitForExit(60000)) { throw "Diagnostic run timed out (PID $($process.Id))." }
         if ($process.ExitCode -ne 0) { throw 'Diagnostic run failed; inspect artifacts/smoke-error.txt and artifacts/secondary-error.txt.' }
-        foreach ($report in 'smoke-result.txt', 'phase-1c-result.txt', 'phase-2a-result.txt', 'phase-2b-result.txt') { Get-Content -LiteralPath (Join-Path 'artifacts/smoke' $report) }
+        foreach ($report in 'smoke-result.txt', 'phase-1c-result.txt', 'phase-2a-result.txt', 'phase-2b-result.txt', 'phase-2c-result.txt') { Get-Content -LiteralPath (Join-Path 'artifacts/smoke' $report) }
     }
 }
 finally { Pop-Location }

@@ -94,7 +94,7 @@ public partial class LauncherWindow : Window
             Height -= PopupPointer.Depth; Pointer = WindowPlacement.Place(this, anchor, Model.ShowPopupPointer);
         }
         Frame.Margin = new Thickness(0, 0, 0, Pointer.Visible ? PopupPointer.Depth : 0);
-        Chrome.ShowPointer = Pointer.Visible; Chrome.PointerCenter = Pointer.CenterDip; Chrome.InvalidateVisual();
+        Chrome.RoundCorners = Model.UseWindows11Style; Chrome.ShowPointer = Pointer.Visible; Chrome.PointerCenter = Pointer.CenterDip; Chrome.InvalidateVisual();
     }
     private void AppScroller_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {

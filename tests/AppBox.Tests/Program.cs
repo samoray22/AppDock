@@ -146,6 +146,7 @@ internal static class Program
         Phase1CTests.Run(Test, Root);
         Phase2ATests.Run(Test, Root);
         Phase2BTests.Run(Test, Root);
+        Phase2CTests.Run(Test, Root);
         Console.WriteLine($"\n{passed} passed; {failures} failed.");
         Directory.Delete(Root, true);
         return failures == 0 ? 0 : 1;

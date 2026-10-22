@@ -50,3 +50,16 @@ Additional official references:
 - [Taskbar Extensions and DWM previews](https://learn.microsoft.com/en-us/windows/win32/shell/taskbar-extensions)
 - [UI Automation identification guarantees](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-usefortesting)
 - [Notification icon rectangles](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyicongetrect)
+
+
+## Phase 2C: official branding and window style
+
+The supplied multi-resolution ICO is the executable icon for both `AppDock.exe` and the legacy forwarding executable. Embedded ICO/PNG resources supply owned WPF windows, Settings/About and the Single preview. A separate persistent output copy of the ICO supplies relaunch metadata, the main `Launchers/AppDock.lnk` and Jump List action icons. Container window/shortcut icon definitions remain unchanged. Existing Windows pins may retain a cached old image and require manual repinning; no icon-cache deletion or taskbar-internal mutation is performed.
+
+General settings wraps the existing serialized LayoutMode, ShowApplicationNames, CloseAfterLaunch and StartWithWindows preferences. The additive UseWindows11Style boolean defaults to true. Preference failures roll back and report inline; startup changes invoke the existing registration service with rollback on save failure. Auto close now honors the existing saved CloseAfterLaunch preference in the production launch path (default true); Windows security prompts and target validation remain intact.
+
+The style option uses documented `DWMWA_WINDOW_CORNER_PREFERENCE` (33), `DWMWA_USE_IMMERSIVE_DARK_MODE` (20), and `DWMWA_SYSTEMBACKDROP_TYPE` (38) with `DWMSBT_MAINWINDOW` (2). It extends the DWM frame into the client area and makes the normal WPF window/composition target transparent only after successful calls and read-back. Disabling/failure restores a solid dynamic theme brush, disables the system backdrop and resets frame margins. The API is supported from Windows 11 build 22621; the full option is disabled below that build. Windows can choose a solid fallback even when the material request is accepted. Transparent layered launcher windows retain their custom geometry and do not claim this native backdrop.
+
+Official references: [DWM system backdrop types](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwm_systembackdrop_type), [window attributes](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute), [WPF client-area composition](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/graphics-multimedia/extend-glass-frame-into-a-wpf-application), [Mica fallback behavior](https://learn.microsoft.com/en-us/windows/apps/design/style/mica).
+
+WPF content renders cannot capture DWM's compositor-owned Mica. Phase 2C captures use the correct theme surface as an underlay, while separate native read-back records whether corners/backdrop were accepted. Physical taskbar/caption icon and compositor captures remain unverified because the computer-use runtime could not start. The supplied reference is compared against the client content, with intentional product terminology/branding and retained window-size/footer differences documented in the Phase 2C report.

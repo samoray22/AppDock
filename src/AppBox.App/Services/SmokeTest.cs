@@ -95,6 +95,7 @@ internal static class SmokeTest
         await RunPhase1CAsync(app, config, store, launcher, model, output, probeExe);
         await RunPhase2AAsync(app, config, store, launcher, model, output, settings);
         await RunPhase2BAsync(app, config, store, launcher, model, output);
+        await RunPhase2CAsync(app, config, store, launcher, output, probeExe);
         app.Shutdown();
     }
     private static async Task RunPhase1CAsync(App app, Configuration config, ConfigurationStore store, LauncherWindow launcher, LauncherViewModel model, string output, string probeExe)
@@ -263,6 +264,80 @@ internal static class SmokeTest
         finally { WindowsJumpLists.DeleteDiagnosticList(identity); }
         await File.WriteAllTextAsync(Path.Combine(output, "phase-2b-result.txt"), $"OS: {Environment.OSVersion}\nAvailable displays captured with diagnostic anchors: {System.Windows.Forms.Screen.AllScreens.Length}\nSecondary-process Settings / Manage / Edit routing with correct IDs: True\nExisting settings window reused and retargeted: True\nRepeated click command uses one popup: True\nNative explicit-AppID Jump List publication: True (isolated diagnostic identity)\nPointer Light/Dark center and clamped edge render: {bottom}\nPointer setting disables pointer: True\nHover unavailable; click fallback retained; no hover timers/hooks: True\nPhysical taskbar right-click/pin/hover and multiple display scale interaction: NOT PERFORMED (computer-use runtime failed on locked F: drive)\nPointer captures use diagnostic anchors on the actual display, not physical taskbar clicks\n");
     }
+    private static async Task RunPhase2CAsync(App app, Configuration config, ConfigurationStore store, LauncherWindow launcher, string output, string probeExe)
+    {
+        var folderSnapshot = System.Text.Json.JsonSerializer.Serialize(config.Folders);
+        var fakeStartup = false; var startupWrites = 0;
+        var viewModel = new SettingsViewModel(config, () => { store.Save(config); ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style); }, v => { fakeStartup = v; startupWrites++; }, () => fakeStartup);
+        launcher.SuppressDismiss = true;
+        var window = new SettingsWindow(viewModel, "General") { Owner = launcher }; window.Show(); await Task.Delay(200);
+        static void ClickCard(AppBox.App.Controls.LayoutSelectionCard card)
+        {
+            foreach (var point in new[] { new Point(card.ActualWidth * 0.8, 20), new Point(card.ActualWidth * 0.6, card.ActualHeight * 0.55), new Point(card.ActualWidth * 0.7, card.ActualHeight - 20) })
+            {
+                var hit = card.InputHitTest(point) as DependencyObject;
+                while (hit is not null && hit != card) hit = VisualTreeHelper.GetParent(hit);
+                Require(hit == card, "A card region is not clickable.");
+            }
+            var peer = System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(card)!;
+            ((System.Windows.Automation.Provider.ISelectionItemProvider)peer.GetPattern(System.Windows.Automation.Peers.PatternInterface.SelectionItem)).Select();
+        }
+        static void Toggle(System.Windows.Controls.CheckBox control)
+        {
+            var peer = System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(control)!;
+            ((System.Windows.Automation.Provider.IToggleProvider)peer.GetPattern(System.Windows.Automation.Peers.PatternInterface.Toggle)).Toggle();
+        }
+        foreach (var theme in new[] { AppTheme.Light, AppTheme.Dark })
+        {
+            ThemeService.Apply(theme); ClickCard(window.SingleMode); await Task.Delay(150);
+            Require(config.Settings.LayoutMode == LayoutMode.SingleAppBox, "Single card selection did not save.");
+            Capture(window, Path.Combine(output, "general-single-" + theme.ToString().ToLowerInvariant() + ".png"));
+            ClickCard(window.MultipleMode); await Task.Delay(150);
+            Require(store.Load().Settings.LayoutMode == LayoutMode.MultipleAppBoxes, "Multiple card selection did not persist.");
+            Capture(window, Path.Combine(output, "general-multiple-" + theme.ToString().ToLowerInvariant() + ".png"));
+        }
+        var nativeState = window.NativeStyleState;
+        if (window.NamesToggle.IsChecked == true) Toggle(window.NamesToggle);
+        if (window.AutoCloseToggle.IsChecked == true) Toggle(window.AutoCloseToggle);
+        if (window.StartupToggle.IsChecked == true) Toggle(window.StartupToggle);
+        if (window.StyleToggle.IsEnabled && window.StyleToggle.IsChecked == true) Toggle(window.StyleToggle);
+        await Task.Delay(250);
+        foreach (var control in new[] { window.NamesToggle, window.AutoCloseToggle, window.StyleToggle })
+            if (control.Template.FindName("SwitchThumb", control) is FrameworkElement thumb) Require(thumb.Margin.Left < 4, "Off toggle thumb did not return left.");
+        Require(window.NativeStyleState is { SystemBackdropApplied: false }, "Disabling Windows style did not restore the theme fallback.");
+        Capture(window, Path.Combine(output, "general-toggles-off.png"));
+        Require(!store.Load().Settings.ShowApplicationNames && !store.Load().Settings.CloseAfterLaunch, "Toggle changes did not persist.");
+        Toggle(window.NamesToggle); Toggle(window.AutoCloseToggle); Toggle(window.StartupToggle);
+        if (window.StyleToggle.IsEnabled) Toggle(window.StyleToggle);
+        await Task.Delay(250);
+        foreach (var control in new[] { window.NamesToggle, window.AutoCloseToggle, window.StartupToggle })
+            if (control.Template.FindName("SwitchThumb", control) is FrameworkElement thumb) Require(thumb.Margin.Left > 22, "On toggle thumb did not move right.");
+        Capture(window, Path.Combine(output, "general-toggles-on.png"));
+        Require(fakeStartup && startupWrites == 1 && store.Load().Settings.StartWithWindows, "Startup control did not call the injected registration service.");
+        Require(System.Text.Json.JsonSerializer.Serialize(config.Folders) == folderSnapshot, "Mode/toggle changes modified containers or custom icons.");
+        window.Sections.SelectedIndex = 5; await Task.Delay(100); Capture(window, Path.Combine(output, "about-official-icon.png"));
+        window.SelectSection("General"); ThemeService.Apply(AppTheme.Light);
+        foreach (var scale in new[] { 1.25, 1.5, 2.0 })
+        {
+            window.MinHeight = 300; window.MinWidth = 500;
+            window.Width = Math.Min(870, (1920 - 16) / scale); window.Height = Math.Min(650, (1080 - 48 - 16) / scale);
+            await Task.Delay(120); window.GeneralScroll.ScrollToTop(); window.UpdateLayout();
+            Capture(window, Path.Combine(output, "general-simulated-" + (int)(scale * 100) + "-top.png"), scale);
+            window.GeneralScroll.ScrollToBottom(); window.UpdateLayout();
+            Require(window.StyleToggle.ActualWidth > 0 && window.GeneralScroll.ViewportWidth > 300, "General settings lost usable width at simulated scaling.");
+            Capture(window, Path.Combine(output, "general-simulated-" + (int)(scale * 100) + ".png"), scale);
+        }
+        window.Close();
+        config.Settings.CloseAfterLaunch = false;
+        var marker = Path.Combine(store.DirectoryPath, "phase2c-launch.txt");
+        var link = CreateLink(store.DirectoryPath, "Phase2C launch probe", probeExe, "--launch-probe \"" + marker + "\"");
+        launcher.Present(false); launcher.SuppressDismiss = true;
+        app.LaunchForDiagnostics(new() { Name = "Auto close disabled probe", Kind = TargetKind.Shortcut, Target = link });
+        for (var i = 0; i < 50 && !File.Exists(marker); i++) await Task.Delay(100);
+        Require(File.Exists(marker) && launcher.IsVisible, "Disabled auto close was ignored.");
+        config.Settings.CloseAfterLaunch = true; store.Save(config);
+        await File.WriteAllTextAsync(Path.Combine(output, "phase-2c-result.txt"), $"OS: {Environment.OSVersion}\nGeneral Light/Dark, both full-card selections: True\nCard title/preview/description regions hit the parent radio control: True\nAll four toggle rows persist; startup uses an injected test service: True\nContainer definitions/IDs/apps/custom icons/activation unchanged: True\nNative Windows style API state: {nativeState}\nNative Mica compositor is not part of WPF content screenshots\nAuto-close disabled keeps popup open after a real probe launch: True\n125/150/200 percent screenshots use simulated DIP constraints/export DPI, not OS scaling changes\nPhysical taskbar official icon and native compositor screenshot: not performed (computer-use runtime fails on locked F: drive)\n");
+    }
     private static string CreateLink(string directory, string name, string target, string args = "")
     {
         var file = Path.Combine(directory, name + ".lnk"); object? shell = null, link = null;
@@ -282,15 +357,27 @@ internal static class SmokeTest
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(visual); i++) text += DescribeVisual(VisualTreeHelper.GetChild(visual, i), depth + 1);
         return text;
     }
-    private static void Capture(Window window, string file)
+    private static void Capture(Window window, string file, double? exportScale = null)
     {
         window.UpdateLayout();
         if (window is LauncherWindow launcher)
             File.AppendAllText(Path.Combine(Path.GetDirectoryName(file)!, "layout-metrics.txt"), $"{Path.GetFileName(file)}: height={launcher.Height}, actual={launcher.ActualHeight}, viewport={launcher.AppScroller.ViewportHeight}, extent={launcher.AppScroller.ExtentHeight}, scrollable={launcher.AppScroller.ScrollableHeight}, count={launcher.AppGrid.Items.Count}, grid={launcher.AppGrid.ActualWidth}x{launcher.AppGrid.ActualHeight}, desired={launcher.AppGrid.DesiredSize}\n");
-        var dpi = VisualTreeHelper.GetDpi(window);
+        var dpi = exportScale is { } scale ? new DpiScale(scale, scale) : VisualTreeHelper.GetDpi(window);
         // Render the window visual itself: manually adding root margins clips transparent chrome/pointer bounds.
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth * dpi.DpiScaleX), (int)Math.Ceiling(window.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-        bitmap.Render(window);
+        if (window is SettingsWindow)
+        {
+            // Theme fallback underlay: WPF cannot capture DWM's compositor-owned Mica material.
+            var visual = new DrawingVisual();
+            using (var dc = visual.RenderOpen())
+            {
+                var rect = new Rect(0, 0, window.ActualWidth, window.ActualHeight);
+                dc.DrawRectangle((Brush)window.FindResource("Surface"), null, rect);
+                dc.DrawRectangle(new VisualBrush(window) { ViewboxUnits = BrushMappingMode.Absolute, Viewbox = rect }, null, rect);
+            }
+            bitmap.Render(visual);
+        }
+        else bitmap.Render(window);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(file); encoder.Save(stream);
     }

@@ -11,6 +11,22 @@ public sealed class ContainerLaunchers(string directory, string executable)
     public string DirectoryPath => Path.Combine(directory, "Launchers");
     public string ShortcutPath(Guid id) => Path.Combine(DirectoryPath, id.ToString("N") + ".lnk");
     public static string Identity(Guid id) => "AppDock.Container." + id.ToString("N");
+    public string MainShortcutPath => Path.Combine(DirectoryPath, "AppDock.lnk");
+    public void UpdateMain(string productIcon)
+    {
+        Directory.CreateDirectory(DirectoryPath);
+        object? shell = null, link = null;
+        try
+        {
+            shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell")!);
+            link = ((dynamic)shell!).CreateShortcut(MainShortcutPath);
+            ((dynamic)link).TargetPath = executable; ((dynamic)link).Arguments = "";
+            ((dynamic)link).WorkingDirectory = Path.GetDirectoryName(executable)!;
+            ((dynamic)link).Description = "AppDock"; ((dynamic)link).IconLocation = productIcon + ",0"; ((dynamic)link).Save();
+        }
+        finally { if (link is not null) Marshal.FinalReleaseComObject(link); if (shell is not null) Marshal.FinalReleaseComObject(shell); }
+        TaskbarIdentity.SetShortcut(MainShortcutPath, WindowsJumpLists.MainIdentity);
+    }
     public void Sync(Configuration config)
     {
         Directory.CreateDirectory(DirectoryPath);

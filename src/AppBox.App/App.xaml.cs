@@ -46,6 +46,7 @@ public partial class App : System.Windows.Application
             store = new(e.Args.Contains("--smoke-test") ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N")) : null);
             config = store.Load();
             if (!e.Args.Contains("--smoke-test")) config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
+            ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
             ThemeService.Apply(config.Settings.Theme);
             launchers = new(store.DirectoryPath, Path.Combine(AppContext.BaseDirectory, "AppDock.exe"));
             launchers.Sync(config);
@@ -56,6 +57,9 @@ public partial class App : System.Windows.Application
             MainWindow = launcher;
             instance.Listen(value => Dispatcher.BeginInvoke(() => HandleActivation(value)));
             CreateTray();
+            try { launchers.UpdateMain(Path.Combine(AppContext.BaseDirectory, "AppDock.ico")); }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            { tray?.ShowBalloonTip(5000, "AppDock", "The main launcher shortcut could not be updated. " + ex.Message, Forms.ToolTipIcon.Info); }
             if (!diagnosticRun) PublishJumpLists();
             SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
             if (!e.Args.Contains("--background")) HandleActivation(request);
@@ -98,7 +102,7 @@ public partial class App : System.Windows.Application
             foreach (var container in config.Folders.Where(f => f.IsActive || File.Exists(launchers.ShortcutPath(f.Id))))
             {
                 var identity = ContainerLaunchers.Identity(container.Id);
-                WindowsJumpLists.Publish(identity, executable, new ContainerIcons(store.DirectoryPath).PersistentPath(container.Icon), container.Id);
+                WindowsJumpLists.Publish(identity, executable, Path.Combine(AppContext.BaseDirectory, "AppDock.ico"), container.Id);
             }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -131,7 +135,7 @@ public partial class App : System.Windows.Application
     {
         if (!model.Interaction.CanLaunch) return;
         var result = launchService.Launch(entry);
-        if (result.Success) launcher.Hide();
+        if (model.Interaction.DismissAfterLaunch(result.Success, config.Settings.CloseAfterLaunch)) launcher.Hide();
         else if (result.Error is not null)
         {
             model.Report(result.Error);
@@ -159,6 +163,7 @@ public partial class App : System.Windows.Application
     private void Persist()
     {
         store.Save(config);
+        ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
         try { launchers.Sync(config); if (!diagnosticRun) PublishJumpLists(); }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         { tray?.ShowBalloonTip(5000, "AppDock", "Settings were saved, but launcher shortcuts could not be updated. " + ex.Message, Forms.ToolTipIcon.Warning); }
