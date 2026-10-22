@@ -42,19 +42,36 @@ public partial class LauncherWindow : Window
         };
         Deactivated += (_, _) => { if (Model.Interaction.DismissOnFocusLost(SuppressDismiss || contextMenuOpen || OwnedWindows.Cast<Window>().Any(w => w.IsVisible))) Hide(); };
         PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { if (Model.IsEditing) Model.SetEditing(false); else Hide(); } };
-        IsVisibleChanged += (_, _) => { if (!IsVisible) { Model.SetEditing(false); ClearDragFeedback(); } };
+        IsVisibleChanged += (_, _) => { if (!IsVisible) { Model.SetEditing(false); Model.Interaction.CompleteClose(); ClearDragFeedback(); } };
         DpiChanged += (_, _) => QueueResize();
         Closing += (_, e) => { e.Cancel = true; Hide(); };
     }
-    public void Present(bool animations)
+    public void Present(bool animations, WindowPlacement.Anchor? requestedAnchor = null)
     {
-        BeginAnimation(OpacityProperty, null); Opacity = 1;
-        anchor = WindowPlacement.CaptureAnchor();
+        var opening = Model.Interaction.TryBeginOpen();
+        if (opening) { BeginAnimation(OpacityProperty, null); Opacity = 1; }
+        anchor = requestedAnchor ?? WindowPlacement.CaptureAnchor();
         ApplySizing();
         Show(); Activate(); WindowPlacement.SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle);
-        if (animations && SystemParameters.ClientAreaAnimation)
-            BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(130)));
+        var token = Model.Interaction.Generation;
+        if (opening && animations && SystemParameters.ClientAreaAnimation)
+        {
+            var animation = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(130));
+            animation.Completed += (_, _) => Model.Interaction.CompleteOpen(token);
+            BeginAnimation(OpacityProperty, animation);
+        }
+        else if (opening) Model.Interaction.CompleteOpen(token);
     }
+    public new void Hide()
+    {
+        Model.Interaction.BeginClose(); BeginAnimation(OpacityProperty, null); base.Hide(); Model.Interaction.CompleteClose();
+    }
+    public void Cleanup()
+    {
+        BeginAnimation(OpacityProperty, null); ClearDragFeedback();
+        if (DataContext is LauncherViewModel model) { model.PropertyChanged -= ModelChanged; model.Interaction.CompleteClose(); }
+    }
+    public PointerPlacement Pointer { get; private set; }
     private void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(LauncherViewModel.DesiredHeight) or nameof(LauncherViewModel.HasStatus)) QueueResize();
@@ -69,9 +86,15 @@ public partial class LauncherWindow : Window
     private void ApplySizing()
     {
         var count = Model.IsOverview ? Model.Containers.Count : Model.Applications.Count;
-        Width = Math.Min(LauncherSizing.Width, Math.Max(122, Math.Min(4, Math.Max(1, count)) * LauncherSizing.TileWidth + 26));
-        Height = Model.DesiredHeight;
-        WindowPlacement.Place(this, anchor);
+        Width = Math.Min(LauncherSizing.Width, Math.Max(122, Math.Min(4, Math.Max(1, count)) * LauncherSizing.TileWidth + 26)) + 2 * PopupPointer.ShadowMargin;
+        Height = Model.DesiredHeight + 2 * PopupPointer.ShadowMargin + (Model.ShowPopupPointer ? PopupPointer.Depth : 0);
+        Pointer = WindowPlacement.Place(this, anchor, Model.ShowPopupPointer);
+        if (!Pointer.Visible && Model.ShowPopupPointer)
+        {
+            Height -= PopupPointer.Depth; Pointer = WindowPlacement.Place(this, anchor, Model.ShowPopupPointer);
+        }
+        Frame.Margin = new Thickness(0, 0, 0, Pointer.Visible ? PopupPointer.Depth : 0);
+        Chrome.ShowPointer = Pointer.Visible; Chrome.PointerCenter = Pointer.CenterDip; Chrome.InvalidateVisual();
     }
     private void AppScroller_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {

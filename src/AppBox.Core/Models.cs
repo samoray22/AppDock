@@ -34,6 +34,10 @@ public sealed class ContainerIcon
 public sealed class Preferences
 {
     public LayoutMode LayoutMode { get; set; }
+    public ContainerOpeningBehavior OpeningBehavior { get; set; } = ContainerOpeningBehavior.Click;
+    public int HoverOpeningDelayMs { get; set; } = 400;
+    public int HoverClosingDelayMs { get; set; } = 400;
+    public bool ShowPopupPointer { get; set; } = true;
     public int IconSize { get; set; } = 48;
     public bool ShowApplicationNames { get; set; } = true;
     public bool CloseAfterLaunch { get; set; } = true;

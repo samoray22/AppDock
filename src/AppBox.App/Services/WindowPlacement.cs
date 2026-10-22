@@ -31,13 +31,13 @@ public static class WindowPlacement
     {
         GetCursorPos(out var cursor); return new(new(cursor.X, cursor.Y));
     }
-    public static void Place(Window window, Anchor? anchor = null)
+    public static PointerPlacement Place(Window window, Anchor? anchor = null, bool showPointer = false)
     {
         anchor ??= CaptureAnchor();
         var cursor = new Point { X = anchor.Cursor.X, Y = anchor.Cursor.Y };
         var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
         var monitor = MonitorFromPoint(cursor, 2);
-        if (!GetMonitorInfo(monitor, ref info)) return;
+        if (!GetMonitorInfo(monitor, ref info)) return default;
         var hwnd = new WindowInteropHelper(window).EnsureHandle();
         // Move into the target monitor before reading its effective per-window DPI.
         if (MonitorFromWindow(hwnd, 2) != monitor)
@@ -45,5 +45,6 @@ public static class WindowPlacement
         var scale = GetDpiForWindow(hwnd) / 96.0;
         var bounds = PopupPlacement.Calculate(new(info.Monitor.Left, info.Monitor.Top, info.Monitor.Right, info.Monitor.Bottom), new(info.Work.Left, info.Work.Top, info.Work.Right, info.Work.Bottom), new(cursor.X, cursor.Y), scale, window.Width, window.Height);
         SetWindowPos(hwnd, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height, 0x14);
+        return PopupPointer.Calculate(new(info.Monitor.Left, info.Monitor.Top, info.Monitor.Right, info.Monitor.Bottom), new(info.Work.Left, info.Work.Top, info.Work.Right, info.Work.Bottom), anchor.Cursor, bounds, scale, showPointer);
     }
 }

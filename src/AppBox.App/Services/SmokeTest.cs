@@ -71,7 +71,7 @@ internal static class SmokeTest
         focusProbe.Close();
         if (!dismissal) throw new InvalidOperationException("Popup did not dismiss on deactivation.");
         // Exercise the production launch and popup-close path with a harmless dedicated test executable.
-        var probeExe = Path.Combine(Environment.CurrentDirectory, "tests", "AppBox.Tests", "bin", "Release", "net10.0-windows", "AppBox.Tests.exe");
+        var probeExe = File.Exists(Path.Combine(AppContext.BaseDirectory, "AppBox.Tests.exe")) ? Path.Combine(AppContext.BaseDirectory, "AppBox.Tests.exe") : Path.Combine(Environment.CurrentDirectory, "tests", "AppBox.Tests", "bin", "Release", "net10.0-windows", "AppBox.Tests.exe");
         var marker = Path.Combine(Path.GetDirectoryName(store.FilePath)!, "launch-probe.txt");
         var linkPath = Path.Combine(Path.GetDirectoryName(store.FilePath)!, "launch-probe.lnk");
         object? shell = null, link = null;
@@ -94,6 +94,7 @@ internal static class SmokeTest
         await File.WriteAllTextAsync(Path.Combine(output, "smoke-result.txt"), $"OS: {Environment.OSVersion}\nFolders: {roundtrip.Folders.Count}\nApps: {folder.Applications.Count}\nReal shell icons: {icons}\nConfig roundtrip: {roundtrip.Folders.Count == config.Folders.Count}\nSecond-process activation and folder routing: {activation}\nDeactivation dismissal: {dismissal}\nReal executable launch via .lnk and automatic dismissal: {launchClosed}\nWPF windows rendered: 4\n");
         await RunPhase1CAsync(app, config, store, launcher, model, output, probeExe);
         await RunPhase2AAsync(app, config, store, launcher, model, output, settings);
+        await RunPhase2BAsync(app, config, store, launcher, model, output);
         app.Shutdown();
     }
     private static async Task RunPhase1CAsync(App app, Configuration config, ConfigurationStore store, LauncherWindow launcher, LauncherViewModel model, string output, string probeExe)
@@ -158,7 +159,7 @@ internal static class SmokeTest
         await Task.Delay(200);
         Capture(launcher, Path.Combine(output, "launcher-scrollable.png"));
         File.WriteAllText(Path.Combine(output, "grid-tree.txt"), DescribeVisual(launcher.AppGrid, 0));
-        Require(launcher.AppScroller.ScrollableHeight > 0 && launcher.Height <= 771, "Large folder was not height bounded and scrollable.");
+        Require(launcher.AppScroller.ScrollableHeight > 0 && launcher.Height <= 797, "Large folder was not height bounded and scrollable.");
         config.Folders.Remove(large);
         await File.WriteAllTextAsync(Path.Combine(output, "phase-1c-result.txt"), "Edit focus changes (3 cycles), no topmost: True\nExternal WPF FileDrop (three real .lnk files), real icons: True\nExternal Copy feedback and internal Move insertion: True\nInvalid internal format cannot import external data: True\nReorder, rename, remove, JSON reload: True\nDone restores normal focus dismissal: True\nReal shortcut launch after editing and automatic close: True\nLarge folder bounded and scrollable: True\nPhysical Explorer/Start-menu/taskbar drag gestures: NOT PERFORMED (computer-use runtime unavailable)\n");
     }
@@ -193,10 +194,74 @@ internal static class SmokeTest
         model.OpenContainer(graphics); launcher.Present(false); await Task.Delay(200);
         Require(launcher.Icon is not null && launcher.Title.Contains("Graphics"), "Container window identity/icon missing.");
         // Legacy apphost also forwards a container activation request through production IPC.
-        using var legacy = Process.Start(new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "AppBox.App.exe"), "--container " + development.Id) { UseShellExecute = false });
+        using var legacy = Process.Start(new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "AppBox.App.exe"), "--smoke-secondary --container " + development.Id) { UseShellExecute = false });
         await legacy!.WaitForExitAsync(); await Task.Delay(700);
         Require(model.SelectedFolder?.Id == development.Id, "Legacy executable did not forward activation.");
         await File.WriteAllTextAsync(Path.Combine(output, "phase-2a-result.txt"), $"OS: {Environment.OSVersion}\nSingle launcher category/custom icons rendered in Light and Dark: True\nCustom PNG copied to persistent ICO: {File.Exists(graphics.Icon.ResourcePath)}\nIcon picker live preview rendered in Light and Dark: True\nContainer Manager rendered: True\nMultiple-container window icon and title: True\nLegacy AppBox.App.exe activation forwarding: True\nPin/unpin, Explorer physical drag and Windows icon cache refresh: not automated\n");
+    }
+    private static async Task RunPhase2BAsync(App app, Configuration config, ConfigurationStore store, LauncherWindow launcher, LauncherViewModel model, string output)
+    {
+        File.Delete(Path.Combine(output, "phase-2b-result.txt"));
+        var folder = config.Folders.First(f => f.IsActive);
+        async Task Dispatch(ActivationCommand command, Guid? id)
+        {
+            var request = new ActivationRequest(command, id);
+            using var process = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "--smoke-secondary " + request.Arguments) { UseShellExecute = false });
+            await process!.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(8));
+            Require(process.ExitCode == 0, "Secondary command process failed."); await Task.Delay(200);
+        }
+        await Dispatch(ActivationCommand.Settings, folder.Id);
+        var settings = app.Windows.OfType<SettingsWindow>().Single(); Require(settings.Sections.SelectedIndex == 0 && settings.SelectedContainerId == folder.Id, "Settings command misrouted.");
+        var other = config.Folders.Last(f => f.IsActive);
+        await Dispatch(ActivationCommand.ManageContainers, other.Id);
+        Require(app.Windows.OfType<SettingsWindow>().Single() == settings && settings.Sections.SelectedIndex == 1 && settings.SelectedContainerId == other.Id, "Repeated management command did not reuse/select the existing window.");
+        await Dispatch(ActivationCommand.EditContainer, folder.Id);
+        Require(!app.Windows.OfType<SettingsWindow>().Any() && model.SelectedFolder == folder && model.IsEditing && model.Interaction.State == PopupState.Editing, "Edit Container command failed.");
+        model.SetEditing(false); launcher.SuppressDismiss = true;
+        for (var i = 0; i < 3; i++) await Dispatch(ActivationCommand.Open, folder.Id);
+        Require(app.Windows.OfType<LauncherWindow>().Count() == 1 && launcher.IsVisible, "Repeated activation created or lost a popup.");
+        // Capture actual WPF geometry on the current display using explicit, diagnostic taskbar-edge anchors.
+        var currentScreen = System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position);
+        var screens = new[] { currentScreen }.Concat(System.Windows.Forms.Screen.AllScreens.Where(s => s.DeviceName != currentScreen.DeviceName)).ToArray();
+        var monitorEvidence = new List<string>(); var bottom = false;
+        for (var monitorIndex = 0; monitorIndex < screens.Length; monitorIndex++)
+        {
+            var screen = screens[monitorIndex];
+            var hasBottomTaskbar = screen.Bounds.Bottom > screen.WorkingArea.Bottom; bottom |= hasBottomTaskbar;
+            var prefix = monitorIndex == 0 ? "pointer-" : "monitor-" + monitorIndex + "-pointer-";
+            if (hasBottomTaskbar)
+            {
+                foreach (var edge in new[] { ("center", 0.5), ("right-edge", 0.995) })
+                {
+                    var x = screen.Bounds.Left + (int)(screen.Bounds.Width * edge.Item2);
+                    var y = screen.WorkingArea.Bottom + (screen.Bounds.Bottom - screen.WorkingArea.Bottom) / 2;
+                    var anchor = new WindowPlacement.Anchor(new PixelPoint(x, y));
+                    foreach (var theme in new[] { AppTheme.Light, AppTheme.Dark })
+                    {
+                        ThemeService.Apply(theme); launcher.Present(false, anchor); await Task.Delay(200);
+                        Require(launcher.Pointer.Visible && launcher.Pointer.UsesCursorFallback, "Pointer missing for bottom taskbar.");
+                        Capture(launcher, Path.Combine(output, prefix + edge.Item1 + "-" + theme.ToString().ToLowerInvariant() + ".png"));
+                    }
+                }
+            }
+            else
+            {
+                launcher.Present(false, new WindowPlacement.Anchor(new PixelPoint(screen.WorkingArea.Left + screen.WorkingArea.Width / 2, screen.WorkingArea.Bottom - 1)));
+                await Task.Delay(200); Require(!launcher.Pointer.Visible, "Pointer should be hidden without a bottom taskbar.");
+                Capture(launcher, Path.Combine(output, prefix + "no-bottom-taskbar.png"));
+            }
+            monitorEvidence.Add($"Monitor {monitorIndex}: bounds={screen.Bounds}; work={screen.WorkingArea}; DPI={VisualTreeHelper.GetDpi(launcher).PixelsPerInchX}; bottom taskbar={hasBottomTaskbar}");
+        }
+        File.WriteAllLines(Path.Combine(output, "phase-2b-monitors.txt"), monitorEvidence);
+        config.Settings.ShowPopupPointer = false; model.Refresh(); launcher.Present(false); await Task.Delay(150);
+        Require(!launcher.Pointer.Visible, "Pointer visibility setting ignored."); Capture(launcher, Path.Combine(output, "pointer-disabled.png"));
+        config.Settings.ShowPopupPointer = true; store.Save(config);
+        app.HandleActivation(new(ActivationCommand.Settings)); await Task.Delay(150); settings = app.Windows.OfType<SettingsWindow>().Single(); settings.SelectSection("Taskbar Interaction"); await Task.Delay(150);
+        Capture(settings, Path.Combine(output, "taskbar-interaction.png")); settings.Close();
+        var identity = "AppDock.Diagnostics." + Guid.NewGuid().ToString("N");
+        try { WindowsJumpLists.Publish(identity, Environment.ProcessPath!, new ContainerIcons(store.DirectoryPath).PersistentPath(folder.Icon), folder.Id); }
+        finally { WindowsJumpLists.DeleteDiagnosticList(identity); }
+        await File.WriteAllTextAsync(Path.Combine(output, "phase-2b-result.txt"), $"OS: {Environment.OSVersion}\nAvailable displays captured with diagnostic anchors: {System.Windows.Forms.Screen.AllScreens.Length}\nSecondary-process Settings / Manage / Edit routing with correct IDs: True\nExisting settings window reused and retargeted: True\nRepeated click command uses one popup: True\nNative explicit-AppID Jump List publication: True (isolated diagnostic identity)\nPointer Light/Dark center and clamped edge render: {bottom}\nPointer setting disables pointer: True\nHover unavailable; click fallback retained; no hover timers/hooks: True\nPhysical taskbar right-click/pin/hover and multiple display scale interaction: NOT PERFORMED (computer-use runtime failed on locked F: drive)\nPointer captures use diagnostic anchors on the actual display, not physical taskbar clicks\n");
     }
     private static string CreateLink(string directory, string name, string target, string args = "")
     {
@@ -223,17 +288,9 @@ internal static class SmokeTest
         if (window is LauncherWindow launcher)
             File.AppendAllText(Path.Combine(Path.GetDirectoryName(file)!, "layout-metrics.txt"), $"{Path.GetFileName(file)}: height={launcher.Height}, actual={launcher.ActualHeight}, viewport={launcher.AppScroller.ViewportHeight}, extent={launcher.AppScroller.ExtentHeight}, scrollable={launcher.AppScroller.ScrollableHeight}, count={launcher.AppGrid.Items.Count}, grid={launcher.AppGrid.ActualWidth}x{launcher.AppGrid.ActualHeight}, desired={launcher.AppGrid.DesiredSize}\n");
         var dpi = VisualTreeHelper.GetDpi(window);
-        var content = (FrameworkElement)window.Content;
-        var width = content.ActualWidth + content.Margin.Left + content.Margin.Right;
-        var height = content.ActualHeight + content.Margin.Top + content.Margin.Bottom;
-        var visual = new DrawingVisual();
-        using (var drawing = visual.RenderOpen())
-        {
-            drawing.DrawRectangle(window.Background, null, new Rect(0, 0, width, height));
-            drawing.DrawRectangle(new VisualBrush(content) { ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(0, 0, content.ActualWidth, content.ActualHeight) }, null, new Rect(content.Margin.Left, content.Margin.Top, content.ActualWidth, content.ActualHeight));
-        }
-        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width * dpi.DpiScaleX), (int)Math.Ceiling(height * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
+        // Render the window visual itself: manually adding root margins clips transparent chrome/pointer bounds.
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth * dpi.DpiScaleX), (int)Math.Ceiling(window.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        bitmap.Render(window);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(file); encoder.Save(stream);
     }

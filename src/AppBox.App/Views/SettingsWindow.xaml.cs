@@ -18,12 +18,15 @@ public partial class SettingsWindow : Window
     public SettingsWindow(SettingsViewModel model, string section)
     {
         InitializeComponent(); DataContext = model;
-        Sections.SelectedIndex = section is "Containers" or "Folders" ? 1 : 0;
+        SelectSection(section);
         SingleMode.IsChecked = model.Config.Settings.LayoutMode == LayoutMode.SingleAppBox;
         MultipleMode.IsChecked = !SingleMode.IsChecked;
         SyncThemes(); StartWindows.IsChecked = model.Config.Settings.StartWithWindows;
         SourceInitialized += (_, _) => WindowPlacement.Round(this, ThemeService.Dark);
     }
+    public Guid? SelectedContainerId => Model.SelectedFolder?.Id;
+    public void SelectContainer(AppFolder container) => Model.SelectedFolder = container;
+    public void SelectSection(string section) => Sections.SelectedIndex = section switch { "Containers" or "Folders" => 1, "Taskbar Interaction" => 3, _ => 0 };
     private void Guard(Action action) { try { action(); } catch (Exception ex) { MessageBox.Show(this, ex.Message, "AppDock", MessageBoxButton.OK, MessageBoxImage.Information); } }
     private void NewFolder_Click(object sender, RoutedEventArgs e) { var name = TextPrompt.Ask(this, "Create a Container", "New Container"); if (name is not null) Guard(() => Model.Create(name)); }
     private void Rename_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is null) return; var name = TextPrompt.Ask(this, "Rename Container", Model.SelectedFolder.Name); if (name is not null) Guard(() => Model.Rename(name)); }
