@@ -1,4 +1,4 @@
-# AppDock — Phase 2A
+# AppDock — Phase 2B
 
 AppDock is a native Windows 11 application launcher built with C#, .NET 10 and WPF. Containers hold references to applications; removing a reference never uninstalls or deletes an application. No third-party runtime icon packages, account or telemetry.
 
@@ -41,6 +41,24 @@ Exit the old AppBox process before upgrading. Replace the output in its existing
 
 Launches retain path, shortcut argument and working-directory validation. Relative and remote executable paths, command interpreters and indirect command launchers remain unsupported. Packaged apps use validated Shell identities; `.url` references permit HTTP/HTTPS only. Configuration loading never executes targets.
 
+## Taskbar Interaction and Jump Lists
+
+Right-click a running or pinned AppDock taskbar icon to access **AppDock Settings**, **Edit Container**, and **Manage Containers** where Windows displays application Jump List tasks. Dedicated container launchers carry their stable GUID in each command. Settings/management commands select the relevant container; repeated requests reuse the same process and windows. The main Edit command uses the selected active container, or opens management if none exists. Inactive/deleted container edit requests fail gracefully. Existing `.lnk` paths, identities and legacy executable forwarding remain unchanged.
+
+The documented `ICustomDestinationList` API publishes a separate task list for the main `AppBox.Desktop` identity and each `AppDock.Container.<guid>` identity. Commands may be launched directly:
+
+```powershell
+AppDock.exe --settings
+AppDock.exe --manage-containers --container <guid>
+AppDock.exe --edit-container --container <guid>
+```
+
+**Settings → Taskbar Interaction** includes Click, disabled/unavailable Hover and Click or Hover choices, reserved hover delays, **Show popup pointer** and **Enable popup animations**. Click remains the only enabled opening mode. Hover delays persist with safe limits, but no hover timer runs while hover support is unavailable. Loading a hover mode falls back to Click.
+
+A small pointer is drawn as part of the popup's unified Light/Dark border and shadow. On a bottom taskbar it uses the cursor's horizontal position, clamped clear of rounded corners. When activation occurs away from the taskbar (for example, by keyboard or Jump List), it uses the popup center. This is approximate alignment, not an exact pinned-button location. Pointer geometry scales with DPI and the existing monitor/working-area placement. The pointer is hidden for top/side taskbar arrangements and can be switched off completely.
+
+Reliable hover activation of independently pinned launchers was not established through supported APIs. DWM hover messages request thumbnails/live-preview bitmaps; notification-icon hover APIs apply to tray icons, not independent pinned launchers. UI Automation does not document a stable mapping from taskbar buttons to each container AppUserModelID, so AppDock does not guess from button names, poll Explorer, install global input hooks, or simulate interactive hover using thumbnails. See the [Phase 2B feasibility result](docs/phase-2b-report.md).
+
 ## Taskbar workflow
 
 In Multiple mode, activate a container, open **Settings → Taskbar → Open Launcher Shortcuts**, and use Windows **Pin to taskbar** on its shortcut (or launch it and pin its running button). Shortcuts live under `%LOCALAPPDATA%\AppDock\Launchers\<guid>.lnk`. Names and icon changes update the same shortcut. Windows taskbar identities use the stable GUID, with matching window relaunch arguments and persistent icon resources.
@@ -53,6 +71,8 @@ Positioning uses the pointer's monitor/taskbar edge, clamps to screen boundaries
 
 ```powershell
 .\scripts\validate.ps1 -Smoke
+# Use isolated Release output while the normal build is running:
+.\scripts\validate.ps1 -Smoke -Isolated
 ```
 
-The dependency-free console runner must be run explicitly (`dotnet test` does not discover it). The smoke run uses isolated configuration, real WPF windows, Shell shortcuts, secondary-process IPC and a harmless test executable. It renders Light/Dark captures into ignored `artifacts/smoke`; it does not pin anything or change startup registration. See [Phase 2A results and screenshots](docs/phase-2a-report.md) and [Windows integration details](docs/windows-integration.md). Earlier Phase 1/1C reports are historical baselines.
+The dependency-free console runner must be run explicitly (`dotnet test` does not discover it). The smoke run uses isolated configuration and IPC, real WPF windows, Shell shortcuts, secondary-process IPC and a harmless test executable. Native Jump List tests use temporary diagnostic AppIDs and remove only those lists afterward. It renders Light/Dark captures into ignored `artifacts/smoke`; it does not pin anything or change startup registration. See [Phase 2B results and screenshots](docs/phase-2b-report.md) and the [Phase 2A baseline](docs/phase-2a-report.md) and [Windows integration details](docs/windows-integration.md). Earlier Phase 1/1C reports are historical baselines.

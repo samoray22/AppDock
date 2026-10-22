@@ -1,0 +1,2 @@
+Monitor 0: bounds={X=-2560,Y=-454,Width=2560,Height=1440}; work={X=-2560,Y=-454,Width=2560,Height=1392}; DPI=96; bottom taskbar=True
+Monitor 1: bounds={X=0,Y=0,Width=1920,Height=1080}; work={X=0,Y=0,Width=1920,Height=1032}; DPI=96; bottom taskbar=True

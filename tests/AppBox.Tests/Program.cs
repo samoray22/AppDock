@@ -15,7 +15,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        if (args.Length == 2 && args[0] == "--launch-probe") { File.WriteAllText(args[1], Environment.CurrentDirectory); return 0; }
+        if (args.Length == 2 && args[0] == "--launch-probe") { File.WriteAllText(args[1] + ".writing", Environment.CurrentDirectory); File.Move(args[1] + ".writing", args[1], true); return 0; }
         Directory.CreateDirectory(Root);
         Test("Folder create, rename, delete and stable ID", () =>
         {
@@ -145,6 +145,7 @@ internal static class Program
         });
         Phase1CTests.Run(Test, Root);
         Phase2ATests.Run(Test, Root);
+        Phase2BTests.Run(Test, Root);
         Console.WriteLine($"\n{passed} passed; {failures} failed.");
         Directory.Delete(Root, true);
         return failures == 0 ? 0 : 1;
