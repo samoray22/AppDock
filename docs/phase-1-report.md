@@ -1,3 +1,5 @@
+> Historical AppBox validation baseline. Current product: **AppDock**. See [Phase 2A](phase-2a-report.md) for current behavior.
+
 # AppBox Phase 1 implementation report
 
 Date: 2026-10-21. Version: 0.1.0. Platform exercised: Windows NT 10.0.26300 (Windows 11), .NET SDK 10.0.101.

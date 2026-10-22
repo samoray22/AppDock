@@ -3,8 +3,12 @@
     <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Resources/AppBox.ico</ApplicationIcon>
+    <AssemblyName>AppDock</AssemblyName><RootNamespace>AppBox.App</RootNamespace>
+    <Product>AppDock</Product><Title>AppDock</Title>
+    <ApplicationIcon>Resources/AppDock.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../AppBox.Infrastructure/AppBox.Infrastructure.csproj" /></ItemGroup>
   <ItemGroup><Using Remove="System.Windows.Forms" /><Using Remove="System.Drawing" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../AppBox.Compatibility/AppBox.Compatibility.csproj" ReferenceOutputAssembly="false"/><Content Include="Resources/AppDock.ico" Link="AppDock.ico" CopyToOutputDirectory="PreserveNewest"/></ItemGroup>
+  <Target Name="CopyCompatibilityLauncher" AfterTargets="Build"><ItemGroup><CompatibilityFiles Include="../AppBox.Compatibility/bin/$(Configuration)/$(TargetFramework)/AppBox.App.*"/></ItemGroup><Copy SourceFiles="@(CompatibilityFiles)" DestinationFolder="$(TargetDir)"/></Target>
 </Project>

@@ -54,13 +54,14 @@ public static class StartupRegistration
     public static bool IsEnabled()
     {
         using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
-        return string.Equals(key?.GetValue("AppBox") as string, Command(), StringComparison.Ordinal);
+        return key?.GetValue("AppDock") is string || key?.GetValue("AppBox") is string;
     }
     public static void SetEnabled(bool enabled)
     {
         using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
-        if (enabled) key.SetValue("AppBox", Command());
-        else key.DeleteValue("AppBox", false);
+        if (enabled) key.SetValue("AppDock", Command());
+        else key.DeleteValue("AppDock", false);
+        key.DeleteValue("AppBox", false);
     }
     private static string Command() => "\"" + Environment.ProcessPath + "\" --background";
 }

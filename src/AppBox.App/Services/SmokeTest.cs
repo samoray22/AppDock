@@ -41,7 +41,7 @@ internal static class SmokeTest
             manager.Add(folder, new AppEntry { Name = "Notepad", Kind = TargetKind.Executable, Target = Path.Combine(Environment.SystemDirectory, "notepad.exe") });
         var workFolder = manager.Create("Work"); manager.Create("Creative"); config.SelectedFolderId = folder.Id;
         config.Settings.Theme = AppTheme.Light;
-        store.Save(config); model.Refresh(); ThemeService.Apply(AppTheme.Light);
+        store.Save(config); model.Refresh(); model.OpenContainer(folder); ThemeService.Apply(AppTheme.Light);
         launcher.SuppressDismiss = true;
         launcher.Present(false);
         await Task.Delay(500);
@@ -93,6 +93,7 @@ internal static class SmokeTest
         var roundtrip = store.Load();
         await File.WriteAllTextAsync(Path.Combine(output, "smoke-result.txt"), $"OS: {Environment.OSVersion}\nFolders: {roundtrip.Folders.Count}\nApps: {folder.Applications.Count}\nReal shell icons: {icons}\nConfig roundtrip: {roundtrip.Folders.Count == config.Folders.Count}\nSecond-process activation and folder routing: {activation}\nDeactivation dismissal: {dismissal}\nReal executable launch via .lnk and automatic dismissal: {launchClosed}\nWPF windows rendered: 4\n");
         await RunPhase1CAsync(app, config, store, launcher, model, output, probeExe);
+        await RunPhase2AAsync(app, config, store, launcher, model, output, settings);
         app.Shutdown();
     }
     private static async Task RunPhase1CAsync(App app, Configuration config, ConfigurationStore store, LauncherWindow launcher, LauncherViewModel model, string output, string probeExe)
@@ -105,7 +106,7 @@ internal static class SmokeTest
         {
             CreateLink(directory, "Notepad", Path.Combine(Environment.SystemDirectory, "notepad.exe")),
             CreateLink(directory, "File Explorer", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe")),
-            CreateLink(directory, "AppBox", Environment.ProcessPath!)
+            CreateLink(directory, "AppDock", Environment.ProcessPath!)
         };
         var focusStayed = true;
         for (var i = 0; i < 3; i++)
@@ -125,7 +126,7 @@ internal static class SmokeTest
         await Task.Delay(250);
         var first = folder.Applications[0];
         var internalData = new DataObject(); internalData.SetData(LauncherWindow.InternalDragFormat, new LauncherWindow.ApplicationMove(folder.Id, first.Id), false);
-        var dropPoint = new Point(launcher.ActualWidth - 35, 190);
+        var dropPoint = new Point(launcher.ActualWidth - 35, 80);
         Require(launcher.UpdateDragFeedback(internalData, dropPoint, DragDropEffects.Move) == DragDropEffects.Move, "Internal move feedback is missing.");
         Capture(launcher, Path.Combine(output, "edit-insertion.png"));
         Require(launcher.ImportDrop(internalData, dropPoint, DragDropEffects.Move) == DragDropEffects.Move && folder.Applications[^1].Id == first.Id, "Internal drop order was not saved.");
@@ -158,7 +159,44 @@ internal static class SmokeTest
         Capture(launcher, Path.Combine(output, "launcher-scrollable.png"));
         File.WriteAllText(Path.Combine(output, "grid-tree.txt"), DescribeVisual(launcher.AppGrid, 0));
         Require(launcher.AppScroller.ScrollableHeight > 0 && launcher.Height <= 771, "Large folder was not height bounded and scrollable.");
+        config.Folders.Remove(large);
         await File.WriteAllTextAsync(Path.Combine(output, "phase-1c-result.txt"), "Edit focus changes (3 cycles), no topmost: True\nExternal WPF FileDrop (three real .lnk files), real icons: True\nExternal Copy feedback and internal Move insertion: True\nInvalid internal format cannot import external data: True\nReorder, rename, remove, JSON reload: True\nDone restores normal focus dismissal: True\nReal shortcut launch after editing and automatic close: True\nLarge folder bounded and scrollable: True\nPhysical Explorer/Start-menu/taskbar drag gestures: NOT PERFORMED (computer-use runtime unavailable)\n");
+    }
+    private static async Task RunPhase2AAsync(App app, Configuration config, ConfigurationStore store, LauncherWindow launcher, LauncherViewModel model, string output, Action<string> settings)
+    {
+        var icons = new ContainerIcons(store.DirectoryPath);
+        var manager = new FolderManager(config);
+        var development = manager.Create("Development"); development.Icon = new() { Kind = ContainerIconKind.BuiltIn, BuiltIn = "Development" };
+        var graphics = manager.Create("Graphics"); graphics.Icon = new() { Kind = ContainerIconKind.BuiltIn, BuiltIn = "Graphics" };
+        // Import an actual PNG through the same custom icon path used by the dialog.
+        var png = Path.Combine(store.DirectoryPath, "custom.png");
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(ContainerIcons.BuiltIn("Internet")));
+        using (var stream = File.Create(png)) encoder.Save(stream);
+        graphics.Icon = icons.Import(png);
+        config.Settings.LayoutMode = LayoutMode.SingleAppBox; store.Save(config); model.ShowHome();
+        launcher.SuppressDismiss = true; launcher.Present(false); await Task.Delay(200);
+        ThemeService.Apply(AppTheme.Light); Capture(launcher, Path.Combine(output, "containers-light.png"));
+        ThemeService.Apply(AppTheme.Dark); await Task.Delay(200); Capture(launcher, Path.Combine(output, "containers-dark.png"));
+        var containerMenu = launcher.Frame.ContextMenu!;
+        containerMenu.PlacementTarget = launcher.Frame; containerMenu.IsOpen = true; await Task.Delay(100);
+        Require(launcher.IsVisible, "Context menu lost focus protection.");
+        ((System.Windows.Controls.MenuItem)containerMenu.Items[0]).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+        Require(model.IsEditing, "Edit Container context command failed.");
+        containerMenu.IsOpen = false; await Task.Delay(100); model.SetEditing(false);
+        var picker = new IconPicker(icons, graphics.Icon) { Owner = launcher }; picker.Show(); await Task.Delay(200);
+        Capture(picker, Path.Combine(output, "custom-icon-dark.png"));
+        ThemeService.Apply(AppTheme.Light); await Task.Delay(200); Capture(picker, Path.Combine(output, "custom-icon-light.png")); picker.Close();
+        settings("Containers"); await Task.Delay(250); var window = app.Windows.OfType<SettingsWindow>().Single();
+        Capture(window, Path.Combine(output, "containers-manager.png")); window.Close();
+        config.Settings.LayoutMode = LayoutMode.MultipleAppBoxes;
+        new ContainerLaunchers(store.DirectoryPath, Environment.ProcessPath!).Sync(config);
+        model.OpenContainer(graphics); launcher.Present(false); await Task.Delay(200);
+        Require(launcher.Icon is not null && launcher.Title.Contains("Graphics"), "Container window identity/icon missing.");
+        // Legacy apphost also forwards a container activation request through production IPC.
+        using var legacy = Process.Start(new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "AppBox.App.exe"), "--container " + development.Id) { UseShellExecute = false });
+        await legacy!.WaitForExitAsync(); await Task.Delay(700);
+        Require(model.SelectedFolder?.Id == development.Id, "Legacy executable did not forward activation.");
+        await File.WriteAllTextAsync(Path.Combine(output, "phase-2a-result.txt"), $"OS: {Environment.OSVersion}\nSingle launcher category/custom icons rendered in Light and Dark: True\nCustom PNG copied to persistent ICO: {File.Exists(graphics.Icon.ResourcePath)}\nIcon picker live preview rendered in Light and Dark: True\nContainer Manager rendered: True\nMultiple-container window icon and title: True\nLegacy AppBox.App.exe activation forwarding: True\nPin/unpin, Explorer physical drag and Windows icon cache refresh: not automated\n");
     }
     private static string CreateLink(string directory, string name, string target, string args = "")
     {
@@ -192,7 +230,7 @@ internal static class SmokeTest
         using (var drawing = visual.RenderOpen())
         {
             drawing.DrawRectangle(window.Background, null, new Rect(0, 0, width, height));
-            drawing.DrawRectangle(new VisualBrush(content), null, new Rect(content.Margin.Left, content.Margin.Top, content.ActualWidth, content.ActualHeight));
+            drawing.DrawRectangle(new VisualBrush(content) { ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(0, 0, content.ActualWidth, content.ActualHeight) }, null, new Rect(content.Margin.Left, content.Margin.Top, content.ActualWidth, content.ActualHeight));
         }
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width * dpi.DpiScaleX), (int)Math.Ceiling(height * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
         bitmap.Render(visual);

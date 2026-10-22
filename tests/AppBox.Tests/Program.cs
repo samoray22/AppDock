@@ -88,35 +88,35 @@ internal static class Program
         Test("Launch failure becomes a friendly error", () =>
         {
             var runner = new FakeProcess { Fail = true }; var service = new ApplicationLaunchService(new FakeShortcut(), runner);
-            var result = service.Launch(Entry(), _ => true); Check(!result.Success && result.Error!.Contains("Notepad") && result.Error.Contains("test failure"));
+            var result = service.Launch(Entry()); Check(!result.Success && result.Error!.Contains("Notepad") && result.Error.Contains("test failure"));
         });
-        Test("Approval required and cancellation does not launch", () =>
+        Test("Direct launch dispatches immediately without confirmation", () =>
         {
             var runner = new FakeProcess(); var service = new ApplicationLaunchService(new FakeShortcut(), runner);
-            Check(!service.Launch(Entry(), _ => false).Success && runner.Count == 0); Check(service.Launch(Entry(), _ => true).Success && runner.Count == 1);
+            Check(service.Launch(Entry()).Success && runner.Count == 1);
         });
         Test("Missing target never reaches process launcher", () =>
         {
             var runner = new FakeProcess(); var service = new ApplicationLaunchService(new FakeShortcut(), runner);
-            var result = service.Launch(Entry(Path.Combine(Root, "absent.exe")), _ => true); Check(!result.Success && runner.Count == 0 && result.Error is not null);
+            var result = service.Launch(Entry(Path.Combine(Root, "absent.exe"))); Check(!result.Success && runner.Count == 0 && result.Error is not null);
         });
         Test("Shortcut arguments and directory preserved to launcher", () =>
         {
             var lnk = Path.Combine(Root, "test.lnk"); File.WriteAllText(lnk, "test");
             var resolver = new FakeShortcut { Target = new(Exe, "\"one two.txt\"", Root) }; var runner = new FakeProcess();
-            var result = new ApplicationLaunchService(resolver, runner).Launch(new() { Name = "Test", Kind = TargetKind.Shortcut, Target = lnk }, _ => true);
+            var result = new ApplicationLaunchService(resolver, runner).Launch(new() { Name = "Test", Kind = TargetKind.Shortcut, Target = lnk });
             Check(result.Success && runner.Last == resolver.Target);
         });
         Test("Command interpreter shortcuts refused", () =>
         {
             var lnk = Path.Combine(Root, "test.lnk"); var runner = new FakeProcess();
             var service = new ApplicationLaunchService(new FakeShortcut { Target = new(Path.Combine(Environment.SystemDirectory, "cmd.exe"), "/c echo unwanted") }, runner);
-            Check(!service.Launch(new() { Name = "Bad", Kind = TargetKind.Shortcut, Target = lnk }, _ => true).Success && runner.Count == 0);
+            Check(!service.Launch(new() { Name = "Bad", Kind = TargetKind.Shortcut, Target = lnk }).Success && runner.Count == 0);
         });
         Test("Packaged launches use shell identity", () =>
         {
             var runner = new FakeProcess(); var entry = new AppEntry { Name = "Calculator", Kind = TargetKind.Packaged, Target = "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App" };
-            Check(new ApplicationLaunchService(new FakeShortcut(), runner).Launch(entry, _ => true).Success && runner.Last!.FileName == "shell:AppsFolder\\" + entry.Target);
+            Check(new ApplicationLaunchService(new FakeShortcut(), runner).Launch(entry).Success && runner.Last!.FileName == "shell:AppsFolder\\" + entry.Target);
         });
         Test("Real Windows ShellExecute starts an executable with arguments", () =>
         {
@@ -144,6 +144,7 @@ internal static class Program
             Check(right.X + right.Width == 1862);
         });
         Phase1CTests.Run(Test, Root);
+        Phase2ATests.Run(Test, Root);
         Console.WriteLine($"\n{passed} passed; {failures} failed.");
         Directory.Delete(Root, true);
         return failures == 0 ? 0 : 1;

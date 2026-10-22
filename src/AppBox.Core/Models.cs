@@ -17,13 +17,24 @@ public sealed class AppEntry
 public sealed class AppFolder
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = "New folder";
+    public string Name { get; set; } = "New Container";
+    public bool IsActive { get; set; } = true;
+    public ContainerIcon Icon { get; set; } = new();
     public List<AppEntry> Applications { get; set; } = [];
+}
+
+public enum ContainerIconKind { Default, BuiltIn, Custom }
+public sealed class ContainerIcon
+{
+    public ContainerIconKind Kind { get; set; }
+    public string BuiltIn { get; set; } = "General Applications";
+    public string? ResourcePath { get; set; }
 }
 
 public sealed class Preferences
 {
     public LayoutMode LayoutMode { get; set; }
+    public int IconSize { get; set; } = 48;
     public bool ShowApplicationNames { get; set; } = true;
     public bool CloseAfterLaunch { get; set; } = true;
     public bool StartWithWindows { get; set; }
@@ -82,7 +93,7 @@ public sealed class FolderManager(Configuration configuration)
         RequireFolder(folder);
         TargetPolicy.Validate(entry, exists);
         if (folder.Applications.Any(a => string.Equals(a.Target, entry.Target, StringComparison.OrdinalIgnoreCase)))
-            throw new ArgumentException("This application is already in the folder.");
+            throw new ArgumentException("This application is already in the container.");
         if (entry.Id == Guid.Empty || folder.Applications.Any(a => a.Id == entry.Id)) entry.Id = Guid.NewGuid();
         folder.Applications.Add(entry);
     }
@@ -90,7 +101,7 @@ public sealed class FolderManager(Configuration configuration)
     public void RenameApplication(AppFolder folder, AppEntry entry, string name)
     {
         RequireFolder(folder);
-        if (!folder.Applications.Contains(entry)) throw new ArgumentException("Application not found in this folder.");
+        if (!folder.Applications.Contains(entry)) throw new ArgumentException("Application not found in this container.");
         entry.Name = CleanName(name);
     }
     // insertionIndex identifies a gap in the original list, including the gap after the last item.
@@ -113,12 +124,12 @@ public sealed class FolderManager(Configuration configuration)
     }
     private void RequireFolder(AppFolder folder)
     {
-        if (!configuration.Folders.Contains(folder)) throw new ArgumentException("Folder not found.");
+        if (!configuration.Folders.Contains(folder)) throw new ArgumentException("Container not found.");
     }
     private static string CleanName(string name)
     {
         name = name.Trim();
-        if (name.Length is 0 or > 60) throw new ArgumentException("Use a folder name between 1 and 60 characters.");
+        if (name.Length is 0 or > 60) throw new ArgumentException("Use a container name between 1 and 60 characters.");
         return name;
     }
 }
@@ -147,16 +158,15 @@ public sealed class ApplicationLaunchService(IShortcutResolver shortcuts, IProce
         return target;
     }
 
-    public LaunchResult Launch(AppEntry entry, Func<ResolvedTarget, bool> approve)
+    public LaunchResult Launch(AppEntry entry)
     {
         try
         {
             var target = Resolve(entry);
-            if (!approve(target)) return new(false);
             processes.Start(target);
             return new(true);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
-        { return new(false, "AppBox couldn’t open “" + entry.Name + "”. " + ex.Message); }
+        { return new(false, "AppDock couldn’t open “" + entry.Name + "”. " + ex.Message); }
     }
 }
