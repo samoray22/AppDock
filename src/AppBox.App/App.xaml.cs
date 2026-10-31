@@ -48,10 +48,15 @@ public partial class App : System.Windows.Application
             store = new(e.Args.Contains("--smoke-test") ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N")) : null);
             config = store.Load();
             launchService = new(new WindowsShortcutResolver(), new WindowsProcessLauncher(), () => config.Settings.AllowCommandLineShells);
-            if (!e.Args.Contains("--smoke-test")) config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
+            if (!e.Args.Contains("--smoke-test"))
+            {
+                // The exe may have been moved or renamed since "Start with Windows" was enabled.
+                try { StartupRegistration.RepairPath(); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
+                config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
+            }
             ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
             ThemeService.Apply(config.Settings.Theme);
-            launchers = new(store.DirectoryPath, Path.Combine(AppContext.BaseDirectory, "AppDock.exe"));
+            launchers = new(store.DirectoryPath, AppPaths.Executable);
             launchers.Sync(config);
             if (!diagnosticRun)
             {
@@ -137,7 +142,7 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var executable = Path.Combine(AppContext.BaseDirectory, "AppDock.exe");
+            var executable = AppPaths.Executable;
             var productIcon = new ContainerIcons(store.DirectoryPath).ProductIconPath;
             WindowsJumpLists.Publish(WindowsJumpLists.MainIdentity, executable, productIcon, null);
             if (config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes)

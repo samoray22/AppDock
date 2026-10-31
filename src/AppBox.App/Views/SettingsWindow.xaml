@@ -45,10 +45,10 @@
         <TextBlock Text="Single AppDock automatically pins to your taskbar. Multiple mode lets you pin individual containers." TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,9,0,0"/>
         <Border Height="1" Background="{DynamicResource Line}" Margin="0,14,0,12"/>
         <TextBlock Text="Other Options" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <controls:AppDockToggleSwitch x:Name="StartupToggle" Content="Start AppDock with Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}" AutomationProperties.Name="Start AppDock with Windows"/>
         <controls:AppDockToggleSwitch x:Name="NamesToggle" Content="Show app names" IsChecked="{Binding ShowAppNames, Mode=TwoWay}" AutomationProperties.Name="Show app names"/>
         <controls:AppDockToggleSwitch x:Name="ShortenNamesToggle" Content="Shorten application names (remove Microsoft, Adobe, etc.)" IsChecked="{Binding ShortenAppNames, Mode=TwoWay}" AutomationProperties.Name="Shorten application names"/>
         <controls:AppDockToggleSwitch x:Name="AutoCloseToggle" Content="Auto close after launching an app" IsChecked="{Binding AutoCloseAfterLaunch, Mode=TwoWay}" AutomationProperties.Name="Auto close after launching an app"/>
-        <controls:AppDockToggleSwitch x:Name="StartupToggle" Content="Start AppDock with Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}" AutomationProperties.Name="Start AppDock with Windows"/>
         <controls:AppDockToggleSwitch x:Name="StyleToggle" IsEnabled="{Binding Windows11StyleAvailable}" IsChecked="{Binding UseWindows11Style, Mode=TwoWay}" AutomationProperties.Name="Use Windows 11 style"><TextBlock Text="Use Windows 11 style (rounded corners, Mica effect)" TextWrapping="Wrap"/></controls:AppDockToggleSwitch>
         <controls:AppDockToggleSwitch x:Name="ContainerBorderToggle" Content="Show container window border" IsChecked="{Binding ShowContainerBorder, Mode=TwoWay}" AutomationProperties.Name="Show container window border"/>
         <controls:AppDockToggleSwitch x:Name="CommandLineShellsToggle" Content="Allow command-line shells (PowerShell, Command Prompt)" IsChecked="{Binding AllowCommandLineShells, Mode=TwoWay}" AutomationProperties.Name="Allow command-line shells"/>

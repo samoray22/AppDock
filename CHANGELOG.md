@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.1] - 2026-10-31
+
+### Fixed
+- **🚀 Dynamic Executable Path Resolution**:
+  - `AppPaths.Executable` automatically detects the running executable file name and location (including versioned executables such as `AppDock_v2.8.1.exe`).
+  - Ensures taskbar jump lists, container shortcuts, and startup registrations point to the exact active binary instead of a hardcoded `AppDock.exe`.
+- **🔄 Robust Windows Startup Registration**:
+  - Added support for Windows `StartupApproved` registry keys, ensuring enabling "Start with Windows" in AppDock properly un-disables AppDock if previously disabled in Windows Task Manager or Settings.
+  - Implemented self-healing startup repair (`StartupRegistration.RepairPath()`) that automatically updates broken startup paths if the AppDock executable was moved or renamed.
+  - Promoted the "Start AppDock with Windows" setting to the top of Other Options in Settings.
+
+---
+
 ## [2.8.0] - 2026-10-31
 
 ### Added

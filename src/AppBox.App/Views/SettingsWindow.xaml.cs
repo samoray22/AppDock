@@ -40,7 +40,7 @@ public partial class SettingsWindow : Window
             Guard(() =>
             {
                 var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
-                new ContainerLaunchers(rootDir, Path.Combine(AppContext.BaseDirectory, "AppDock.exe")).UnpinFromTaskbar(folder);
+                new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
                 Model.Delete();
             });
         }
@@ -90,7 +90,7 @@ public partial class SettingsWindow : Window
         if (folder is { IsActive: false })
         {
             var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
-            new ContainerLaunchers(rootDir, Path.Combine(AppContext.BaseDirectory, "AppDock.exe")).UnpinFromTaskbar(folder);
+            new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
         }
     });
     private void PinTaskbar_Click(object sender, RoutedEventArgs e) => Guard(() =>
@@ -100,7 +100,7 @@ public partial class SettingsWindow : Window
         Model.Config.Settings.LayoutMode = LayoutMode.MultipleAppBoxes;
         Model.Persist();
         var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
-        var launchers = new ContainerLaunchers(rootDir, Path.Combine(AppContext.BaseDirectory, "AppDock.exe"));
+        var launchers = new ContainerLaunchers(rootDir, AppPaths.Executable);
         if (launchers.PinToTaskbar(folder))
             AppDockDialog.Show(this, $"“{folder.Name}” has been pinned to your Windows taskbar.", "Pinned to Taskbar", MessageBoxImage.Information);
         else

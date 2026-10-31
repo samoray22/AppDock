@@ -116,19 +116,70 @@ public static class WindowsFileLocation
 public static class StartupRegistration
 {
     private const string KeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    // Task Manager / Settings > Startup apps store their on/off state here; an odd first byte means disabled.
+    private const string ApprovedKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
+    /// <summary>True only when Windows will actually start AppDock at sign-in.</summary>
     public static bool IsEnabled()
     {
         using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
-        return key?.GetValue("AppDock") is string || key?.GetValue("AppBox") is string;
+        var name = key?.GetValue("AppDock") is string ? "AppDock" : key?.GetValue("AppBox") is string ? "AppBox" : null;
+        if (name is null || TargetExists(key!.GetValue(name) as string) == false) return false;
+        return !IsDisabledByUser(name);
     }
+
     public static void SetEnabled(bool enabled)
     {
-        using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
-        if (enabled) key.SetValue("AppDock", Command());
-        else key.DeleteValue("AppDock", false);
+        using (var key = Registry.CurrentUser.CreateSubKey(KeyPath))
+        {
+            if (enabled) key.SetValue("AppDock", Command());
+            else key.DeleteValue("AppDock", false);
+            key.DeleteValue("AppBox", false);
+        }
+        using var approved = Registry.CurrentUser.CreateSubKey(ApprovedKeyPath);
+        // An explicit opt-in from AppDock settings overrides an earlier "Disabled" from Task Manager.
+        if (enabled) approved.SetValue("AppDock", new byte[] { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, RegistryValueKind.Binary);
+        else approved.DeleteValue("AppDock", false);
+        approved.DeleteValue("AppBox", false);
+    }
+
+    /// <summary>Points a broken startup entry (target moved, renamed or deleted) at the running executable.</summary>
+    public static void RepairPath()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(KeyPath, writable: true);
+        if (key is null) return;
+        var current = key.GetValue("AppDock") as string ?? key.GetValue("AppBox") as string;
+        if (current is null || string.Equals(current, Command(), StringComparison.OrdinalIgnoreCase)) return;
+        // Only heal broken entries; a second copy (e.g. a debug build) must not take over a working one.
+        if (TargetExists(current) != false) return;
+        key.SetValue("AppDock", Command());
         key.DeleteValue("AppBox", false);
     }
-    private static string Command() => "\"" + Environment.ProcessPath + "\" --background";
+
+    private static bool IsDisabledByUser(string name)
+    {
+        using var approved = Registry.CurrentUser.OpenSubKey(ApprovedKeyPath);
+        return approved?.GetValue(name) is byte[] { Length: > 0 } state && (state[0] & 1) == 1;
+    }
+
+    private static bool? TargetExists(string? command)
+    {
+        if (string.IsNullOrWhiteSpace(command)) return null;
+        var trimmed = command.Trim();
+        var path = trimmed.StartsWith('"') ? trimmed[1..].Split('"')[0] : trimmed.Split(' ')[0];
+        return File.Exists(path);
+    }
+
+    private static string Command() => "\"" + AppPaths.Executable + "\" --background";
+}
+
+public static class AppPaths
+{
+    /// <summary>The running executable, whatever it was renamed to (e.g. AppDock_v2.8.1.exe).</summary>
+    public static string Executable { get; } =
+        Environment.ProcessPath is { Length: > 0 } path && !path.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase)
+            ? path
+            : Path.Combine(AppContext.BaseDirectory, "AppDock.exe");
 }
 
 public static class SystemTheme
