@@ -92,6 +92,7 @@ public sealed class ConfigurationStore
         config.Settings.GridRows = Math.Clamp(config.Settings.GridRows, 1, 8);
         if (!Enum.IsDefined(config.Settings.SortMode)) config.Settings.SortMode = SortMode.Manual;
         if (!Enum.IsDefined(config.Settings.AnimationStyle)) config.Settings.AnimationStyle = ContainerAnimationStyle.Genie;
+        config.Settings.AnimationDurationMs = config.Settings.AnimationDurationMs is >= 50 and <= 2000 ? config.Settings.AnimationDurationMs : 320;
         if (!Enum.IsDefined(config.Settings.SidebarLayoutMode)) config.Settings.SidebarLayoutMode = LayoutMode.MultipleAppBoxes;
         if (!config.Settings.EnableTaskbar && !config.Settings.EnableEdgeSidebar) config.Settings.EnableTaskbar = true;
         if (!Enum.IsDefined(config.Settings.SidebarEdge)) config.Settings.SidebarEdge = ScreenEdge.Right;

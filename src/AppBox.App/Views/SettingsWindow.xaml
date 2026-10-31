@@ -186,7 +186,7 @@
         <controls:AppDockToggleSwitch x:Name="AnimationsEnableToggle" Content="Enable container opening &amp; closing animations" IsChecked="{Binding EnableAnimations, Mode=TwoWay}" AutomationProperties.Name="Enable container animations"/>
         <Grid Margin="0,8,0,12" IsEnabled="{Binding EnableAnimations}">
           <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
-          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
           <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
             <RadioButton x:Name="GenieAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsGenieAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
               <StackPanel Margin="4,0,0,0">
@@ -259,7 +259,27 @@
               </StackPanel>
             </RadioButton>
           </Border>
+          <Border Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="5" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="RandomAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsRandomAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Center">
+              <DockPanel Margin="4,0,0,0" LastChildFill="True">
+                <TextBlock DockPanel.Dock="Right" Text="🎲 Random on every hover &amp; click" Foreground="{DynamicResource AccentText}" FontSize="11.5" FontWeight="Medium" VerticalAlignment="Center" Margin="12,0,4,0"/>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Random (Shuffle)" FontWeight="SemiBold" FontSize="13.5"/>
+                  <TextBlock Text="Applies a different 3-D mesh animation effect each time a container is opened or closed." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
+              </DockPanel>
+            </RadioButton>
+          </Border>
         </Grid>
+
+        <DockPanel Margin="0,4,0,2" IsEnabled="{Binding EnableAnimations}">
+          <TextBlock Text="Animation duration (speed)" VerticalAlignment="Center"/>
+          <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+            <TextBlock Text="{Binding AnimationDurationMs}" FontWeight="SemiBold"/>
+            <TextBlock Text=" ms" Foreground="{DynamicResource Muted}"/>
+          </StackPanel>
+        </DockPanel>
+        <Slider x:Name="AnimationDurationSlider" Minimum="100" Maximum="2000" TickFrequency="25" IsSnapToTickEnabled="True" Value="{Binding AnimationDurationMs, Mode=TwoWay}" PreviewMouseLeftButtonUp="AnimationDurationSlider_MouseUp" Margin="0,2,0,16" ToolTip="Set container animation duration in milliseconds (snappy &lt;--&gt; cinematic slow-mo)" IsEnabled="{Binding EnableAnimations}"/>
 
         <!-- Interactive macOS Animation Showcase & Live 3-D Preview Card -->
         <Border Background="#090B0E" BorderBrush="#242933" BorderThickness="1" CornerRadius="14" Padding="22,18" Margin="0,0,0,22">
@@ -582,7 +602,7 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
-      <TabItem Header="About" Tag="&#xE946;"><DockPanel Margin="15,8"><TextBlock DockPanel.Dock="Bottom" Margin="0,16,0,4" Foreground="{DynamicResource Muted}" Text="Developed by Samoray"/><StackPanel><Image Source="pack://application:,,,/AppDock;component/Resources/Branding/AppDock128.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Margin="0,0,0,16"/><TextBlock Text="AppDock" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="Version 2.7.0" Foreground="{DynamicResource Accent}" Margin="0,10,0,24"/><TextBlock Text="Small containers. A calmer taskbar." FontSize="18"/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="A native Windows 11 launcher built for Taskbar and Lateral Edge Sidebar. Your containers and preferences are stored locally in %LOCALAPPDATA%\AppDock\."/><TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Muted}" Text="No installation needed. No account. No telemetry. No administrator privileges."/></StackPanel></DockPanel></TabItem>
+      <TabItem Header="About" Tag="&#xE946;"><DockPanel Margin="15,8"><TextBlock DockPanel.Dock="Bottom" Margin="0,16,0,4" Foreground="{DynamicResource Muted}" Text="Developed by Samoray"/><StackPanel><Image Source="pack://application:,,,/AppDock;component/Resources/Branding/AppDock128.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Margin="0,0,0,16"/><TextBlock Text="AppDock" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="Version 2.8.0" Foreground="{DynamicResource Accent}" Margin="0,10,0,24"/><TextBlock Text="Small containers. A calmer taskbar." FontSize="18"/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="A native Windows 11 launcher built for Taskbar and Lateral Edge Sidebar. Your containers and preferences are stored locally in %LOCALAPPDATA%\AppDock\."/><TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Muted}" Text="No installation needed. No account. No telemetry. No administrator privileges."/></StackPanel></DockPanel></TabItem>
     </TabControl>
     <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Changes save automatically" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/><Button Grid.Column="1" Content="Done" IsCancel="True" Click="Done_Click"/></Grid>
   </Grid>

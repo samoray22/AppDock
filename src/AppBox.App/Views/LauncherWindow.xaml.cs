@@ -31,6 +31,8 @@ public partial class LauncherWindow : Window
     private EventHandler? warpRenderHandler;
     private bool lastPresentedWithAnimations;
     private bool suppressTileStagger;
+    private ContainerAnimationStyle activeWarpStyle = ContainerAnimationStyle.Genie;
+    private ContainerAnimationStyle lastRandomStyle = ContainerAnimationStyle.Genie;
     public bool SuppressDismiss { get; set; }
     public Action<AppFolder>? ChangeIcon { get; set; }
     public Action<string>? OpenSettings { get; set; }
@@ -308,9 +310,28 @@ public partial class LauncherWindow : Window
             return;
         }
 
-        var style = Model.AnimationStyle;
+        var configuredStyle = Model.AnimationStyle;
+        ContainerAnimationStyle style;
+        if (configuredStyle == ContainerAnimationStyle.Random)
+        {
+            if (isOpening)
+            {
+                style = ContainerWarpMesh.GetRandomConcreteStyle(lastRandomStyle);
+                lastRandomStyle = style;
+                activeWarpStyle = style;
+            }
+            else
+            {
+                style = activeWarpStyle;
+            }
+        }
+        else
+        {
+            style = configuredStyle;
+            activeWarpStyle = configuredStyle;
+        }
         var (anchorU, anchorV, lateralEdge) = ResolveAnchorUV(customOrigin);
-        int durationMs = ContainerWarpMesh.GetDurationMs(style, isOpening);
+        int durationMs = ContainerWarpMesh.GetDurationMs(style, isOpening, Model.AnimationDurationMs);
 
         double initialCollapse = ContainerWarpMesh.ComputeCollapseProgress(style, 0.0, isOpening);
         warpRenderer.UpdatePositions(style, w, h, anchorU, anchorV, lateralEdge, initialCollapse);

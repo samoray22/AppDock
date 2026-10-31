@@ -218,6 +218,7 @@ public sealed class LauncherViewModel : ObservableObject
     public bool IsEditing => Interaction.IsEditing;
     public bool AnimationsEnabled => config.Settings.EnableAnimations;
     public ContainerAnimationStyle AnimationStyle => config.Settings.AnimationStyle;
+    public int AnimationDurationMs => config.Settings.AnimationDurationMs;
     public bool DockMagnificationEnabled => config.Settings.EnableAnimations && config.Settings.EnableDockMagnification;
     public bool LaunchBounceEnabled => config.Settings.EnableAnimations && config.Settings.EnableLaunchBounce;
     public bool CardTiltEnabled => config.Settings.EnableAnimations && config.Settings.EnableCardTiltOnHover;
@@ -404,7 +405,7 @@ public sealed class LauncherViewModel : ObservableObject
         SelectedFolder = (IsEditing ? config.Folders : Folders.AsEnumerable()).FirstOrDefault(f => f.Id == selectedId) ?? Folders.FirstOrDefault(); RefreshSidebarRecentApps();
         viewportColumnLimit = null;
         Changed(nameof(IconSize)); Changed(nameof(MaxColumns)); Changed(nameof(MaxRows)); Changed(nameof(ShowPopupPointer)); Changed(nameof(UseWindows11Style)); Changed(nameof(ShowContainerBorder));
-        Changed(nameof(AnimationsEnabled)); Changed(nameof(AnimationStyle));
+        Changed(nameof(AnimationsEnabled)); Changed(nameof(AnimationStyle)); Changed(nameof(AnimationDurationMs));
         Changed(nameof(TileButtonWidth)); Changed(nameof(TileButtonHeight)); Changed(nameof(TileContentWidth)); Changed(nameof(TileLabelMaxWidth)); Changed(nameof(CellWidth)); Changed(nameof(CellHeight));
         Changed(nameof(HasFolders)); Changed(nameof(Subtitle));
         Changed(nameof(HeaderTitle)); Changed(nameof(HeaderIcon)); Changed(nameof(HeaderBadge)); Changed(nameof(CanGoBack)); Changed(nameof(IsEmpty));

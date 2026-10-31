@@ -10,7 +10,8 @@ public enum ContainerAnimationStyle
     PageCurl,
     BlackHole,
     Flip3D,
-    Jelly
+    Jelly,
+    Random
 }
 
 public readonly record struct WarpVertex(double X, double Y, double Z, double U, double V);
@@ -21,19 +22,51 @@ public readonly record struct WarpVertex(double X, double Y, double Z, double U,
 /// </summary>
 public static class ContainerWarpMesh
 {
-    public static int GetDurationMs(ContainerAnimationStyle style, bool isOpening) => style switch
+    public static readonly ContainerAnimationStyle[] ConcreteStyles =
+    [
+        ContainerAnimationStyle.Genie,
+        ContainerAnimationStyle.Suck,
+        ContainerAnimationStyle.Scale,
+        ContainerAnimationStyle.MagicLamp,
+        ContainerAnimationStyle.Origami,
+        ContainerAnimationStyle.PageCurl,
+        ContainerAnimationStyle.BlackHole,
+        ContainerAnimationStyle.Flip3D,
+        ContainerAnimationStyle.Jelly
+    ];
+
+    public static ContainerAnimationStyle GetRandomConcreteStyle(ContainerAnimationStyle? except = null)
     {
-        ContainerAnimationStyle.Genie => isOpening ? 340 : 250,
-        ContainerAnimationStyle.Suck => isOpening ? 310 : 235,
-        ContainerAnimationStyle.Scale => isOpening ? 210 : 155,
-        ContainerAnimationStyle.MagicLamp => isOpening ? 360 : 265,
-        ContainerAnimationStyle.Origami => isOpening ? 350 : 255,
-        ContainerAnimationStyle.PageCurl => isOpening ? 345 : 255,
-        ContainerAnimationStyle.BlackHole => isOpening ? 360 : 265,
-        ContainerAnimationStyle.Flip3D => isOpening ? 290 : 215,
-        ContainerAnimationStyle.Jelly => isOpening ? 370 : 240,
-        _ => isOpening ? 300 : 220
-    };
+        if (except is { } exp && ConcreteStyles.Length > 1)
+        {
+            var candidates = ConcreteStyles.Where(s => s != exp).ToArray();
+            return candidates[Random.Shared.Next(candidates.Length)];
+        }
+        return ConcreteStyles[Random.Shared.Next(ConcreteStyles.Length)];
+    }
+
+    public static ContainerAnimationStyle ResolveStyle(ContainerAnimationStyle style, ContainerAnimationStyle? except = null) =>
+        style == ContainerAnimationStyle.Random ? GetRandomConcreteStyle(except) : style;
+
+    public static int GetDurationMs(ContainerAnimationStyle style, bool isOpening, int targetDurationMs = 0)
+    {
+        if (targetDurationMs <= 0) targetDurationMs = 320;
+        double ratio = Math.Clamp(targetDurationMs, 50, 3000) / 320.0;
+        int baseMs = style switch
+        {
+            ContainerAnimationStyle.Genie => isOpening ? 340 : 250,
+            ContainerAnimationStyle.Suck => isOpening ? 310 : 235,
+            ContainerAnimationStyle.Scale => isOpening ? 210 : 155,
+            ContainerAnimationStyle.MagicLamp => isOpening ? 360 : 265,
+            ContainerAnimationStyle.Origami => isOpening ? 350 : 255,
+            ContainerAnimationStyle.PageCurl => isOpening ? 345 : 255,
+            ContainerAnimationStyle.BlackHole => isOpening ? 360 : 265,
+            ContainerAnimationStyle.Flip3D => isOpening ? 290 : 215,
+            ContainerAnimationStyle.Jelly => isOpening ? 370 : 240,
+            _ => isOpening ? 300 : 220
+        };
+        return Math.Max(40, (int)Math.Round(baseMs * ratio));
+    }
 
     public static string GetTitle(ContainerAnimationStyle style) => style switch
     {
@@ -45,7 +78,8 @@ public static class ContainerWarpMesh
         ContainerAnimationStyle.PageCurl => "Page Curl",
         ContainerAnimationStyle.BlackHole => "Black Hole",
         ContainerAnimationStyle.Flip3D => "Flip 3-D",
-        ContainerAnimationStyle.Jelly => "Jelly Spring",
+        ContainerAnimationStyle.Jelly => "Jelly Bounce",
+        ContainerAnimationStyle.Random => "Random",
         _ => "Genie"
     };
 
@@ -60,6 +94,7 @@ public static class ContainerWarpMesh
         ContainerAnimationStyle.BlackHole => "The 3-D spiral gravity vortex.",
         ContainerAnimationStyle.Flip3D => "The Stage Manager perspective swing.",
         ContainerAnimationStyle.Jelly => "The elastic wobbly spring.",
+        ContainerAnimationStyle.Random => "A surprise 3-D effect on every hover & click.",
         _ => "The classic stretch & pour."
     };
 
@@ -74,6 +109,7 @@ public static class ContainerWarpMesh
         ContainerAnimationStyle.BlackHole => "Swirls the container in a 3-D logarithmic vortex into the center of its dock or sidebar icon.",
         ContainerAnimationStyle.Flip3D => "Swings the container in 3-D perspective around its anchor edge like macOS Stage Manager.",
         ContainerAnimationStyle.Jelly => "Launches the container with damped harmonic spring physics so trailing edges wobble and settle like gelatin.",
+        ContainerAnimationStyle.Random => "Applies a randomly selected 3-D mesh animation (Genie, Suck, Scale, Magic Lamp, Origami, Page Curl, Black Hole, Stage Flip 3D, or Jelly Bounce) each time a container is opened or closed.",
         _ => ""
     };
 

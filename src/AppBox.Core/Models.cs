@@ -59,6 +59,7 @@ public sealed class Preferences
     public bool StartWithWindows { get; set; }
     public bool EnableAnimations { get; set; } = true;
     public ContainerAnimationStyle AnimationStyle { get; set; } = ContainerAnimationStyle.Genie;
+    public int AnimationDurationMs { get; set; } = 320;
     public bool EnableDockMagnification { get; set; } = true;
     public bool EnableLaunchBounce { get; set; } = true;
     public bool EnableCardTiltOnHover { get; set; } = true;

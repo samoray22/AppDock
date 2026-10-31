@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Win32;
 using AppBox.Core;
 using AppBox.Infrastructure;
@@ -209,8 +210,10 @@ public partial class SettingsWindow : Window
     }
     private WarpMeshRenderer? previewWarpRenderer;
     private EventHandler? previewRenderHandler;
+    private ContainerAnimationStyle lastPreviewRandomStyle = ContainerAnimationStyle.Genie;
     private void AnimationStyle_Click(object sender, RoutedEventArgs e) => PlayAnimationPreview();
     private void ReplayAnimationPreview_Click(object sender, RoutedEventArgs e) => PlayAnimationPreview();
+    private void AnimationDurationSlider_MouseUp(object sender, MouseButtonEventArgs e) => PlayAnimationPreview();
 
     private void StopAnimationPreview()
     {
@@ -235,10 +238,18 @@ public partial class SettingsWindow : Window
         previewWarpRenderer ??= new WarpMeshRenderer(PreviewWarpViewport, PreviewWarpCamera, PreviewWarpGeometryModel, PreviewWarpMesh);
         if (!previewWarpRenderer.CaptureAndBindMaterial(PreviewCaptureRoot, w, h)) return;
 
-        var style = Model.AnimationStyle;
-        int closeMs = ContainerWarpMesh.GetDurationMs(style, isOpening: false) + 90;
+        var configuredStyle = Model.AnimationStyle;
+        var style = configuredStyle == ContainerAnimationStyle.Random
+            ? ContainerWarpMesh.GetRandomConcreteStyle(lastPreviewRandomStyle)
+            : configuredStyle;
+        if (configuredStyle == ContainerAnimationStyle.Random)
+        {
+            lastPreviewRandomStyle = style;
+        }
+
+        int closeMs = ContainerWarpMesh.GetDurationMs(style, isOpening: false, Model.AnimationDurationMs) + 90;
         int holdMs = 180;
-        int openMs = ContainerWarpMesh.GetDurationMs(style, isOpening: true) + 90;
+        int openMs = ContainerWarpMesh.GetDurationMs(style, isOpening: true, Model.AnimationDurationMs) + 90;
         int totalMs = closeMs + holdMs + openMs;
 
         previewWarpRenderer.UpdatePositions(style, w, h, 0.5, 0.98, null, 0.0);

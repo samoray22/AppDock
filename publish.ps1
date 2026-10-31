@@ -15,7 +15,7 @@ $root = $PSScriptRoot
 
 [xml]$props = Get-Content "$root\Directory.Build.props"
 $version = $props.Project.PropertyGroup.Version
-if (-not $version) { $version = "2.7.0" }
+if (-not $version) { $version = "2.8.0" }
 
 if ($Type -eq 'Tiny') {
     Write-Host "Publishing Tiny Single-File Portable (~2 MB)..." -ForegroundColor Cyan
@@ -28,6 +28,8 @@ if ($Type -eq 'Tiny') {
     $exe = Get-Item "$pubDir\AppDock.exe"
     $outDir = "$root\publish"
     New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+    Get-Process -Name "AppDock*", "AppBox*" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$outDir\*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
     Copy-Item -Path $exe.FullName -Destination "$outDir\AppDock_v$version.exe" -Force
     Copy-Item -Path $exe.FullName -Destination "$outDir\AppDock.exe" -Force
     $sizeMb = [math]::Round($exe.Length / 1MB, 2)
@@ -42,6 +44,8 @@ elseif ($Type -eq 'SelfContained') {
     $exe = Get-Item "$pubDir\AppDock.exe"
     $outDir = "$root\publish"
     New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+    Get-Process -Name "AppDock*", "AppBox*" -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$outDir\*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 300
     Copy-Item -Path $exe.FullName -Destination "$outDir\AppDock_v$version-SelfContained.exe" -Force
     $sizeMb = [math]::Round($exe.Length / 1MB, 2)
     Write-Host "Success! Created self-contained standalone: $outDir\AppDock_v$version-SelfContained.exe ($sizeMb MB)" -ForegroundColor Green
