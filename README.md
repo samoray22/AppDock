@@ -1,4 +1,4 @@
-# AppDock — Phase 2C
+# AppDock
 
 AppDock is a native Windows 11 application launcher built with C#, .NET 10 and WPF. Containers hold references to applications; removing a reference never uninstalls or deletes an application. No third-party runtime icon packages, account or telemetry.
 
@@ -69,7 +69,7 @@ AppDock.exe --edit-container --container <guid>
 
 A small pointer is drawn as part of the popup's unified Light/Dark border and shadow. On a bottom taskbar it uses the cursor's horizontal position, clamped clear of rounded corners. When activation occurs away from the taskbar (for example, by keyboard or Jump List), it uses the popup center. This is approximate alignment, not an exact pinned-button location. Pointer geometry scales with DPI and the existing monitor/working-area placement. The pointer is hidden for top/side taskbar arrangements and can be switched off completely.
 
-Reliable hover activation of independently pinned launchers was not established through supported APIs. DWM hover messages request thumbnails/live-preview bitmaps; notification-icon hover APIs apply to tray icons, not independent pinned launchers. UI Automation does not document a stable mapping from taskbar buttons to each container AppUserModelID, so AppDock does not guess from button names, poll Explorer, install global input hooks, or simulate interactive hover using thumbnails. See the [Phase 2B feasibility result](docs/phase-2b-report.md).
+Reliable hover activation of independently pinned launchers was not established through supported APIs. DWM hover messages request thumbnails/live-preview bitmaps; notification-icon hover APIs apply to tray icons, not independent pinned launchers. UI Automation does not document a stable mapping from taskbar buttons to each container AppUserModelID, so AppDock does not guess from button names, poll Explorer, install global input hooks, or simulate interactive hover using thumbnails.
 
 ## Taskbar workflow
 
