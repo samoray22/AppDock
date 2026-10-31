@@ -397,6 +397,15 @@ public sealed class SettingsViewModel : ObservableObject
         set => SelectedFolderRowsOverride = value is >= 1 and <= 8 ? value : null;
     }
 
+    public string AppVersionText
+    {
+        get
+        {
+            var v = typeof(SettingsViewModel).Assembly.GetName().Version;
+            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 2.8.1";
+        }
+    }
+
     public SettingsViewModel(Configuration config, Action save, Action<bool>? writeStartup = null, Func<bool>? readStartup = null, bool? windows11StyleAvailable = null)
     {
         Config = config; manager = new(config); this.save = save;
