@@ -4,6 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <Version>2.8.1</Version>
+    <Authors>samoray</Authors>
+    <Company>samoray</Company>
+    <Copyright>Developed by samoray</Copyright>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <UseSharedCompilation>false</UseSharedCompilation>
     <NuGetAudit>false</NuGetAudit>

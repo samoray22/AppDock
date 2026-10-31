@@ -5,6 +5,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>AppDock</AssemblyName><RootNamespace>AppBox.App</RootNamespace>
     <Product>AppDock</Product><Title>AppDock</Title>
+    <Copyright>Developed by samoray</Copyright>
     <ApplicationIcon>Resources/AppDock.ico</ApplicationIcon>
     <NuGetAudit>false</NuGetAudit>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
