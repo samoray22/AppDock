@@ -1,4 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF></PropertyGroup>
   <ItemGroup><ProjectReference Include="../AppBox.Core/AppBox.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources/AppDock_128x128.png" LogicalName="AppDock_128x128.png" />
+    <EmbeddedResource Include="Resources/AppDock.ico" LogicalName="AppDock.ico" />
+    <EmbeddedResource Include="Resources/ContainerIcons/*.png" LogicalName="ContainerIcons/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

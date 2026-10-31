@@ -30,6 +30,20 @@ public static class LauncherSizing
     public const double Width = 468;
     public const double TileWidth = 96;
     public const double RowHeight = 118;
-    public static double GridHeight(int appCount, int columns = 4) => Math.Ceiling(Math.Max(0, appCount) / (double)Math.Max(1, columns)) * RowHeight;
-    public static double DesiredHeight(int appCount, bool editing, int columns = 4) => Math.Min(770, 26 + (appCount == 0 ? 48 : GridHeight(appCount, columns)) + (editing ? 124 : 0));
+    public const double HeaderHeight = 38;
+    public static int EffectiveColumns(int appCount, int maxColumns = 4) => Math.Min(Math.Clamp(maxColumns, 1, 8), Math.Max(1, appCount));
+    public static double GridWidth(int appCount, int maxColumns = 4, int maxRows = 4, double cellWidth = TileWidth)
+    {
+        var cols = EffectiveColumns(appCount, maxColumns);
+        var rows = (int)Math.Ceiling(Math.Max(0, appCount) / (double)cols);
+        var needsScrollbar = rows > Math.Clamp(maxRows, 1, 8);
+        return Math.Max(314, cols * cellWidth + (needsScrollbar ? 42 : 24));
+    }
+    public static double GridHeight(int appCount, int columns = 4, double rowHeight = RowHeight) => Math.Ceiling(Math.Max(0, appCount) / (double)Math.Max(1, columns)) * rowHeight;
+    public static double DesiredHeight(int appCount, bool editing, int columns = 4, int maxRows = 4, double rowHeight = RowHeight)
+    {
+        var maxGridHeight = Math.Clamp(maxRows, 1, 8) * rowHeight;
+        var visibleGridHeight = appCount == 0 ? 56 : Math.Min(GridHeight(appCount, columns, rowHeight), maxGridHeight);
+        return 26 + HeaderHeight + visibleGridHeight + (editing ? 46 : 0);
+    }
 }

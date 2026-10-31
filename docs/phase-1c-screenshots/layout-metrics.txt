@@ -1,8 +1,0 @@
-normal-empty.png: height=306, actual=306, viewport=78,52666666666664, extent=0, scrollable=0, count=0, grid=416x0, desired=416;0
-launcher-light.png: height=466, actual=466, viewport=238,52666666666664, extent=236, scrollable=0, count=8, grid=416x236, desired=416;236
-launcher-dark.png: height=466, actual=466, viewport=238,52666666666664, extent=236, scrollable=0, count=8, grid=416x236, desired=416;236
-edit-drop-feedback.png: height=328, actual=328, viewport=78,89666666666665, extent=0, scrollable=0, count=0, grid=416x0, desired=416;0
-edit-insertion.png: height=392, actual=392, viewport=120,26666666666665, extent=118, scrollable=0, count=3, grid=416x118, desired=416;118
-launcher-edit.png: height=392, actual=392, viewport=120,26666666666665, extent=118, scrollable=0, count=2, grid=416x118, desired=416;118
-launcher-normal.png: height=348, actual=348, viewport=120,52666666666664, extent=118, scrollable=0, count=2, grid=416x118, desired=416;118
-launcher-scrollable.png: height=770, actual=770, viewport=542,5266666666666, extent=1416, scrollable=873,4733333333334, count=48, grid=399x1416, desired=399;1416

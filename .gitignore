@@ -1,8 +1,64 @@
-bin/
-obj/
+# ==========================================
+# Build & Publishing Outputs
+# ==========================================
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+bin/Publish/
+*.dll.config
+*.manifest.res
+
+# ==========================================
+# Standalone Binaries & Distribution Packages
+# ==========================================
+*.exe
+*.dll
+*.pdb
+*.rar
+*.zip
+*.nupkg
+*.snupkg
+# Keep source-embedded icons and resources intact
+!src/**/Resources/**
+
+# ==========================================
+# Visual Studio / IDEs / Tooling
+# ==========================================
 .vs/
+.vscode/
+.idea/
 *.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.DotSettings.user
+
+# ==========================================
+# Testing & Diagnostic Artifacts
+# ==========================================
 TestResults/
 artifacts/
-# User-supplied source artwork; runtime assets are copied into the project.
+
+# ==========================================
+# Source Artwork & Asset Packs
+# (Runtime icons are embedded under src/.../Resources)
+# ==========================================
 /AppDock_Icon_Pack/
+/AppDock_Container_Icons/
+
+# ==========================================
+# Local Configuration / Backup & Crash Dumps
+# ==========================================
+settings*.json
+*.invalid-*.json
+*.bak
+*.dmp
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+.DS_Store

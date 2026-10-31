@@ -1,35 +1,212 @@
-<Window x:Class="AppBox.App.Views.LauncherWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:AppBox.App.Controls" Title="AppDock" Width="468" Height="160" AllowsTransparency="True" Background="Transparent" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="True" WindowStartupLocation="Manual" AllowDrop="True" PreviewDragOver="Launcher_DragOver" PreviewDragLeave="Launcher_DragLeave" PreviewDrop="Launcher_Drop">
+<Window x:Class="AppBox.App.Views.LauncherWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:AppBox.App.Controls" Title="AppDock" Width="468" Height="160" AllowsTransparency="True" Background="Transparent" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="Manual" AllowDrop="True" PreviewDragOver="Launcher_DragOver" PreviewDragLeave="Launcher_DragLeave" PreviewDrop="Launcher_Drop">
   <Window.Style><StaticResource ResourceKey="AppWindow"/></Window.Style>
-  <Grid Margin="8">
-    <controls:PopupChrome x:Name="Chrome" Fill="{DynamicResource Surface}" Stroke="{DynamicResource Line}"><controls:PopupChrome.Effect><DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="2" Opacity="0.25"/></controls:PopupChrome.Effect></controls:PopupChrome>
-  <AdornerDecorator>
-    <Border x:Name="Frame" Background="Transparent" BorderThickness="0" CornerRadius="16" Padding="12" ContextMenuOpening="Container_ContextMenuOpening">
-      <Border.ContextMenu><ContextMenu Opened="Menu_Opened" Closed="Menu_Closed">
-        <MenuItem Header="Edit Container" Click="EditContainer_Click"/>
-        <MenuItem Header="Add Application" Click="Add_Click"/>
-        <MenuItem Header="Rename Container" Click="RenameContainer_Click"/>
-        <MenuItem Header="Change Container Icon" Click="ChangeIcon_Click"/>
-        <MenuItem Header="Container Settings" Click="Manage_Click"/>
-        <MenuItem Header="Activate/Deactivate" Click="Activate_Click"/>
-        <MenuItem Header="Manage Containers" Click="Manage_Click"/>
-        <Separator/><MenuItem Header="Close" Click="Dismiss_Click"/>
-      </ContextMenu></Border.ContextMenu>
-      <Grid><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <ScrollViewer x:Name="AppScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" ScrollChanged="AppScroller_ScrollChanged">
-          <Grid Height="{Binding ContentHeight}">
-            <ItemsControl x:Name="AppGrid" ItemsSource="{Binding Applications}" Height="{Binding GridHeight}" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate>
-              <Button Width="90" Height="118" Margin="3,0" Padding="3" Background="Transparent" BorderThickness="0" Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="{Binding Entry.Target}" AutomationProperties.Name="{Binding Name}" PreviewMouseLeftButtonDown="Tile_MouseDown" PreviewMouseMove="Tile_MouseMove" ContextMenuOpening="Tile_ContextMenuOpening">
-                <Button.ContextMenu><ContextMenu Opened="Menu_Opened" Closed="Menu_Closed"><MenuItem Header="Open File Location" Click="Location_Click"/><MenuItem Header="Launch" Click="Launch_Click"/><MenuItem Header="Rename" Click="Rename_Click"/><Separator/><MenuItem Header="Remove From Container" Click="Remove_Click"/></ContextMenu></Button.ContextMenu>
-                <StackPanel><controls:AppIcon Width="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=Window}}" Margin="0,0,0,6"/><TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="82" HorizontalAlignment="Center" Visibility="{Binding ShowName, Converter={StaticResource BoolVisibility}}"/></StackPanel>
-              </Button>
-            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-            <ItemsControl ItemsSource="{Binding Containers}" Visibility="{Binding IsOverview, Converter={StaticResource BoolVisibility}}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><Button Width="90" Height="118" Margin="3,0" Background="Transparent" BorderThickness="0" Click="Container_Click" PreviewMouseRightButtonDown="Container_RightClick" ToolTip="{Binding Folder.Name}"><StackPanel><Image Source="{Binding Icon}" Width="48" Height="48"/><TextBlock Text="{Binding Folder.Name}" TextTrimming="CharacterEllipsis" MaxWidth="82" HorizontalAlignment="Center" Margin="0,6,0,0"/></StackPanel></Button></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-          </Grid>
-        </ScrollViewer>
-        <StackPanel Grid.Row="1" Visibility="{Binding IsEditing, Converter={StaticResource BoolVisibility}}"><Button Content="Done" Command="{Binding ToggleEditCommand}" HorizontalAlignment="Right"/><TextBlock Text="{Binding Status}" TextWrapping="Wrap" MaxHeight="44" Foreground="{DynamicResource Accent}"/></StackPanel>
-        <Border Visibility="{Binding ExternalDropActive, Converter={StaticResource BoolVisibility}}" Background="{DynamicResource Hover}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="10" Padding="12" IsHitTestVisible="False"><TextBlock Text="＋ Add applications" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-      </Grid>
-    </Border>
-  </AdornerDecorator>
+  <Grid x:Name="WindowRoot">
+    <Grid x:Name="RootGrid" Margin="8" RenderTransformOrigin="0.5,1.0">
+    <Grid.RenderTransform>
+      <TransformGroup>
+        <ScaleTransform x:Name="RootScale" ScaleX="1.0" ScaleY="1.0"/>
+        <TranslateTransform x:Name="RootTranslate" X="0" Y="0"/>
+      </TransformGroup>
+    </Grid.RenderTransform>
+    <controls:PopupChrome x:Name="Chrome" Fill="{DynamicResource Surface}" Stroke="{DynamicResource Line}">
+      <controls:PopupChrome.Effect><DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.32"/></controls:PopupChrome.Effect>
+    </controls:PopupChrome>
+    <AdornerDecorator>
+      <Border x:Name="Frame" Background="Transparent" BorderThickness="0" CornerRadius="20" Padding="12" ContextMenuOpening="Container_ContextMenuOpening">
+        <Border.ContextMenu>
+          <ContextMenu Opened="Menu_Opened" Closed="Menu_Closed">
+            <MenuItem Header="Edit Container" Click="EditContainer_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Add Application" Click="Add_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Rename Container" Click="RenameContainer_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE8AC;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Change Container Icon" Click="ChangeIcon_Click">
+              <MenuItem.Icon><TextBlock Text="&#xEB9F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Container Settings" Click="Manage_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Activate/Deactivate" Click="Activate_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Manage Containers" Click="Manage_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Help &amp; Guide" Click="Help_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE897;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="Close" Click="Dismiss_Click">
+              <MenuItem.Icon><TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+            </MenuItem>
+          </ContextMenu>
+        </Border.ContextMenu>
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="34"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <!-- macOS-style Folder Header Bar -->
+          <DockPanel x:Name="HeaderPanel" Grid.Row="0" Margin="2,0,2,4" LastChildFill="False" Background="Transparent" MouseEnter="HeaderPanel_MouseEnter" MouseLeave="HeaderPanel_MouseLeave">
+            <Button DockPanel.Dock="Left" Content="‹ All" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Command="{Binding BackCommand}" Visibility="{Binding CanGoBack, Converter={StaticResource BoolVisibility}}" Margin="0,0,4,0" Padding="8,4" ToolTip="Back to all containers"/>
+            <Button DockPanel.Dock="Left" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Padding="3" Margin="0,0,4,0" Click="ChangeIcon_Click" ToolTip="Change container icon" VerticalAlignment="Center">
+              <Image Source="{Binding HeaderIcon}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Button>
+            <TextBlock DockPanel.Dock="Left" Text="{Binding HeaderTitle}" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="112" Margin="1,0,5,0"/>
+            <Border DockPanel.Dock="Left" Background="{DynamicResource ContainerTintSoft}" CornerRadius="9" Padding="6,2" VerticalAlignment="Center" Margin="0,0,4,0">
+              <TextBlock Text="{Binding HeaderBadge}" FontSize="10.5" Foreground="{DynamicResource ContainerTintText}"/>
+            </Border>
+
+            <!-- Right header action controls (revealed on hover / edit / search) -->
+            <StackPanel x:Name="HeaderActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Opacity="0" IsHitTestVisible="False" KeyboardNavigation.TabNavigation="None" KeyboardNavigation.IsTabStop="False">
+              <Border x:Name="SearchBorder" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="11" Width="26" Height="24" Margin="0,0,3,0" VerticalAlignment="Center" Visibility="{Binding ShowSearchBox, Converter={StaticResource BoolVisibility}}" PreviewMouseLeftButtonDown="SearchBorder_MouseDown">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Style.Triggers>
+                      <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource ContainerTint}"/>
+                      </Trigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <Grid>
+                  <TextBlock x:Name="SearchIconCollapsed" Text="🔍" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Muted}" IsHitTestVisible="False"/>
+                  <TextBlock x:Name="SearchFilterPlaceholder" Text="🔍 Filter…" FontSize="11" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="6,0,0,0" IsHitTestVisible="False" Visibility="Collapsed"/>
+                  <TextBox x:Name="SearchBox" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Padding="6,2,6,2" Margin="0" FontSize="11.5" VerticalContentAlignment="Center" ToolTip="Filter applications in this container" Opacity="0" GotKeyboardFocus="SearchBox_GotFocus" LostKeyboardFocus="SearchBox_LostFocus"/>
+                </Grid>
+              </Border>
+              <Button Content="＋" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Click="Add_Click" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}" Padding="7,4" VerticalAlignment="Center" ToolTip="Add applications"/>
+              <Button Content="{Binding EditButtonText}" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Command="{Binding ToggleEditCommand}" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}" Padding="8,4" VerticalAlignment="Center"/>
+              <Button Content="?" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Click="Help_Click" Padding="7,4" Margin="2,0,0,0" VerticalAlignment="Center" ToolTip="Help &amp; Shortcuts (F1)"/>
+            </StackPanel>
+          </DockPanel>
+
+          <!-- Main Scrollable macOS Icon Grid -->
+          <ScrollViewer Grid.Row="1" x:Name="AppScroller" Focusable="False" FocusVisualStyle="{x:Null}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" ScrollChanged="AppScroller_ScrollChanged">
+            <Grid Height="{Binding ContentHeight}">
+              <TextBlock Text="{Binding EmptyMessage}" Visibility="{Binding IsEmpty, Converter={StaticResource BoolVisibility}}" Foreground="{DynamicResource Muted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="16,8"/>
+              <ItemsControl x:Name="AppGrid" ItemsSource="{Binding Applications}" Height="{Binding GridHeight}" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}" HorizontalAlignment="Center" KeyboardNavigation.DirectionalNavigation="Contained" KeyboardNavigation.TabNavigation="Once">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Width="{Binding DataContext.WrapWidth, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Button Width="{Binding DataContext.TileButtonWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.TileButtonHeight, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,6,5,4" Style="{StaticResource MacTileButton}" Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" PreviewMouseLeftButtonDown="Tile_MouseDown" PreviewMouseUp="Tile_MouseUp" PreviewMouseMove="Tile_MouseMove" MouseLeave="Tile_MouseLeave" ContextMenuOpening="Tile_ContextMenuOpening">
+                      <Button.ContextMenu>
+                        <ContextMenu Opened="Menu_Opened" Closed="Menu_Closed">
+                          <MenuItem Header="Launch" Click="Launch_Click">
+                            <MenuItem.Icon><TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+                          </MenuItem>
+                          <MenuItem Header="Open File Location" Click="Location_Click">
+                            <MenuItem.Icon><TextBlock Text="&#xED25;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+                          </MenuItem>
+                          <MenuItem Header="Rename" Click="Rename_Click">
+                            <MenuItem.Icon><TextBlock Text="&#xE8AC;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+                          </MenuItem>
+                          <Separator/>
+                          <MenuItem Header="Remove From Container" Click="Remove_Click">
+                            <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
+                          </MenuItem>
+                        </ContextMenu>
+                      </Button.ContextMenu>
+                      <StackPanel Width="{Binding DataContext.TileContentWidth, RelativeSource={RelativeSource AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Grid HorizontalAlignment="Center" Margin="0,2,0,2">
+                          <controls:AppIcon Width="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.IconSize, RelativeSource={RelativeSource AncestorType=Window}}">
+  <controls:AppIcon.Effect>
+    <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2.5" Opacity="0.24"/>
+  </controls:AppIcon.Effect>
+</controls:AppIcon>
+                          <Button Style="{StaticResource MacDeleteBadgeButton}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-6,-6,0,0" Visibility="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVisibility}}" Command="{Binding DataContext.RemoveTileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Remove from container" PreviewMouseLeftButtonDown="DeleteBadge_MouseDown"/>
+                          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-4">
+                            <Border Width="5" Height="5" CornerRadius="2.5" Background="{DynamicResource Accent}" Margin="1,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolVisibility}}" ToolTip="Running application">
+                              <Border.Effect>
+                                <DropShadowEffect Color="{DynamicResource AccentColor}" BlurRadius="4" ShadowDepth="0" Opacity="0.6"/>
+                              </Border.Effect>
+                            </Border>
+                            <Border Width="4" Height="4" CornerRadius="2" Background="{DynamicResource ContainerTint}" Margin="1,0" Visibility="{Binding IsLastLaunched, Converter={StaticResource BoolVisibility}}" ToolTip="Last launched application"/>
+                          </StackPanel>
+                        </Grid>
+                        <TextBlock Text="{Binding Label}" FontSize="11.5" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" LineHeight="14" LineStackingStrategy="BlockLineHeight" MaxHeight="32" MaxWidth="{Binding DataContext.TileLabelMaxWidth, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Center" Margin="0,2,0,0" Visibility="{Binding ShowName, Converter={StaticResource BoolVisibility}}"/>
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <ItemsControl x:Name="OverviewGrid" ItemsSource="{Binding Containers}" Visibility="{Binding IsOverview, Converter={StaticResource BoolVisibility}}" HorizontalAlignment="Center" KeyboardNavigation.DirectionalNavigation="Contained" KeyboardNavigation.TabNavigation="Once" MouseMove="OverviewGrid_MouseMove" MouseLeave="OverviewGrid_MouseLeave">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Width="{Binding DataContext.WrapWidth, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Button Width="82" Height="92" Margin="5,6,5,4" Style="{StaticResource MacTileButton}" Click="Container_Click" PreviewMouseRightButtonDown="Container_RightClick" ToolTip="{Binding Folder.Name}">
+                      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Image Source="{Binding Icon}" Width="44" Height="44"/>
+                        <TextBlock Text="{Binding Folder.Name}" FontWeight="Medium" FontSize="11.5" TextTrimming="CharacterEllipsis" MaxWidth="74" HorizontalAlignment="Center" Margin="0,4,0,1"/>
+                        <TextBlock Text="{Binding CountText}" FontSize="10" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center"/>
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Grid>
+          </ScrollViewer>
+
+          <!-- Undo Toast Notification -->
+          <Border x:Name="UndoToast" Grid.Row="0" Grid.RowSpan="3" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,16" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="16" Padding="12,6" Visibility="Collapsed">
+            <Border.Effect>
+              <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="2" Opacity="0.25"/>
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock x:Name="UndoToastText" Text="Removed application" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBlock Text="·" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <Button Content="Undo" Style="{StaticResource MacHeaderPillButton}" Padding="8,2" FontSize="11.5" FontWeight="SemiBold" Click="UndoButton_Click" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Edit Mode Footer Bar -->
+          <DockPanel Grid.Row="2" Margin="2,6,2,0" Visibility="{Binding IsEditing, Converter={StaticResource BoolVisibility}}">
+            <Button DockPanel.Dock="Right" Content="Icon…" Click="ChangeIcon_Click" Padding="10,5" Margin="4,0,0,0" ToolTip="Change container icon"/>
+            <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" MaxHeight="40" FontSize="12" Foreground="{DynamicResource Accent}"/>
+          </DockPanel>
+
+          <!-- Frosted Drag-and-Drop Overlay -->
+          <Border Grid.Row="0" Grid.RowSpan="3" Visibility="{Binding ExternalDropActive, Converter={StaticResource BoolVisibility}}" Background="{DynamicResource Hover}" BorderBrush="{DynamicResource Accent}" BorderThickness="1.5" CornerRadius="14" Padding="14" IsHitTestVisible="False">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="＋" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
+              <TextBlock Text="Drop to add applications" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+    </AdornerDecorator>
+    </Grid>
+    <Viewport3D x:Name="WarpViewport" IsHitTestVisible="False" Visibility="Collapsed" ClipToBounds="False">
+      <Viewport3D.Camera>
+        <PerspectiveCamera x:Name="WarpCamera" Position="234,80,565" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45" NearPlaneDistance="1" FarPlaneDistance="4000"/>
+      </Viewport3D.Camera>
+      <ModelVisual3D>
+        <ModelVisual3D.Content>
+          <Model3DGroup>
+            <AmbientLight Color="White"/>
+            <GeometryModel3D x:Name="WarpGeometryModel">
+              <GeometryModel3D.Geometry>
+                <MeshGeometry3D x:Name="WarpMesh"/>
+              </GeometryModel3D.Geometry>
+            </GeometryModel3D>
+          </Model3DGroup>
+        </ModelVisual3D.Content>
+      </ModelVisual3D>
+    </Viewport3D>
   </Grid>
 </Window>

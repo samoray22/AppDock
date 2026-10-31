@@ -18,11 +18,13 @@ public partial class App : System.Windows.Application
     private ConfigurationStore store = null!;
     private Configuration config = null!;
     private LauncherWindow launcher = null!;
+    private EdgeSidebarWindow? edgeSidebar;
+    private TaskbarHoverWatcher? taskbarHover;
     private LauncherViewModel model = null!;
     private SettingsWindow? settings;
     private ContainerLaunchers launchers = null!;
     private bool diagnosticRun;
-    private readonly ApplicationLaunchService launchService = new(new WindowsShortcutResolver(), new WindowsProcessLauncher());
+    private ApplicationLaunchService launchService = null!;
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] private static extern int SetCurrentProcessExplicitAppUserModelID(string id);
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -45,22 +47,60 @@ public partial class App : System.Windows.Application
             }
             store = new(e.Args.Contains("--smoke-test") ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N")) : null);
             config = store.Load();
+            launchService = new(new WindowsShortcutResolver(), new WindowsProcessLauncher(), () => config.Settings.AllowCommandLineShells);
             if (!e.Args.Contains("--smoke-test")) config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
             ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
             ThemeService.Apply(config.Settings.Theme);
             launchers = new(store.DirectoryPath, Path.Combine(AppContext.BaseDirectory, "AppDock.exe"));
             launchers.Sync(config);
-            model = new(config, Launch, Persist);
-            launcher = new() { DataContext = model, OpenSettings = OpenSettings, ChangeIcon = ChangeIcon };
+            if (!diagnosticRun)
+            {
+                if (!config.Settings.EnableTaskbar)
+                {
+                    launchers.UnpinMainFromTaskbar();
+                    foreach (var folder in config.Folders)
+                        launchers.UnpinFromTaskbar(folder);
+                }
+                else if (config.Settings.LayoutMode == LayoutMode.SingleAppBox)
+                {
+                    launchers.PinMainToTaskbar();
+                }
+                else
+                {
+                    foreach (var inactive in config.Folders.Where(f => !f.IsActive && File.Exists(launchers.ShortcutPath(f.Id))))
+                        launchers.UnpinFromTaskbar(inactive);
+                }
+            }
+            model = new(config, (Action<AppEntry, LaunchOptions>)Launch, Persist, iconDirectory: store.DirectoryPath);
+            launcher = new() { DataContext = model, OpenSettings = OpenSettings, ChangeIcon = ChangeIcon, IsTaskbarEnabled = () => config.Settings.EnableTaskbar };
             launcher.SourceInitialized += (_, _) => UpdateIdentity();
             model.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LauncherViewModel.SelectedFolder) && launcher.IsLoaded) UpdateIdentity(); };
             MainWindow = launcher;
+            if (!diagnosticRun)
+            {
+                edgeSidebar = new(config, model, launcher, Persist, OpenSettings);
+                taskbarHover = new(config, model, launcher, launchers, () => settings is not null, ActivateLauncherFromTaskbarHover);
+                launcher.IsPointerOverSidebar = () => edgeSidebar.IsCursorOverSidebar();
+                launcher.IsPointerOverTaskbarButton = () => taskbarHover.IsCursorOverHoveredTaskbarButton();
+                launcher.ClosedFromLaunchOrDismiss = () =>
+                {
+                    edgeSidebar.CollapseAfterLaunch();
+                    taskbarHover.NotifyLauncherClosed();
+                };
+                edgeSidebar.SyncWithConfig();
+                taskbarHover.SyncWithConfig();
+            }
             instance.Listen(value => Dispatcher.BeginInvoke(() => HandleActivation(value)));
             CreateTray();
-            try { launchers.UpdateMain(Path.Combine(AppContext.BaseDirectory, "AppDock.ico")); }
+            try { launchers.UpdateMain(new ContainerIcons(store.DirectoryPath).ProductIconPath); }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             { tray?.ShowBalloonTip(5000, "AppDock", "The main launcher shortcut could not be updated. " + ex.Message, Forms.ToolTipIcon.Info); }
-            if (!diagnosticRun) PublishJumpLists();
+            if (!diagnosticRun)
+            {
+                PublishJumpLists();
+                ShellIcon.PreloadInBackground(config.Folders.SelectMany(f => f.Applications));
+                ApplicationDiscovery.WarmUpInBackground();
+            }
             SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
             if (!e.Args.Contains("--background")) HandleActivation(request);
             if (store.RecoveryMessage is not null) ShowMessage(store.RecoveryMessage);
@@ -74,7 +114,7 @@ public partial class App : System.Windows.Application
                 File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "artifacts", e.Args.Contains("--smoke-secondary") ? "secondary-error.txt" : "smoke-error.txt"), ex.ToString());
                 Shutdown(1); return;
             }
-            MessageBox.Show("AppDock could not start. " + ex.Message, "AppDock", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppDockDialog.Show(null, "AppDock could not start. " + ex.Message, "AppDock", MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -89,7 +129,7 @@ public partial class App : System.Windows.Application
         if (request.Command == ActivationCommand.EditContainer)
         {
             if (container is null) { OpenSettings("Containers"); return; }
-            settings?.Close(); model.OpenContainer(container); launcher.Present(config.Settings.EnableAnimations); model.SetEditing(true);
+            settings?.Close(); launcher.SetLateralMode(!config.Settings.EnableTaskbar); model.OpenContainer(container); launcher.Present(config.Settings.EnableAnimations); model.SetEditing(true);
         }
         else OpenSettings(request.Command == ActivationCommand.Settings ? "General" : "Containers");
     }
@@ -98,11 +138,15 @@ public partial class App : System.Windows.Application
         try
         {
             var executable = Path.Combine(AppContext.BaseDirectory, "AppDock.exe");
-            WindowsJumpLists.Publish(WindowsJumpLists.MainIdentity, executable, Path.Combine(AppContext.BaseDirectory, "AppDock.ico"), null);
-            foreach (var container in config.Folders.Where(f => f.IsActive || File.Exists(launchers.ShortcutPath(f.Id))))
+            var productIcon = new ContainerIcons(store.DirectoryPath).ProductIconPath;
+            WindowsJumpLists.Publish(WindowsJumpLists.MainIdentity, executable, productIcon, null);
+            if (config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes)
             {
-                var identity = ContainerLaunchers.Identity(container.Id);
-                WindowsJumpLists.Publish(identity, executable, Path.Combine(AppContext.BaseDirectory, "AppDock.ico"), container.Id);
+                foreach (var container in config.Folders.Where(f => f.IsActive || File.Exists(launchers.ShortcutPath(f.Id))))
+                {
+                    var identity = ContainerLaunchers.Identity(container.Id);
+                    WindowsJumpLists.Publish(identity, executable, productIcon, container.Id);
+                }
             }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -111,39 +155,115 @@ public partial class App : System.Windows.Application
     private void ActivateLauncher(string folderId = "")
     {
         if (settings is not null) { settings.Activate(); return; }
+        taskbarHover?.NotifyOpenedByClick();
+        bool alreadyVisible = launcher.IsVisible && !launcher.IsLateralFlyout;
+        bool sameView = false;
+        launcher.SetLateralMode(!config.Settings.EnableTaskbar);
         if (config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes && Guid.TryParse(folderId, out var id))
         {
             var container = config.Folders.FirstOrDefault(f => f.Id == id && f.IsActive);
             if (container is null) { tray?.ShowBalloonTip(5000, "AppDock", "This container is inactive or was deleted. Open Settings to manage containers.", Forms.ToolTipIcon.Info); return; }
+            sameView = alreadyVisible && !model.IsOverview && model.SelectedFolder?.Id == container.Id;
             model.OpenContainer(container);
         }
-        if (string.IsNullOrEmpty(folderId) || config.Settings.LayoutMode == LayoutMode.SingleAppBox) model.ShowHome();
-        launcher.Present(config.Settings.EnableAnimations);
+        if (string.IsNullOrEmpty(folderId) || config.Settings.LayoutMode == LayoutMode.SingleAppBox)
+        {
+            sameView = alreadyVisible && model.IsOverview;
+            model.ShowHome();
+        }
+        UpdateIdentity();
+        launcher.Present(!sameView && config.Settings.EnableAnimations);
+    }
+
+    private void ActivateLauncherFromTaskbarHover(TaskbarHoverTarget target, WindowPlacement.Anchor anchor)
+    {
+        if (settings is not null) return;
+        launcher.SetLateralMode(false);
+        bool alreadyVisible = launcher.IsVisible && !launcher.IsLateralFlyout;
+        bool sameView = false;
+        if (!target.IsMainLauncher && config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes && target.ContainerId is { } id)
+        {
+            var container = config.Folders.FirstOrDefault(f => f.Id == id && f.IsActive);
+            if (container is null) return;
+            sameView = alreadyVisible && !model.IsOverview && model.SelectedFolder?.Id == container.Id;
+            model.OpenContainer(container);
+        }
+        else
+        {
+            sameView = alreadyVisible && model.IsOverview;
+            model.ShowHome();
+        }
+        UpdateIdentity();
+        launcher.Present(!sameView && config.Settings.EnableAnimations, anchor);
     }
     private void CreateTray()
     {
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Open AppDock", null, (_, _) => Dispatcher.Invoke(() => ActivateLauncher()));
-        menu.Items.Add("Settings", null, (_, _) => Dispatcher.Invoke(() => { ActivateLauncher(); OpenSettings("General"); }));
-        menu.Items.Add("Exit AppDock", null, (_, _) => Dispatcher.Invoke(() => { Save(); Shutdown(); }));
+        var dark = ThemeService.Dark;
+        var menu = new Forms.ContextMenuStrip
+        {
+            Renderer = new ModernMenuRenderer(dark),
+            ShowImageMargin = true
+        };
+
+        menu.Items.Add("Settings", TrayIconGlyphs.Create("\uE713", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("General")));
+        menu.Items.Add("Sidebar Settings", TrayIconGlyphs.Create("\uE8A0", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Sidebar")));
+        menu.Items.Add("Manage Containers", TrayIconGlyphs.Create("\uE8B7", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Containers")));
+        menu.Items.Add("Open All Containers", TrayIconGlyphs.Create("\uE71D", dark), (_, _) => Dispatcher.Invoke(() => { launcher.SetLateralMode(!config.Settings.EnableTaskbar); model.OpenOverview(); launcher.Present(config.Settings.EnableAnimations); }));
+        menu.Items.Add("Help & Guide", TrayIconGlyphs.Create("\uE897", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Help")));
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Exit AppDock", TrayIconGlyphs.Create("\uE7E8", dark), (_, _) => Dispatcher.Invoke(() => { Save(); Shutdown(); }));
+
         var icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? System.Drawing.SystemIcons.Application;
         tray = new() { Text = "AppDock", Icon = icon, Visible = true, ContextMenuStrip = menu };
-        tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) Dispatcher.Invoke(() => ActivateLauncher()); };
+        tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) Dispatcher.Invoke(() => OpenSettings("General")); };
     }
-    internal void LaunchForDiagnostics(AppEntry entry) => Launch(entry);
-    private void Launch(AppEntry entry)
+    internal void LaunchForDiagnostics(AppEntry entry) => Launch(entry, new());
+    private void Launch(AppEntry entry) => Launch(entry, new());
+    private void Launch(AppEntry entry, LaunchOptions options)
     {
         if (!model.Interaction.CanLaunch) return;
-        var result = launchService.Launch(entry);
-        if (model.Interaction.DismissAfterLaunch(result.Success, config.Settings.CloseAfterLaunch)) launcher.Hide();
+        var result = launchService.Launch(entry, options);
+        if (result.Success)
+        {
+            entry.LastLaunchedUtc = DateTime.UtcNow;
+            DebouncedSave();
+            model.Refresh();
+        }
+        if (!options.KeepOpen && model.Interaction.DismissAfterLaunch(result.Success, config.Settings.CloseAfterLaunch)) launcher.Hide();
         else if (result.Error is not null)
         {
             model.Report(result.Error);
             tray?.ShowBalloonTip(5000, "AppDock", result.Error, Forms.ToolTipIcon.Warning);
         }
     }
-    private void UpdateIdentity() => launchers.ApplyWindow(launcher,
-        config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes ? model.SelectedFolder : null);
+
+    private System.Windows.Threading.DispatcherTimer? saveDebounceTimer;
+    private void DebouncedSave()
+    {
+        if (saveDebounceTimer is null)
+        {
+            saveDebounceTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            saveDebounceTimer.Tick += (_, _) =>
+            {
+                saveDebounceTimer.Stop();
+                try { store.Save(config); } catch { }
+            };
+        }
+        saveDebounceTimer.Stop();
+        saveDebounceTimer.Start();
+    }
+    private void UpdateIdentity()
+    {
+        try
+        {
+            bool showOnTaskbar = config.Settings.EnableTaskbar && !launcher.IsLateralFlyout;
+            WindowPlacement.SetTaskbarVisibility(launcher, showOnTaskbar);
+            if (!showOnTaskbar) return;
+            launchers.ApplyWindow(launcher,
+                config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes && model.SelectedFolder is { IsActive: true } folder ? folder : null);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { }
+    }
     private void ChangeIcon(AppFolder folder)
     {
         launcher.SuppressDismiss = true;
@@ -164,22 +284,85 @@ public partial class App : System.Windows.Application
     {
         store.Save(config);
         ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
-        try { launchers.Sync(config); if (!diagnosticRun) PublishJumpLists(); }
+        try
+        {
+            launchers.Sync(config);
+            if (!diagnosticRun)
+            {
+                if (!config.Settings.EnableTaskbar)
+                {
+                    launchers.UnpinMainFromTaskbar();
+                    foreach (var folder in config.Folders)
+                        launchers.UnpinFromTaskbar(folder);
+                }
+                else if (config.Settings.LayoutMode == LayoutMode.SingleAppBox)
+                {
+                    launchers.PinMainToTaskbar();
+                    foreach (var folder in config.Folders)
+                        launchers.UnpinFromTaskbar(folder);
+                }
+                else
+                {
+                    launchers.UnpinMainFromTaskbar();
+                    foreach (var inactive in config.Folders.Where(f => !f.IsActive && File.Exists(launchers.ShortcutPath(f.Id))))
+                        launchers.UnpinFromTaskbar(inactive);
+                }
+                PublishJumpLists();
+            }
+            if (model is not null && launcher is not null)
+            {
+                model.Refresh();
+                if (launcher.IsLoaded) UpdateIdentity();
+            }
+            edgeSidebar?.SyncWithConfig();
+            taskbarHover?.SyncWithConfig();
+        }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         { tray?.ShowBalloonTip(5000, "AppDock", "Settings were saved, but launcher shortcuts could not be updated. " + ex.Message, Forms.ToolTipIcon.Warning); }
     }
     private void OpenSettings(string section)
     {
-        if (settings is not null) { settings.SelectSection(section); settings.Activate(); return; }
-        if (!launcher.IsVisible) launcher.Present(false);
+        if (settings is not null)
+        {
+            settings.SelectSection(section);
+            if (settings.WindowState == WindowState.Minimized) settings.WindowState = WindowState.Normal;
+            settings.Activate();
+            WindowPlacement.SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(settings).Handle);
+            return;
+        }
+        var wasLauncherVisible = launcher.IsVisible;
         launcher.SuppressDismiss = true;
-        settings = new(new SettingsViewModel(config, Persist), section) { Owner = launcher, LaunchersDirectory = launchers.DirectoryPath, ChangeIcon = ChangeIcon, EditContainer = folder => { settings?.Close(); model.SelectedFolder = folder; launcher.Present(false); model.SetEditing(true); } };
+        var reopeningForEdit = false;
+        settings = new(new SettingsViewModel(config, Persist), section)
+        {
+            Owner = wasLauncherVisible ? launcher : null,
+            ShowInTaskbar = !wasLauncherVisible,
+            WindowStartupLocation = wasLauncherVisible ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
+            LaunchersDirectory = launchers.DirectoryPath,
+            ChangeIcon = ChangeIcon,
+            EditContainer = folder =>
+            {
+                reopeningForEdit = true;
+                settings?.Close();
+                model.OpenContainer(folder);
+                launcher.Present(false);
+                model.SetEditing(true);
+            }
+        };
         settings.Closed += (_, _) =>
         {
-            settings = null; launcher.SuppressDismiss = false;
-            model.ShowHome(); UpdateIdentity(); launcher.Present(config.Settings.EnableAnimations);
+            settings = null;
+            launcher.SuppressDismiss = false;
+            if (!reopeningForEdit)
+            {
+                model.ShowHome();
+                UpdateIdentity();
+                if (wasLauncherVisible) launcher.Present(config.Settings.EnableAnimations);
+            }
         };
         settings.Show();
+        settings.Activate();
+        WindowPlacement.SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(settings).Handle);
     }
     private void Save()
     {
@@ -190,17 +373,24 @@ public partial class App : System.Windows.Application
     private void ShowMessage(string text)
     {
         launcher.SuppressDismiss = true;
-        try { MessageBox.Show(settings ?? (Window)launcher, text, "AppDock", MessageBoxButton.OK, MessageBoxImage.Information); }
+        try { AppDockDialog.Show(settings ?? (Window)launcher, text, "AppDock", MessageBoxImage.Information); }
         finally { launcher.SuppressDismiss = settings is not null; }
     }
     private void SystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
-        Dispatcher.BeginInvoke(() => { if (config.Settings.Theme == AppTheme.System) ThemeService.Apply(AppTheme.System); });
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (config.Settings.Theme == AppTheme.System) ThemeService.Apply(AppTheme.System);
+            edgeSidebar?.ApplyWindowStyle();
+        });
     }
     protected override void OnExit(ExitEventArgs e)
     {
         SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
         if (tray is not null) { tray.Visible = false; tray.Icon?.Dispose(); tray.ContextMenuStrip?.Dispose(); tray.Dispose(); }
+        edgeSidebar?.Cleanup();
+        edgeSidebar?.Close();
+        taskbarHover?.Cleanup();
         launcher?.Cleanup();
         instance?.Dispose(); base.OnExit(e);
     }

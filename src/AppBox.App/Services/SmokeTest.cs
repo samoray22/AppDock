@@ -196,7 +196,7 @@ internal static class SmokeTest
         Require(launcher.Icon is not null && launcher.Title.Contains("Graphics"), "Container window identity/icon missing.");
         // Legacy apphost also forwards a container activation request through production IPC.
         using var legacy = Process.Start(new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "AppBox.App.exe"), "--smoke-secondary --container " + development.Id) { UseShellExecute = false });
-        await legacy!.WaitForExitAsync(); await Task.Delay(700);
+        await legacy!.WaitForExitAsync(); for (var i = 0; i < 50 && model.SelectedFolder?.Id != development.Id; i++) await Task.Delay(100);
         Require(model.SelectedFolder?.Id == development.Id, "Legacy executable did not forward activation.");
         await File.WriteAllTextAsync(Path.Combine(output, "phase-2a-result.txt"), $"OS: {Environment.OSVersion}\nSingle launcher category/custom icons rendered in Light and Dark: True\nCustom PNG copied to persistent ICO: {File.Exists(graphics.Icon.ResourcePath)}\nIcon picker live preview rendered in Light and Dark: True\nContainer Manager rendered: True\nMultiple-container window icon and title: True\nLegacy AppBox.App.exe activation forwarding: True\nPin/unpin, Explorer physical drag and Windows icon cache refresh: not automated\n");
     }
@@ -315,7 +315,7 @@ internal static class SmokeTest
         Capture(window, Path.Combine(output, "general-toggles-on.png"));
         Require(fakeStartup && startupWrites == 1 && store.Load().Settings.StartWithWindows, "Startup control did not call the injected registration service.");
         Require(System.Text.Json.JsonSerializer.Serialize(config.Folders) == folderSnapshot, "Mode/toggle changes modified containers or custom icons.");
-        window.Sections.SelectedIndex = 5; await Task.Delay(100); Capture(window, Path.Combine(output, "about-official-icon.png"));
+        window.SelectSection("About"); await Task.Delay(100); Capture(window, Path.Combine(output, "about-official-icon.png"));
         window.SelectSection("General"); ThemeService.Apply(AppTheme.Light);
         foreach (var scale in new[] { 1.25, 1.5, 2.0 })
         {

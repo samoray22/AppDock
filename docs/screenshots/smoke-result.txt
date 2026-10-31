@@ -1,9 +1,0 @@
-OS: Microsoft Windows NT 10.0.26300.0
-Folders: 3
-Apps: 8
-Real shell icons: 8
-Config roundtrip: True
-Second-process activation and folder routing: True
-Deactivation dismissal: True
-Real executable launch via .lnk and automatic dismissal: True
-WPF windows rendered: 4

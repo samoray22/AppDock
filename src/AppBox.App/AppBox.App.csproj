@@ -6,6 +6,8 @@
     <AssemblyName>AppDock</AssemblyName><RootNamespace>AppBox.App</RootNamespace>
     <Product>AppDock</Product><Title>AppDock</Title>
     <ApplicationIcon>Resources/AppDock.ico</ApplicationIcon>
+    <NuGetAudit>false</NuGetAudit>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../AppBox.Infrastructure/AppBox.Infrastructure.csproj" /></ItemGroup>
   <ItemGroup><Using Remove="System.Windows.Forms" /><Using Remove="System.Drawing" /></ItemGroup>

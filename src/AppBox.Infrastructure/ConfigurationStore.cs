@@ -1,6 +1,8 @@
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using AppBox.Core;
 
 namespace AppBox.Infrastructure;
@@ -86,6 +88,30 @@ public sealed class ConfigurationStore
         config.Settings.HoverOpeningDelayMs = Math.Clamp(config.Settings.HoverOpeningDelayMs, 100, 2000);
         config.Settings.HoverClosingDelayMs = Math.Clamp(config.Settings.HoverClosingDelayMs, 100, 2000);
         config.Settings.IconSize = Math.Clamp(config.Settings.IconSize, 24, 64);
+        config.Settings.GridColumns = Math.Clamp(config.Settings.GridColumns, 2, 8);
+        config.Settings.GridRows = Math.Clamp(config.Settings.GridRows, 1, 8);
+        if (!Enum.IsDefined(config.Settings.SortMode)) config.Settings.SortMode = SortMode.Manual;
+        if (!Enum.IsDefined(config.Settings.AnimationStyle)) config.Settings.AnimationStyle = ContainerAnimationStyle.Genie;
+        if (!Enum.IsDefined(config.Settings.SidebarLayoutMode)) config.Settings.SidebarLayoutMode = LayoutMode.MultipleAppBoxes;
+        if (!config.Settings.EnableTaskbar && !config.Settings.EnableEdgeSidebar) config.Settings.EnableTaskbar = true;
+        if (!Enum.IsDefined(config.Settings.SidebarEdge)) config.Settings.SidebarEdge = ScreenEdge.Right;
+        if (!Enum.IsDefined(config.Settings.SidebarOpeningBehavior)) config.Settings.SidebarOpeningBehavior = ContainerOpeningBehavior.ClickOrHover;
+        config.Settings.SidebarVerticalPosition = double.IsFinite(config.Settings.SidebarVerticalPosition)
+            ? Math.Clamp(config.Settings.SidebarVerticalPosition, 0.05, 0.95)
+            : 0.35;
+        config.Settings.SidebarHandleHeight = Math.Clamp(config.Settings.SidebarHandleHeight, 48, 320);
+        config.Settings.SidebarHandleWidth = Math.Clamp(config.Settings.SidebarHandleWidth, 3, 16);
+        config.Settings.SidebarHandleOpacity = double.IsFinite(config.Settings.SidebarHandleOpacity)
+            ? Math.Clamp(config.Settings.SidebarHandleOpacity, 0.0, 1.0)
+            : 0.55;
+        if (!Enum.IsDefined(config.Settings.SidebarHandleColorMode)) config.Settings.SidebarHandleColorMode = SidebarHandleColorMode.ThemeAccent;
+        if (string.IsNullOrWhiteSpace(config.Settings.SidebarHandleCustomColor) || !Regex.IsMatch(config.Settings.SidebarHandleCustomColor.Trim(), @"^#[0-9A-Fa-f]{6}$"))
+            config.Settings.SidebarHandleCustomColor = "#00B7C3";
+        else
+            config.Settings.SidebarHandleCustomColor = config.Settings.SidebarHandleCustomColor.Trim().ToUpperInvariant();
+        if (!Enum.IsDefined(config.Settings.SidebarMonitorMode)) config.Settings.SidebarMonitorMode = SidebarMonitorMode.PrimaryMonitor;
+        config.Settings.SidebarMonitorIndex = Math.Clamp(config.Settings.SidebarMonitorIndex, 0, 15);
+        config.Settings.SidebarRecentAppsCount = Math.Clamp(config.Settings.SidebarRecentAppsCount, 1, 5);
         var ids = new HashSet<Guid>();
         foreach (var folder in config.Folders)
         {
@@ -93,6 +119,9 @@ public sealed class ConfigurationStore
                 throw new JsonException("Invalid folder.");
             folder.Icon ??= new();
             if (!Enum.IsDefined(folder.Icon.Kind)) folder.Icon = new();
+            if (folder.SortModeOverride is { } sortOverride && !Enum.IsDefined(sortOverride)) folder.SortModeOverride = null;
+            if (folder.GridColumnsOverride is { } colsOverride) folder.GridColumnsOverride = Math.Clamp(colsOverride, 2, 8);
+            if (folder.GridRowsOverride is { } rowsOverride) folder.GridRowsOverride = Math.Clamp(rowsOverride, 1, 8);
             var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var app in folder.Applications)
             {
@@ -102,5 +131,116 @@ public sealed class ConfigurationStore
             }
         }
         if (config.SelectedFolderId is not null && !config.Folders.Any(f => f.Id == config.SelectedFolderId)) config.SelectedFolderId = config.Folders.FirstOrDefault()?.Id;
+    }
+
+    public void ExportBackup(Configuration config, string destinationPath)
+    {
+        if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentException("Choose a valid backup file path.");
+        Validate(config);
+        var fullDest = Path.GetFullPath(destinationPath);
+        var parentDir = Path.GetDirectoryName(fullDest);
+        if (!string.IsNullOrEmpty(parentDir)) Directory.CreateDirectory(parentDir);
+
+        if (fullDest.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(config, Json);
+            File.WriteAllBytes(fullDest, jsonBytes);
+            return;
+        }
+
+        var tempZip = Path.Combine(Path.GetTempPath(), "AppDock-Export-" + Guid.NewGuid().ToString("N") + ".zip");
+        try
+        {
+            using (var archive = ZipFile.Open(tempZip, ZipArchiveMode.Create))
+            {
+                var settingsEntry = archive.CreateEntry("settings.json", CompressionLevel.Optimal);
+                using (var entryStream = settingsEntry.Open())
+                {
+                    JsonSerializer.Serialize(entryStream, config, Json);
+                }
+
+                var addedIcons = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var folder in config.Folders)
+                {
+                    if (folder.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } &&
+                        !string.IsNullOrWhiteSpace(resPath) && File.Exists(resPath))
+                    {
+                        var fileName = Path.GetFileName(resPath);
+                        if (!string.IsNullOrEmpty(fileName) && addedIcons.Add(fileName))
+                        {
+                            archive.CreateEntryFromFile(resPath, "icons/" + fileName, CompressionLevel.Optimal);
+                        }
+                    }
+                }
+            }
+            File.Move(tempZip, fullDest, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tempZip)) File.Delete(tempZip);
+        }
+    }
+
+    public Configuration ImportBackup(string sourcePath)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+            throw new FileNotFoundException("The selected backup file could not be found.", sourcePath);
+
+        var fullSource = Path.GetFullPath(sourcePath);
+        Directory.CreateDirectory(directory);
+
+        if (fullSource.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            var importedJson = JsonSerializer.Deserialize<Configuration>(File.ReadAllText(fullSource), Json)
+                ?? throw new JsonException("Empty configuration file.");
+            Validate(importedJson);
+            Save(importedJson);
+            return importedJson;
+        }
+
+        using var archive = ZipFile.OpenRead(fullSource);
+        var settingsEntry = archive.Entries.FirstOrDefault(e => string.Equals(e.FullName, "settings.json", StringComparison.OrdinalIgnoreCase) || string.Equals(e.Name, "settings.json", StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidDataException("The backup archive does not contain a valid settings.json file.");
+
+        Configuration imported;
+        using (var stream = settingsEntry.Open())
+        {
+            imported = JsonSerializer.Deserialize<Configuration>(stream, Json)
+                ?? throw new JsonException("Empty configuration in backup archive.");
+        }
+
+        foreach (var entry in archive.Entries)
+        {
+            if (entry.FullName.StartsWith("icons/", StringComparison.OrdinalIgnoreCase) &&
+                entry.Name.EndsWith(".ico", StringComparison.OrdinalIgnoreCase))
+            {
+                var safeName = Path.GetFileName(entry.Name);
+                if (!string.IsNullOrEmpty(safeName))
+                {
+                    var destIconPath = Path.Combine(directory, safeName);
+                    entry.ExtractToFile(destIconPath, overwrite: true);
+                }
+            }
+        }
+
+        foreach (var folder in imported.Folders)
+        {
+            if (folder.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } && !string.IsNullOrWhiteSpace(resPath))
+            {
+                var fileName = Path.GetFileName(resPath);
+                if (!string.IsNullOrEmpty(fileName))
+                {
+                    var localCandidate = Path.Combine(directory, fileName);
+                    if (File.Exists(localCandidate))
+                    {
+                        folder.Icon.ResourcePath = localCandidate;
+                    }
+                }
+            }
+        }
+
+        Validate(imported);
+        Save(imported);
+        return imported;
     }
 }

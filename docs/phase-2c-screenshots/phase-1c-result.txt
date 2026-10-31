@@ -1,9 +1,0 @@
-Edit focus changes (3 cycles), no topmost: True
-External WPF FileDrop (three real .lnk files), real icons: True
-External Copy feedback and internal Move insertion: True
-Invalid internal format cannot import external data: True
-Reorder, rename, remove, JSON reload: True
-Done restores normal focus dismissal: True
-Real shortcut launch after editing and automatic close: True
-Large folder bounded and scrollable: True
-Physical Explorer/Start-menu/taskbar drag gestures: NOT PERFORMED (computer-use runtime unavailable)

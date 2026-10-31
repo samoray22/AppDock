@@ -8,9 +8,9 @@ public sealed record ImportFailure(string Item, string Reason);
 public sealed record ImportResult(IReadOnlyList<AppEntry> Added, IReadOnlyList<ImportFailure> Rejected);
 
 // Shared by launcher drops, its file picker, and Settings. Resolving never starts a process.
-public sealed class ApplicationImportService(IShortcutResolver shortcuts, Func<IReadOnlyList<AppEntry>>? discover = null)
+public sealed class ApplicationImportService(IShortcutResolver shortcuts, Func<IReadOnlyList<AppEntry>>? discover = null, Func<bool>? allowCommandLineShells = null)
 {
-    private readonly ApplicationLaunchService validator = new(shortcuts, new NeverLaunch());
+    private readonly ApplicationLaunchService validator = new(shortcuts, new NeverLaunch(), allowCommandLineShells);
     public static bool IsSupportedFile(string path) => new[] { ".exe", ".lnk", ".url" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
 
     public ImportResult Import(Configuration config, AppFolder folder, IEnumerable<string> items)

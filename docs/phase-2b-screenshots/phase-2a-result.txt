@@ -1,8 +1,0 @@
-OS: Microsoft Windows NT 10.0.26300.0
-Single launcher category/custom icons rendered in Light and Dark: True
-Custom PNG copied to persistent ICO: True
-Icon picker live preview rendered in Light and Dark: True
-Container Manager rendered: True
-Multiple-container window icon and title: True
-Legacy AppBox.App.exe activation forwarding: True
-Pin/unpin, Explorer physical drag and Windows icon cache refresh: not automated

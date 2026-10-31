@@ -1,4 +1,4 @@
-<Window x:Class="AppBox.App.Views.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:controls="clr-namespace:AppBox.App.Controls" xmlns:local="clr-namespace:AppBox.App.Views" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="AppDock Settings" Width="870" Height="650" MinWidth="740" MinHeight="540" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
+<Window x:Class="AppBox.App.Views.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:controls="clr-namespace:AppBox.App.Controls" xmlns:local="clr-namespace:AppBox.App.Views" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="AppDock Settings" Width="940" Height="740" MinWidth="740" MinHeight="540" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
   <Window.Resources><local:ContainerIconConverter x:Key="ContainerIcon"/></Window.Resources>
   <Window.Style><StaticResource ResourceKey="AppWindow"/></Window.Style>
   <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -6,45 +6,584 @@
     <TabControl x:Name="Sections" Grid.Row="1" TabStripPlacement="Left" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Ink}">
       <TabControl.Resources><Style TargetType="TabItem"><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="Tab" Padding="12,10" Margin="0,2,12,2" CornerRadius="6" Background="Transparent" Width="154"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="{TemplateBinding Tag}" Foreground="{TemplateBinding Foreground}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16" VerticalAlignment="Center"/><TextBlock Grid.Column="1" Text="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/></Grid></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Tab" Property="Background" Value="{DynamicResource Hover}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Tab" Property="BorderBrush" Value="{DynamicResource Accent}"/><Setter TargetName="Tab" Property="BorderThickness" Value="1"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style></TabControl.Resources>
       <TabItem Header="General" Tag="&#xE713;"><ScrollViewer x:Name="GeneralScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Border Background="{DynamicResource Card}" Padding="18" CornerRadius="8"><StackPanel x:Name="GeneralContent">
+        <TextBlock Text="Active Launch Surfaces" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Text="Choose whether to activate AppDock on the Windows taskbar, the Lateral Edge Sidebar, or both simultaneously." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,10"/>
+        <Grid Margin="0,0,0,4">
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <Border Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="TaskbarOnlyRadio" GroupName="ActiveSurface" IsChecked="{Binding IsTaskbarOnlyActive, Mode=TwoWay}" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Taskbar Only" FontWeight="SemiBold" FontSize="13"/>
+                <TextBlock Text="Pin containers or a single icon to your Windows taskbar." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Column="2" Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="SidebarOnlyRadio" GroupName="ActiveSurface" IsChecked="{Binding IsSidebarOnlyActive, Mode=TwoWay}" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Edge Sidebar Only" FontWeight="SemiBold" FontSize="13"/>
+                <TextBlock Text="Keep your taskbar clean; slide out from the screen edge." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Column="4" Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="BothSurfacesRadio" GroupName="ActiveSurface" IsChecked="{Binding IsBothSurfacesActive, Mode=TwoWay}" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Both Taskbar &amp; Sidebar" FontWeight="SemiBold" FontSize="13"/>
+                <TextBlock Text="Use taskbar pins and the Lateral Edge Sidebar together." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+        </Grid>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
         <TextBlock Text="Taskbar Layout Mode" FontSize="18" FontWeight="SemiBold"/>
-        <TextBlock Text="Choose how AppDock appears on your taskbar." Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,4,0,10"/>
+        <TextBlock Text="Choose how AppDock appears on your taskbar (Sidebar layout is configured independently in the Sidebar tab)." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,10"/>
         <Grid x:Name="LayoutCards"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
           <controls:LayoutSelectionCard x:Name="SingleMode" GroupName="LayoutMode" Title="Single AppDock" Description="One icon on the taskbar. Click to open all containers." IsChecked="{Binding IsSingleLayout, Mode=TwoWay}" AutomationProperties.Name="Single AppDock"/>
           <controls:LayoutSelectionCard x:Name="MultipleMode" Grid.Column="2" GroupName="LayoutMode" Title="Multiple AppDocks" Multiple="True" Description="Each activated container has its own taskbar launcher." IsChecked="{Binding IsMultipleLayout, Mode=TwoWay}" AutomationProperties.Name="Multiple AppDocks"/>
         </Grid>
-        <TextBlock Text="Multiple mode creates launcher shortcuts. Pin the containers you want using Windows Pin to taskbar." TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,9,0,0"/>
+        <TextBlock Text="Single AppDock automatically pins to your taskbar. Multiple mode lets you pin individual containers." TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,9,0,0"/>
         <Border Height="1" Background="{DynamicResource Line}" Margin="0,14,0,12"/>
         <TextBlock Text="Other Options" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,6"/>
         <controls:AppDockToggleSwitch x:Name="NamesToggle" Content="Show app names" IsChecked="{Binding ShowAppNames, Mode=TwoWay}" AutomationProperties.Name="Show app names"/>
+        <controls:AppDockToggleSwitch x:Name="ShortenNamesToggle" Content="Shorten application names (remove Microsoft, Adobe, etc.)" IsChecked="{Binding ShortenAppNames, Mode=TwoWay}" AutomationProperties.Name="Shorten application names"/>
         <controls:AppDockToggleSwitch x:Name="AutoCloseToggle" Content="Auto close after launching an app" IsChecked="{Binding AutoCloseAfterLaunch, Mode=TwoWay}" AutomationProperties.Name="Auto close after launching an app"/>
         <controls:AppDockToggleSwitch x:Name="StartupToggle" Content="Start AppDock with Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}" AutomationProperties.Name="Start AppDock with Windows"/>
         <controls:AppDockToggleSwitch x:Name="StyleToggle" IsEnabled="{Binding Windows11StyleAvailable}" IsChecked="{Binding UseWindows11Style, Mode=TwoWay}" AutomationProperties.Name="Use Windows 11 style"><TextBlock Text="Use Windows 11 style (rounded corners, Mica effect)" TextWrapping="Wrap"/></controls:AppDockToggleSwitch>
+        <controls:AppDockToggleSwitch x:Name="ContainerBorderToggle" Content="Show container window border" IsChecked="{Binding ShowContainerBorder, Mode=TwoWay}" AutomationProperties.Name="Show container window border"/>
+        <controls:AppDockToggleSwitch x:Name="CommandLineShellsToggle" Content="Allow command-line shells (PowerShell, Command Prompt)" IsChecked="{Binding AllowCommandLineShells, Mode=TwoWay}" AutomationProperties.Name="Allow command-line shells"/>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,10"/>
+        <TextBlock Text="Backup &amp; Restore Configuration" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Export your containers, custom icons, and settings to a portable .zip archive or .json file, or restore an existing backup." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+        <WrapPanel Margin="0,0,0,4">
+          <Button x:Name="ExportBackupButton" Content="Export Configuration (.zip / .json)" Click="ExportBackup_Click" Margin="0,0,8,0"/>
+          <Button x:Name="ImportBackupButton" Content="Import Configuration (.zip / .json)" Click="ImportBackup_Click"/>
+        </WrapPanel>
         <TextBlock x:Name="StyleFeedback" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Muted}" Margin="1,5,0,0"/>
         <TextBlock Text="{Binding PreferenceError}" TextWrapping="Wrap" Foreground="{DynamicResource Accent}" FontSize="12" Margin="0,5,0,0"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding PreferenceError}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
       </StackPanel></Border></ScrollViewer></TabItem>
-      <TabItem Header="Containers" Tag="&#xE8B7;"><Grid Margin="12,8,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <TextBlock Text="Your containers" FontSize="23" FontWeight="SemiBold"/>
-        <WrapPanel Grid.Row="1" Margin="0,12,0,8"><Button Content="New Container" Click="NewFolder_Click"/><Button Content="Rename" Click="Rename_Click"/><Button Content="Change Icon" Click="Icon_Click"/><Button Content="Activate/Deactivate" Click="Active_Click"/><Button Content="Edit Applications" Click="Edit_Click"/><Button Content="Delete Container" Click="Delete_Click"/></WrapPanel>
-        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="165"/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions><ListBox ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AutomationProperties.Name="Containers"><ListBox.ItemTemplate><DataTemplate><StackPanel><Image Source="{Binding Icon, Converter={StaticResource ContainerIcon}}" Width="32" Height="32" HorizontalAlignment="Left"/><TextBlock Text="{Binding Name}" TextWrapping="Wrap"/><TextBlock Text="{Binding Applications.Count, StringFormat={}{0} applications}"/><TextBlock Text="{Binding IsActive, StringFormat=Active: {0}}"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
-          <ListBox Grid.Column="2" ItemsSource="{Binding Applications}" SelectedItem="{Binding SelectedApplication}" AutomationProperties.Name="Applications"><ListBox.ItemTemplate><DataTemplate><StackPanel><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Target}" Foreground="{DynamicResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Target}" Margin="0,4,0,0"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox></Grid>
-        <StackPanel Grid.Row="3" Margin="0,12,0,0"><WrapPanel><Button Content="＋ Browse files" Click="Browse_Click"/><Button Content="Start menu / installed" Click="Discover_Click"/></WrapPanel><WrapPanel><Button Content="Remove app" Click="Remove_Click"/><Button Content="↑ Move up" Click="Up_Click"/><Button Content="↓ Move down" Click="Down_Click"/></WrapPanel><TextBlock Text="Containers hold references. Your application files stay where they are." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="11" Margin="4,8,0,0"/></StackPanel>
+      <TabItem Header="Containers" Tag="&#xE8B7;"><Grid Margin="10,2,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.Resources>
+          <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="FontSize" Value="12.5"/>
+          </Style>
+          <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Margin" Value="0,1"/>
+          </Style>
+        </Grid.Resources>
+        <TextBlock Text="Your containers" FontSize="19" FontWeight="SemiBold"/>
+        <WrapPanel Grid.Row="1" Margin="0,6,0,6"><Button Content="New Container" Click="NewFolder_Click"/><Button Content="Rename" Click="Rename_Click"/><Button Content="Change Icon" Click="Icon_Click"/><Button Content="Activate/Deactivate" Click="Active_Click"/><Button Content="↑ Container" Click="FolderUp_Click" IsEnabled="{Binding CanMoveFolderUp}" ToolTip="Move selected container up (controls Sidebar &amp; Overview order)"/><Button Content="↓ Container" Click="FolderDown_Click" IsEnabled="{Binding CanMoveFolderDown}" ToolTip="Move selected container down (controls Sidebar &amp; Overview order)"/><Button Content="Pin to Taskbar" Click="PinTaskbar_Click"/><Button Content="Edit Applications" Click="Edit_Click"/><Button Content="Delete Container" Click="Delete_Click"/></WrapPanel>
+        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="195"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <ListBox x:Name="FoldersList" ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedFolder}" AllowDrop="True" PreviewMouseLeftButtonDown="FoldersList_PreviewMouseLeftButtonDown" PreviewMouseMove="FoldersList_PreviewMouseMove" DragOver="FoldersList_DragOver" Drop="FoldersList_Drop" ToolTip="Tip: Drag and drop containers to reorder them, or use ↑ / ↓ Container buttons." AutomationProperties.Name="Containers">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Margin="2,1">
+                  <Image Source="{Binding Icon, Converter={StaticResource ContainerIcon}}" Width="26" Height="26" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                  <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" Margin="9,0,0,0" MaxWidth="135"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <ListBox x:Name="ApplicationsList" Grid.Column="2" ItemsSource="{Binding Applications}" SelectedItem="{Binding SelectedApplication}" AutomationProperties.Name="Applications">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="2,1">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="36"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <Border Background="{DynamicResource Hover}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Width="28" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding IndexBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Border>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Target}" Foreground="{DynamicResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Target}" Margin="0,1,0,0"/>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+        <Border Grid.Row="3" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,6,0,0">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" IsEnabled="{Binding HasSelectedFolder}">
+              <TextBlock Text="Sort:" Foreground="{DynamicResource Muted}" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,4,0"/>
+              <ComboBox x:Name="ContainerSortOverrideBox" SelectedIndex="{Binding SelectedFolderSortOverrideIndex, Mode=TwoWay}" Width="118" FontSize="11.5" Padding="6,2" Margin="0,0,8,0" ToolTip="Override application sort order for this container">
+                <ComboBoxItem Content="Global default"/>
+                <ComboBoxItem Content="Manual order"/>
+                <ComboBoxItem Content="Recently used"/>
+              </ComboBox>
+              <TextBlock Text="Cols:" Foreground="{DynamicResource Muted}" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,4,0"/>
+              <ComboBox x:Name="ContainerColsOverrideBox" SelectedIndex="{Binding SelectedFolderColumnsOverrideIndex, Mode=TwoWay}" Width="72" FontSize="11.5" Padding="6,2" Margin="0,0,8,0" ToolTip="Override maximum grid columns for this container">
+                <ComboBoxItem Content="Global"/>
+                <ComboBoxItem Content="2 cols"/>
+                <ComboBoxItem Content="3 cols"/>
+                <ComboBoxItem Content="4 cols"/>
+                <ComboBoxItem Content="5 cols"/>
+                <ComboBoxItem Content="6 cols"/>
+                <ComboBoxItem Content="7 cols"/>
+                <ComboBoxItem Content="8 cols"/>
+              </ComboBox>
+              <TextBlock Text="Rows:" Foreground="{DynamicResource Muted}" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,4,0"/>
+              <ComboBox x:Name="ContainerRowsOverrideBox" SelectedIndex="{Binding SelectedFolderRowsOverrideIndex, Mode=TwoWay}" Width="72" FontSize="11.5" Padding="6,2" ToolTip="Override maximum grid rows for this container">
+                <ComboBoxItem Content="Global"/>
+                <ComboBoxItem Content="1 row"/>
+                <ComboBoxItem Content="2 rows"/>
+                <ComboBoxItem Content="3 rows"/>
+                <ComboBoxItem Content="4 rows"/>
+                <ComboBoxItem Content="5 rows"/>
+                <ComboBoxItem Content="6 rows"/>
+                <ComboBoxItem Content="7 rows"/>
+                <ComboBoxItem Content="8 rows"/>
+              </ComboBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock Text="Apps: " Foreground="{DynamicResource Muted}" FontSize="12"/>
+              <TextBlock Text="{Binding SelectedContainerAppsText}" FontWeight="Bold" FontSize="12" Margin="0,0,12,0"/>
+              <TextBlock Text="Status: " Foreground="{DynamicResource Muted}" FontSize="12"/>
+              <TextBlock Text="{Binding SelectedContainerStatusText}" FontWeight="Bold" FontSize="12">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                    <Setter Property="Foreground" Value="{DynamicResource StatusInactive}"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsSelectedContainerActive}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource StatusActive}"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBlock Text="Container: " Foreground="{DynamicResource Muted}" FontSize="12" Margin="12,0,0,0"/>
+              <TextBlock Text="{Binding SelectedContainerPositionText}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentText}"/>
+              <TextBlock Text="App: " Foreground="{DynamicResource Muted}" FontSize="12" Margin="12,0,0,0"/>
+              <TextBlock Text="{Binding SelectedAppPositionText}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentText}"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <WrapPanel Grid.Row="4" Margin="0,6,0,0">
+          <Button Content="＋ Browse files" Click="Browse_Click"/>
+          <Button Content="Start menu / installed" Click="Discover_Click" Margin="2,2,10,2"/>
+          <Button Content="Remove app" Click="Remove_Click" IsEnabled="{Binding HasSelectedApplication}" ToolTip="Remove selected application reference"/>
+          <Button Content="⇈ Move to top" Click="Top_Click" IsEnabled="{Binding CanMoveUp}" ToolTip="Move selected application to the first position"/>
+          <Button Content="↑ Move up" Click="Up_Click" IsEnabled="{Binding CanMoveUp}" ToolTip="Move selected application up one position"/>
+          <Button Content="↓ Move down" Click="Down_Click" IsEnabled="{Binding CanMoveDown}" ToolTip="Move selected application down one position"/>
+          <Button Content="⇊ Move to bottom" Click="Bottom_Click" IsEnabled="{Binding CanMoveDown}" ToolTip="Move selected application to the last position"/>
+        </WrapPanel>
       </Grid></TabItem>
-      <TabItem Header="Appearance" Tag="&#xE790;"><StackPanel Margin="15,8"><TextBlock Text="Application icon size"/><Slider Minimum="24" Maximum="64" TickFrequency="8" IsSnapToTickEnabled="True" Value="{Binding Config.Settings.IconSize}" PreviewMouseLeftButtonUp="Preference_Click" Margin="0,8,0,24"/><TextBlock Text="Appearance" FontSize="23" FontWeight="SemiBold"/><TextBlock Text="Choose your light." Foreground="{DynamicResource Muted}" Margin="0,8,0,24"/><CheckBox x:Name="FollowSystem" Content="Follow system light/dark theme" Click="Theme_Click"/><RadioButton x:Name="LightTheme" Content="Light" GroupName="Theme" Click="Theme_Click"/><RadioButton x:Name="DarkTheme" Content="Dark" GroupName="Theme" Click="Theme_Click"/></StackPanel></TabItem>
-      <TabItem Header="Taskbar" Tag="&#xE737;"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="15,8"><TextBlock Text="Taskbar Interaction" FontSize="23" FontWeight="SemiBold" Margin="0,0,0,20"/>
-        <TextBlock Text="Container opening behavior" FontSize="18" FontWeight="SemiBold"/>
-        <RadioButton Content="Click" IsChecked="True" GroupName="Opening"/>
-        <RadioButton Content="Hover (unavailable)" IsEnabled="False" GroupName="Opening"/>
-        <RadioButton Content="Click or Hover (unavailable)" IsEnabled="False" GroupName="Opening"/>
-        <TextBlock Text="Windows provides no validated hover-to-container identity for pinned launchers. Click opening remains active." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="4,4,4,12"/>
-        <TextBlock Text="Hover opening delay (ms, unavailable)"/><Slider Minimum="100" Maximum="2000" Value="{Binding Config.Settings.HoverOpeningDelayMs}" IsEnabled="False"/>
-        <TextBlock Text="Hover closing delay (ms, unavailable)"/><Slider Minimum="100" Maximum="2000" Value="{Binding Config.Settings.HoverClosingDelayMs}" IsEnabled="False"/>
-        <CheckBox Content="Show popup pointer" IsChecked="{Binding Config.Settings.ShowPopupPointer}" Click="Preference_Click"/>
-        <CheckBox Content="Enable popup animations" IsChecked="{Binding Config.Settings.EnableAnimations}" Click="Preference_Click"/>
-        <TextBlock Text="Right-click a taskbar icon for AppDock Settings, Edit Container and Manage Containers where Windows displays application Jump List tasks." TextWrapping="Wrap" Margin="0,8,0,16"/>
-<Button Content="Open Launcher Shortcuts" Click="Launchers_Click"/><TextBlock TextWrapping="Wrap" Text="Pin AppDock.exe using Windows’ standard Pin to taskbar command. Opening it again activates the running launcher. Dedicated containers use stable taskbar identities; Settings shares its popup owner."/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="AppDock has no validated exact pinned-button rectangle. The popup pointer uses the cursor position over a bottom taskbar, or the popup center otherwise. This is approximate alignment."/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Foreground="{DynamicResource Muted}" Text="Use Open Launcher Shortcuts in Multiple mode, then Windows Pin to taskbar. Cached pin icons may require manual unpin/repin. No Explorer internals are modified."/></StackPanel></ScrollViewer></TabItem>
-      <TabItem Header="Startup" Tag="&#xE7E8;"><StackPanel Margin="15,8"><TextBlock Text="Startup" FontSize="23" FontWeight="SemiBold"/><TextBlock Text="Ready when you are." Foreground="{DynamicResource Muted}" Margin="0,8,0,24"/><controls:AppDockToggleSwitch Content="Start AppDock with Windows" IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/><TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Text="Uses your Windows user account’s startup registration. AppDock starts quietly in the notification area. No administrator access is needed."/></StackPanel></TabItem>
-      <TabItem Header="About" Tag="&#xE946;"><StackPanel Margin="15,8"><Image Source="pack://application:,,,/AppDock;component/Resources/Branding/AppDock128.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Margin="0,0,0,16"/><TextBlock Text="AppDock" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="Version 0.1.0 · Phase 2C" Foreground="{DynamicResource Accent}" Margin="0,10,0,24"/><TextBlock Text="Small containers. A calmer taskbar." FontSize="18"/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="A native Windows 11 launcher built with WPF and .NET 10. Your containers and preferences are stored locally in %LOCALAPPDATA%\AppDock\."/><TextBlock Margin="0,20,0,0" Foreground="{DynamicResource Muted}" Text="No account. No telemetry. No administrator privileges."/></StackPanel></TabItem>
+      <TabItem Header="Appearance" Tag="&#xE790;"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="15,8">
+        <TextBlock Text="Appearance" FontSize="23" FontWeight="SemiBold"/>
+        <TextBlock Text="Choose your light." Foreground="{DynamicResource Muted}" Margin="0,8,0,20"/>
+        <CheckBox x:Name="FollowSystem" Content="Follow system light/dark theme" Click="Theme_Click" Margin="0,0,0,10"/>
+        <RadioButton x:Name="LightTheme" Content="Light" GroupName="Theme" Click="Theme_Click" Margin="0,0,0,8"/>
+        <RadioButton x:Name="DarkTheme" Content="Dark" GroupName="Theme" Click="Theme_Click" Margin="0,0,0,22"/>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,0,0,20"/>
+
+        <TextBlock Text="Container Opening Animations (macOS Style)" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Choose the 3-D mesh animation effect used when opening and closing containers from the taskbar, sidebar, or overview." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
+        <controls:AppDockToggleSwitch x:Name="AnimationsEnableToggle" Content="Enable container opening &amp; closing animations" IsChecked="{Binding EnableAnimations, Mode=TwoWay}" AutomationProperties.Name="Enable container animations"/>
+        <Grid Margin="0,8,0,12" IsEnabled="{Binding EnableAnimations}">
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/><RowDefinition Height="8"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="GenieAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsGenieAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Genie" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="The classic stretch &amp; pour through a 3-D glassy neck." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="SuckAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsSuckAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Suck" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="Asymmetric corner vacuum pull along a concave 3-D wave." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="0" Grid.Column="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="ScaleAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsScaleAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Scale" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="Smooth macOS zoom &amp; fade directly from the icon." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="2" Grid.Column="0" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="MagicLampAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsMagicLampAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Magic Lamp" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="Wobbly sinusoidal S-wave ribbon that sways into the icon." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="2" Grid.Column="2" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="OrigamiAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsOrigamiAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Origami Fold" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="3-D accordion pleats that crease and fold into the launcher." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="2" Grid.Column="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="PageCurlAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsPageCurlAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Page Curl" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="Cylindrical 3-D page peel rolling toward the target icon." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="4" Grid.Column="0" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="BlackHoleAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsBlackHoleAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Black Hole" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="Relativistic 3-D spiral vortex pulling inward into a gravity well." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="4" Grid.Column="2" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="Flip3DAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsFlip3DAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Stage Flip 3D" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="macOS Stage Manager 3-D perspective swing &amp; pitch." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+          <Border Grid.Row="4" Grid.Column="4" Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+            <RadioButton x:Name="JellyAnimationRadio" GroupName="ContainerAnimationStyle" IsChecked="{Binding IsJellyAnimation, Mode=TwoWay}" Click="AnimationStyle_Click" VerticalContentAlignment="Top">
+              <StackPanel Margin="4,0,0,0">
+                <TextBlock Text="Jelly Bounce" FontWeight="SemiBold" FontSize="13.5"/>
+                <TextBlock Text="Elastic damped harmonic spring with squash, stretch, and wobble." Foreground="{DynamicResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0"/>
+              </StackPanel>
+            </RadioButton>
+          </Border>
+        </Grid>
+
+        <!-- Interactive macOS Animation Showcase & Live 3-D Preview Card -->
+        <Border Background="#090B0E" BorderBrush="#242933" BorderThickness="1" CornerRadius="14" Padding="22,18" Margin="0,0,0,22">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,6">
+              <Button DockPanel.Dock="Right" Content="↻ Replay Preview" Click="ReplayAnimationPreview_Click" VerticalAlignment="Top" Padding="12,5" FontSize="12"/>
+              <TextBlock Text="{Binding AnimationStyleTitle}" FontSize="38" FontWeight="ExtraBold" LineHeight="42">
+                <TextBlock.Foreground>
+                  <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#3B9EFF" Offset="0.0"/>
+                    <GradientStop Color="#0D6EFD" Offset="1.0"/>
+                  </LinearGradientBrush>
+                </TextBlock.Foreground>
+              </TextBlock>
+            </DockPanel>
+            <TextBlock Text="{Binding AnimationStyleTagline}" Foreground="#F8FAFC" FontSize="15.5" FontWeight="Bold" Margin="0,0,0,4"/>
+            <TextBlock Text="{Binding AnimationStyleDescription}" Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+            <!-- Miniature Dock & 3-D Mesh Warp Stage -->
+            <Border x:Name="AnimationPreviewStage" Width="400" Height="210" HorizontalAlignment="Left" Background="#101318" BorderBrush="#262A34" BorderThickness="1" CornerRadius="14" Cursor="Hand" MouseLeftButtonDown="ReplayAnimationPreview_Click" ToolTip="Click to replay 3-D container animation">
+              <Grid x:Name="PreviewStageGrid" Width="398" Height="208">
+                <!-- Interactive warps target the mock container window down into the middle dock tile (Y=166) -->
+                <Grid x:Name="PreviewCaptureRoot" Width="398" Height="172" VerticalAlignment="Top">
+                  <Border x:Name="PreviewMockWindow" Width="168" Height="106" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0" Background="#1D2026" BorderBrush="#343946" BorderThickness="1" CornerRadius="7">
+                    <Grid>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="20"/>
+                        <RowDefinition Height="*"/>
+                      </Grid.RowDefinitions>
+                      <Border Grid.Row="0" Background="#252932" CornerRadius="6,6,0,0" Padding="6,0">
+                        <DockPanel>
+                          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="7" Height="7" CornerRadius="2" Background="#2B88FF" Margin="0,0,5,0"/>
+                            <Border Width="38" Height="4" CornerRadius="2" Background="#475061"/>
+                          </StackPanel>
+                          <TextBlock DockPanel.Dock="Right" Text="−   □   ×" FontSize="7.5" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                        </DockPanel>
+                      </Border>
+                      <Grid Grid.Row="1" Margin="6,5,6,6">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="40"/>
+                          <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,2,6,0">
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="2,2,6,4"/>
+                          <Border Height="10" CornerRadius="3" Background="#2B303C" Margin="0,0,2,4">
+                            <Border Width="2" HorizontalAlignment="Left" Background="#2B88FF" CornerRadius="1" Margin="1,2"/>
+                          </Border>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="2,0,8,4"/>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="2,0,4,4"/>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="2,0,10,4"/>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="2,0,6,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                          <Border Height="34" CornerRadius="4" BorderBrush="#3B4866" BorderThickness="1" Margin="0,0,0,6">
+                            <Border.Background>
+                              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#2B5288" Offset="0.0"/>
+                                <GradientStop Color="#272D45" Offset="1.0"/>
+                              </LinearGradientBrush>
+                            </Border.Background>
+                          </Border>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="0,0,8,4"/>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="0,0,2,4"/>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="0,0,16,4"/>
+                          <Border Height="4" CornerRadius="2" Background="#3B4252" Margin="0,0,28,0"/>
+                        </StackPanel>
+                      </Grid>
+                    </Grid>
+                  </Border>
+                </Grid>
+
+                <Viewport3D x:Name="PreviewWarpViewport" Width="398" Height="172" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" ClipToBounds="False">
+                  <Viewport3D.Camera>
+                    <PerspectiveCamera x:Name="PreviewWarpCamera" Position="199,86,480" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45" NearPlaneDistance="1" FarPlaneDistance="3000"/>
+                  </Viewport3D.Camera>
+                  <ModelVisual3D>
+                    <ModelVisual3D.Content>
+                      <Model3DGroup>
+                        <AmbientLight Color="White"/>
+                        <GeometryModel3D x:Name="PreviewWarpGeometryModel">
+                          <GeometryModel3D.Geometry>
+                            <MeshGeometry3D x:Name="PreviewWarpMesh"/>
+                          </GeometryModel3D.Geometry>
+                        </GeometryModel3D>
+                      </Model3DGroup>
+                    </ModelVisual3D.Content>
+                  </ModelVisual3D>
+                </Viewport3D>
+
+                <!-- Miniature macOS Dock Bar at Bottom -->
+                <Border Width="154" Height="38" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,12" Background="#1D2027" BorderBrush="#303542" BorderThickness="1" CornerRadius="13">
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Width="22" Height="22" CornerRadius="6" Background="#333844" BorderBrush="#454C5C" BorderThickness="1" Margin="4,0"/>
+                    <Border Width="22" Height="22" CornerRadius="6" BorderBrush="#66B2FF" BorderThickness="1" Margin="4,0">
+                      <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                          <GradientStop Color="#4DA3FF" Offset="0.0"/>
+                          <GradientStop Color="#1677FF" Offset="1.0"/>
+                        </LinearGradientBrush>
+                      </Border.Background>
+                    </Border>
+                    <Border Width="22" Height="22" CornerRadius="6" Background="#333844" BorderBrush="#454C5C" BorderThickness="1" Margin="4,0"/>
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="Interactive Tile &amp; Dock Micro-Animations" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Fine-tune tactile hover magnification, parallax card tilt, elastic launch bounce, and removal puff clouds." Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
+        <controls:AppDockToggleSwitch x:Name="DockMagnificationToggle" Content="macOS Dock Magnification (smooth fisheye zoom on Sidebar &amp; Overview icons)" IsChecked="{Binding EnableDockMagnification, Mode=TwoWay}" AutomationProperties.Name="Enable Dock Magnification"/>
+        <controls:AppDockToggleSwitch x:Name="LaunchBounceToggle" Content="macOS Dock Launch Bounce (elastic jump animation when launching an app)" IsChecked="{Binding EnableLaunchBounce, Mode=TwoWay}" AutomationProperties.Name="Enable Launch Bounce"/>
+        <controls:AppDockToggleSwitch x:Name="CardTiltToggle" Content="3-D Parallax Card Tilt on Hover (subtle depth tilt and specular lift on app tiles)" IsChecked="{Binding EnableCardTiltOnHover, Mode=TwoWay}" AutomationProperties.Name="Enable Card Tilt on Hover"/>
+        <controls:AppDockToggleSwitch x:Name="PoofOnRemoveToggle" Content="macOS 'Poof' Cloud on Removal (animated puff of smoke when removing an app)" IsChecked="{Binding EnablePoofOnRemove, Mode=TwoWay}" Margin="0,0,0,18" AutomationProperties.Name="Enable Poof on Remove"/>
+
+        <TextBlock Text="Popup Grid Layout" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Configure the maximum rows and columns shown before scrolling." Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,14"/>
+        <DockPanel Margin="0,0,0,4"><TextBlock Text="Maximum columns" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding GridColumns}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="ColumnsSlider" Minimum="2" Maximum="8" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding GridColumns, Mode=TwoWay}" Margin="0,4,0,16" AutomationProperties.Name="Maximum columns"/>
+        <DockPanel Margin="0,0,0,4"><TextBlock Text="Maximum rows" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding GridRows}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="RowsSlider" Minimum="1" Maximum="8" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding GridRows, Mode=TwoWay}" Margin="0,4,0,16" AutomationProperties.Name="Maximum rows"/>
+        <DockPanel Margin="0,0,0,4"><TextBlock Text="Application icon size" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding Config.Settings.IconSize}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider Minimum="24" Maximum="64" TickFrequency="8" IsSnapToTickEnabled="True" Value="{Binding Config.Settings.IconSize}" PreviewMouseLeftButtonUp="Preference_Click" Margin="0,4,0,24"/>
+
+        <TextBlock Text="App Ordering" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Choose how applications are arranged in the container popup." Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+        <RadioButton Content="Manual order (custom arrangement)" IsChecked="{Binding IsManualSort, Mode=TwoWay}" Margin="0,2,0,4"/>
+        <RadioButton Content="Recently used first" IsChecked="{Binding IsRecentFirstSort, Mode=TwoWay}" Margin="0,2,0,16"/>
+      </StackPanel></ScrollViewer></TabItem>
+      <TabItem Header="Taskbar" Tag="&#xE737;"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Border Background="{DynamicResource Card}" Padding="18" CornerRadius="8"><StackPanel>
+        <TextBlock Text="Taskbar Integration" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Pin and launch AppDock containers from your Windows taskbar. Turn this off if you prefer using the Lateral Edge Sidebar exclusively." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+        <controls:AppDockToggleSwitch x:Name="TaskbarEnableToggle" Content="Enable Taskbar Integration" IsChecked="{Binding EnableTaskbar, Mode=TwoWay}" AutomationProperties.Name="Enable Taskbar Integration"/>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+        <TextBlock Text="Taskbar Layout Mode" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Choose how AppDock is organized on the taskbar (independent from your Sidebar layout)." Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <controls:LayoutSelectionCard GroupName="TaskbarTabLayoutMode" Title="Single AppDock" Description="One icon on the taskbar. Click to open all containers." IsChecked="{Binding IsSingleLayout, Mode=TwoWay}" AutomationProperties.Name="Taskbar Single AppDock"/>
+          <controls:LayoutSelectionCard Grid.Column="2" GroupName="TaskbarTabLayoutMode" Title="Multiple AppDocks" Multiple="True" Description="Each activated container has its own taskbar launcher." IsChecked="{Binding IsMultipleLayout, Mode=TwoWay}" AutomationProperties.Name="Taskbar Multiple AppDocks"/>
+        </Grid>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,14,0,12"/>
+        <TextBlock Text="Container Opening &amp; Popup Behavior" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <RadioButton x:Name="TaskbarClickRadio" Content="Click" IsChecked="{Binding IsTaskbarClickOpen, Mode=TwoWay}" GroupName="TaskbarOpening" Margin="4,2"/>
+        <RadioButton x:Name="TaskbarHoverRadio" Content="Hover" IsChecked="{Binding IsTaskbarHoverOpen, Mode=TwoWay}" GroupName="TaskbarOpening" Margin="4,2"/>
+        <RadioButton x:Name="TaskbarClickOrHoverRadio" Content="Click or Hover" IsChecked="{Binding IsTaskbarClickOrHoverOpen, Mode=TwoWay}" GroupName="TaskbarOpening" Margin="4,2,4,8"/>
+        <TextBlock Text="When Hover or Click or Hover is enabled, hovering over a pinned AppDock icon on your Windows taskbar opens that container automatically after the hover delay and closes it when the cursor leaves." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="11.5" Margin="4,0,4,10"/>
+        <DockPanel Margin="0,2,0,2"><TextBlock Text="Hover opening delay (ms)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding HoverOpeningDelayMs}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="TaskbarHoverOpenDelaySlider" Minimum="100" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding HoverOpeningDelayMs, Mode=TwoWay}" Margin="0,2,0,10"/>
+        <DockPanel Margin="0,0,0,2"><TextBlock Text="Hover closing delay (ms)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding HoverClosingDelayMs}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="TaskbarHoverCloseDelaySlider" Minimum="100" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding HoverClosingDelayMs, Mode=TwoWay}" Margin="0,2,0,10"/>
+        <CheckBox Content="Show popup pointer" IsChecked="{Binding Config.Settings.ShowPopupPointer}" Click="Preference_Click" Margin="4,2"/>
+        <CheckBox Content="Enable popup animations" IsChecked="{Binding Config.Settings.EnableAnimations}" Click="Preference_Click" Margin="4,2,4,12"/>
+        <WrapPanel Margin="0,0,0,12"><Button Content="Open Launcher Shortcuts" Click="Launchers_Click" Margin="0,0,8,0"/><Button Content="Refresh Taskbar Icons" Click="RefreshIcons_Click"/></WrapPanel>
+        <TextBlock Text="Right-click a taskbar icon for AppDock Settings, Edit Container and Manage Containers where Windows displays application Jump List tasks." TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Muted}" Margin="0,0,0,8"/>
+        <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Muted}" Text="Use Open Launcher Shortcuts in Multiple mode, then Windows Pin to taskbar. Cached pin icons may require manual unpin/repin. No Explorer internals are modified."/>
+      </StackPanel></Border></ScrollViewer></TabItem>
+      <TabItem Header="Sidebar" Tag="&#xE8A0;"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Border Background="{DynamicResource Card}" Padding="18" CornerRadius="8"><StackPanel>
+        <TextBlock Text="Lateral Edge Sidebar (Samsung Style)" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Dock a subtle trigger handle on the screen edge that slides out your Single or Multiple AppDock layout on hover or click." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+        <controls:AppDockToggleSwitch x:Name="EdgeSidebarToggle" Content="Enable Lateral Edge Sidebar" IsChecked="{Binding EnableEdgeSidebar, Mode=TwoWay}" AutomationProperties.Name="Enable Lateral Edge Sidebar"/>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+        <TextBlock Text="Sidebar Layout Mode" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Choose how containers appear on the Lateral Edge Sidebar (completely independent from your Taskbar layout)." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+        <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <controls:LayoutSelectionCard x:Name="SidebarSingleMode" GroupName="SidebarLayoutMode" Title="Single AppDock" Description="Compact 1-icon edge strip. Hover or click to open the All Containers overview." IsChecked="{Binding IsSidebarSingleLayout, Mode=TwoWay}" AutomationProperties.Name="Sidebar Single AppDock"/>
+          <controls:LayoutSelectionCard x:Name="SidebarMultipleMode" Grid.Column="2" GroupName="SidebarLayoutMode" Title="Multiple AppDocks" Multiple="True" Description="Samsung-style vertical strip showing an icon for each activated container." IsChecked="{Binding IsSidebarMultipleLayout, Mode=TwoWay}" AutomationProperties.Name="Sidebar Multiple AppDocks"/>
+        </Grid>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+        <TextBlock Text="Recent Apps &amp; Smart Behavior" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Show your most recently launched or currently running apps at the top of the expanded sidebar strip for 1-click launching, and automatically suppress the edge handle during fullscreen apps." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,8"/>
+        <controls:AppDockToggleSwitch x:Name="SidebarRecentAppsToggle" Content="Show recent &amp; running apps above containers (Samsung Edge style)" IsChecked="{Binding SidebarShowRecentApps, Mode=TwoWay}" AutomationProperties.Name="Show recent and running apps on sidebar"/>
+        <DockPanel Margin="0,6,0,2" IsEnabled="{Binding SidebarShowRecentApps}"><TextBlock Text="Number of recent apps on strip (1–5)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding SidebarRecentAppsCount}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="SidebarRecentAppsCountSlider" Minimum="1" Maximum="5" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SidebarRecentAppsCount, Mode=TwoWay}" IsEnabled="{Binding SidebarShowRecentApps}" Margin="0,2,0,10"/>
+        <controls:AppDockToggleSwitch x:Name="SidebarFullscreenHideToggle" Content="Auto-hide edge handle during fullscreen apps, videos &amp; games (Do Not Disturb)" IsChecked="{Binding SidebarAutoHideOnFullscreen, Mode=TwoWay}" AutomationProperties.Name="Auto-hide edge handle during fullscreen apps and games"/>
+        <TextBlock Text="Tip: You can also drag .exe, .lnk, or .url files onto the edge handle to auto-expand the sidebar and drop them directly into any container." FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,6,0,4"/>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+        <TextBlock Text="Position, Display &amp; Handle Appearance" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <TextBlock Text="Display / Monitor" FontSize="13.5" FontWeight="SemiBold" Margin="0,2,0,4"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+          <RadioButton x:Name="PrimaryMonitorRadio" Content="Primary monitor" IsChecked="{Binding IsSidebarPrimaryMonitor, Mode=TwoWay}" GroupName="SidebarMonitor" Margin="4,4,20,4"/>
+          <RadioButton x:Name="CursorMonitorRadio" Content="Monitor with mouse cursor" IsChecked="{Binding IsSidebarCursorMonitor, Mode=TwoWay}" GroupName="SidebarMonitor" Margin="4,4,20,4"/>
+          <RadioButton x:Name="SpecificMonitorRadio" Content="Specific display" IsChecked="{Binding IsSidebarSpecificMonitor, Mode=TwoWay}" GroupName="SidebarMonitor" Margin="4,4,0,4"/>
+        </StackPanel>
+        <ComboBox x:Name="MonitorComboBox" ItemsSource="{Binding AvailableMonitors}" SelectedItem="{Binding SelectedMonitorOption, Mode=TwoWay}" DisplayMemberPath="Label" IsEnabled="{Binding IsSidebarSpecificMonitor}" Width="340" HorizontalAlignment="Left" Margin="4,0,0,12"/>
+        <TextBlock Text="Screen edge" FontSize="13.5" FontWeight="SemiBold" Margin="0,2,0,4"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+          <RadioButton x:Name="RightEdgeRadio" Content="Right edge" IsChecked="{Binding IsSidebarRightEdge, Mode=TwoWay}" GroupName="SidebarEdge" Margin="4,4,24,4"/>
+          <RadioButton x:Name="LeftEdgeRadio" Content="Left edge" IsChecked="{Binding IsSidebarLeftEdge, Mode=TwoWay}" GroupName="SidebarEdge" Margin="4,4,0,4"/>
+        </StackPanel>
+        <DockPanel Margin="0,2,0,4"><TextBlock Text="Vertical position on screen edge (%)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding SidebarVerticalPercent}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="SidebarVerticalSlider" Minimum="5" Maximum="95" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding SidebarVerticalPercent, Mode=TwoWay}" Margin="0,2,0,4"/>
+        <TextBlock Text="Tip: You can also drag the edge handle up or down directly on your screen." FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,0,0,12"/>
+        <Grid Margin="0,0,0,12">
+          <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0">
+            <DockPanel Margin="0,0,0,4"><TextBlock Text="Edge handle height (px)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding SidebarHandleHeight}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+            <Slider x:Name="SidebarHandleHeightSlider" Minimum="48" Maximum="320" TickFrequency="16" IsSnapToTickEnabled="True" Value="{Binding SidebarHandleHeight, Mode=TwoWay}"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <DockPanel Margin="0,0,0,4"><TextBlock Text="Edge handle width (px)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding SidebarHandleWidth}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+            <Slider x:Name="SidebarHandleWidthSlider" Minimum="3" Maximum="16" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SidebarHandleWidth, Mode=TwoWay}"/>
+          </StackPanel>
+        </Grid>
+        <DockPanel Margin="0,0,0,4"><TextBlock Text="Edge handle opacity (set to 0% for Invisible Handle at rest)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding SidebarHandleOpacityText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="SidebarHandleOpacitySlider" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding SidebarHandleOpacityPercent, Mode=TwoWay}" Margin="0,2,0,12"/>
+        <TextBlock Text="Edge handle color" FontSize="13.5" FontWeight="SemiBold" Margin="0,2,0,4"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+          <RadioButton x:Name="HandleColorThemeRadio" Content="Theme accent" IsChecked="{Binding IsHandleColorThemeAccent, Mode=TwoWay}" GroupName="SidebarHandleColor" Margin="4,4,20,4"/>
+          <RadioButton x:Name="HandleColorTintRadio" Content="Active container tint" IsChecked="{Binding IsHandleColorContainerTint, Mode=TwoWay}" GroupName="SidebarHandleColor" Margin="4,4,20,4"/>
+          <RadioButton x:Name="HandleColorCustomRadio" Content="Custom color" IsChecked="{Binding IsHandleColorCustom, Mode=TwoWay}" GroupName="SidebarHandleColor" Margin="4,4,0,4"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="4,0,0,14" IsEnabled="{Binding IsHandleColorCustom}">
+          <Button Width="26" Height="26" Padding="0" Margin="0,0,6,0" Tag="#00B7C3" Click="HandleColorSwatch_Click" ToolTip="Teal (#00B7C3)"><Border Width="18" Height="18" CornerRadius="9" Background="#00B7C3"/></Button>
+          <Button Width="26" Height="26" Padding="0" Margin="0,0,6,0" Tag="#886CE4" Click="HandleColorSwatch_Click" ToolTip="Purple (#886CE4)"><Border Width="18" Height="18" CornerRadius="9" Background="#886CE4"/></Button>
+          <Button Width="26" Height="26" Padding="0" Margin="0,0,6,0" Tag="#10893E" Click="HandleColorSwatch_Click" ToolTip="Green (#10893E)"><Border Width="18" Height="18" CornerRadius="9" Background="#10893E"/></Button>
+          <Button Width="26" Height="26" Padding="0" Margin="0,0,6,0" Tag="#FFB900" Click="HandleColorSwatch_Click" ToolTip="Gold (#FFB900)"><Border Width="18" Height="18" CornerRadius="9" Background="#FFB900"/></Button>
+          <Button Width="26" Height="26" Padding="0" Margin="0,0,6,0" Tag="#E74856" Click="HandleColorSwatch_Click" ToolTip="Coral Red (#E74856)"><Border Width="18" Height="18" CornerRadius="9" Background="#E74856"/></Button>
+          <Button Width="26" Height="26" Padding="0" Margin="0,0,10,0" Tag="#E2E8F0" Click="HandleColorSwatch_Click" ToolTip="Silver White (#E2E8F0)"><Border Width="18" Height="18" CornerRadius="9" Background="#E2E8F0" BorderBrush="#94A3B8" BorderThickness="1"/></Button>
+          <TextBlock Text="Hex:" VerticalAlignment="Center" Foreground="{DynamicResource Muted}" Margin="0,0,6,0"/>
+          <TextBox x:Name="HandleCustomColorBox" Width="90" VerticalContentAlignment="Center" Text="{Binding SidebarHandleCustomColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MaxLength="7" Padding="6,3"/>
+        </StackPanel>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,2,0,12"/>
+        <TextBlock Text="Container Opening &amp; Hover Timing" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Choose how containers open from the Lateral Edge Sidebar." Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,8"/>
+        <RadioButton x:Name="SidebarClickRadio" Content="Click" IsChecked="{Binding IsSidebarClickOpen, Mode=TwoWay}" GroupName="SidebarOpening" Margin="4,4"/>
+        <RadioButton x:Name="SidebarHoverRadio" Content="Hover" IsChecked="{Binding IsSidebarHoverOpen, Mode=TwoWay}" GroupName="SidebarOpening" Margin="4,4"/>
+        <RadioButton x:Name="SidebarClickOrHoverRadio" Content="Click or Hover" IsChecked="{Binding IsSidebarClickOrHoverOpen, Mode=TwoWay}" GroupName="SidebarOpening" Margin="4,4,4,12"/>
+        <DockPanel Margin="0,4,0,2"><TextBlock Text="Hover opening delay (ms)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding HoverOpeningDelayMs}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="HoverOpenDelaySlider" Minimum="100" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding HoverOpeningDelayMs, Mode=TwoWay}" Margin="0,2,0,12"/>
+        <DockPanel Margin="0,0,0,2"><TextBlock Text="Hover closing delay (ms)" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding HoverClosingDelayMs}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+        <Slider x:Name="HoverCloseDelaySlider" Minimum="100" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding HoverClosingDelayMs, Mode=TwoWay}" Margin="0,2,0,4"/>
+      </StackPanel></Border></ScrollViewer></TabItem>
+      <TabItem Header="Help &amp; Guide" Tag="&#xE897;">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="12,6,12,12">
+            <TextBlock Text="Help &amp; Quick Guide" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock Text="How to pin containers to your taskbar, use the Lateral Edge Sidebar, understand icon indicators, and use shortcuts." Foreground="{DynamicResource Muted}" FontSize="12.5" Margin="0,4,0,14"/>
+
+            <!-- Pinning & Unpinning Containers Card (Most Important) -->
+            <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Accent}" BorderThickness="1.5" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+              <StackPanel>
+                <TextBlock Text="📌 Taskbar &amp; Lateral Edge Sidebar Modes (Essential)" FontSize="15.5" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,0,0,8"/>
+                <TextBlock Text="AppDock supports both the Windows Taskbar and the Samsung-style Lateral Edge Sidebar, with independent layouts:" Foreground="{DynamicResource Ink}" FontWeight="Medium" FontSize="12.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="1. Active Surfaces" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="In Settings → General, choose 'Taskbar Only', 'Edge Sidebar Only' (automatically unpins taskbar shortcuts for a clean taskbar), or 'Both Taskbar &amp; Sidebar'." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="2. Independent Layouts" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="You can independently choose Single AppDock or Multiple AppDocks for the Taskbar (in General / Taskbar tabs) and for the Lateral Sidebar (in the Sidebar tab)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="3. Pin a Container (Taskbar)" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Go to Settings → Containers, select your container, and click 'Pin to Taskbar'. This activates the container, enables Taskbar Multiple mode, and pins its icon to your Windows taskbar." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="4. Unpin / Hide a Container" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="In Settings → Containers, select the container and click 'Activate/Deactivate' or 'Delete Container' to hide and unpin it." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="5. Refresh Taskbar Icons" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="After changing a container’s icon, click 'Refresh Taskbar Icons' in Settings → Taskbar." TextWrapping="Wrap"/></Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Indicator Dots Card -->
+            <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+              <StackPanel>
+                <TextBlock Text="Dot Indicators Under Application Icons" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <TextBlock Text="Up to two small dots can appear directly beneath an application icon in a container:" Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                <Grid Margin="2,0,0,6">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="155"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                  <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+                  <TextBlock Grid.Column="1" Text="Grey / Muted Dot" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" Text="Running Application — This app is currently running on your PC." TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </Grid>
+                <Grid Margin="2,0,0,6">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="155"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                  <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource Accent}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4,0,0,0"/>
+                  <TextBlock Grid.Column="1" Text="Colored Accent Dot" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" Text="Last Launched — The most recently launched app in this container (shown when Manual ordering is active)." TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </Grid>
+                <TextBlock Text="Tip: When you see two dots side-by-side (• •), that application is both currently running and the last app you launched from the container." Foreground="{DynamicResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="2,4,0,0"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Mouse & Click Shortcuts Card -->
+            <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+              <StackPanel>
+                <TextBlock Text="Launching &amp; Mouse Actions" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Left-click" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Launch application (closes popup if Auto-close is enabled)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Middle-click or Ctrl + Click" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Launch and keep the container open so you can open multiple apps in one go." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Shift + Click" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Run as Administrator (prompts Windows UAC elevation)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Ctrl + Shift + Click" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Run as Administrator and keep the container open." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Right-click tile / popup" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Open context menu (Open File Location, Rename, Remove, or Container options)." TextWrapping="Wrap"/></Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Keyboard & Search Card -->
+            <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+              <StackPanel>
+                <TextBlock Text="Keyboard Navigation &amp; Instant Search" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Just start typing" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Automatically expands the 🔍 filter box and filters apps in the open container." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="1 – 9 number keys" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Instantly launch the 1st through 9th application in the container." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Arrow keys / Tab" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Move focus ring across tiles. Press Enter to launch (+ Ctrl or Shift modifiers)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Backspace" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Return to All Containers overview (when opened from Single mode or All Containers)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Escape / F1" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Escape clears active search, exits Edit mode, or closes the popup. F1 opens this Help guide." TextWrapping="Wrap"/></Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Drag, Drop & Editing Card -->
+            <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,10">
+              <StackPanel>
+                <TextBlock Text="Organizing &amp; Editing Containers" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Hover over header" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Reveals the 🔍 Filter, ＋ Add, Edit, and ？ Help buttons while keeping the header clean at rest." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Drag tile outside popup" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Quickly removes an app without entering Edit mode (shows a 5-second Undo toast; press Esc while dragging to cancel)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Drop files into popup" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Drag .exe, .lnk, or .url shortcuts from File Explorer or Desktop directly into the popup to add them." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Edit mode" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Click Edit in the header to drag-and-drop tiles to reorder them, click the red − badge to remove apps, or change the container icon." TextWrapping="Wrap"/></Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Visual & Taskbar Features Card -->
+            <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="16,14">
+              <StackPanel>
+                <TextBlock Text="Smart Naming, Themes &amp; Launch Surfaces" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Adaptive Icon Tint" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Each container automatically samples its icon’s dominant color to tint the count badge, search focus border, and tile focus ring." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Shorten App Names" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Strips common vendor prefixes (like 'Microsoft ' or 'Adobe ') on two-line labels so names fit cleanly, while keeping the full name in the tooltip." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,6"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="Independent Layouts" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Mix and match Single AppDock on the taskbar with Multiple AppDocks on the Lateral Edge Sidebar (or vice versa)." TextWrapping="Wrap"/></Grid>
+                <Grid Margin="0,0,0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="180"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Text="System Tray Icon" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Left-click the tray icon to open Settings, or right-click for quick access to Sidebar Settings, Containers, Help, and Exit." TextWrapping="Wrap"/></Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="About" Tag="&#xE946;"><DockPanel Margin="15,8"><TextBlock DockPanel.Dock="Bottom" Margin="0,16,0,4" Foreground="{DynamicResource Muted}" Text="Developed by Samoray"/><StackPanel><Image Source="pack://application:,,,/AppDock;component/Resources/Branding/AppDock128.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Margin="0,0,0,16"/><TextBlock Text="AppDock" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="Version 2.7.0" Foreground="{DynamicResource Accent}" Margin="0,10,0,24"/><TextBlock Text="Small containers. A calmer taskbar." FontSize="18"/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="A native Windows 11 launcher built for Taskbar and Lateral Edge Sidebar. Your containers and preferences are stored locally in %LOCALAPPDATA%\AppDock\."/><TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Muted}" Text="No installation needed. No account. No telemetry. No administrator privileges."/></StackPanel></DockPanel></TabItem>
     </TabControl>
-    <Grid Grid.Row="2" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Changes save automatically" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/><Button Grid.Column="1" Content="Done" IsCancel="True" Click="Done_Click"/></Grid>
+    <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Changes save automatically" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/><Button Grid.Column="1" Content="Done" IsCancel="True" Click="Done_Click"/></Grid>
   </Grid>
 </Window>
