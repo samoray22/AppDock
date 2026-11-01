@@ -5,7 +5,9 @@ AppDock is a native Windows 11 application launcher built with C#, .NET 10 and W
 
 ![apzgf7rbYC](https://i.imgur.com/w0rv1g7.gif)
 
-![explorer_OBbyDfvn6f](https://i.imgur.com/XWH95xd.gif)
+![explorer_8BJrrDofjK](https://i.imgur.com/vJGFJJ9.png)
+
+![explorer_OU7wFWF8VI](https://i.imgur.com/L4ixdhO.gif)
 
 ## Build and launch
 
