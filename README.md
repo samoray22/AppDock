@@ -2,9 +2,9 @@
 
 AppDock is a native Windows 11 application launcher built with C#, .NET 10 and WPF. Containers hold references to applications; removing a reference never uninstalls or deletes an application. No third-party runtime icon packages, account or telemetry.
 
-[url=https://gifyu.com/image/bWaxW][img]https://s15.gifyu.com/images/bWaxW.gif[/img][/url]
+https://gifyu.com/image/bWaxW][img]https://s15.gifyu.com/images/bWaxW.gif
 
-[url=https://gifyu.com/image/bWaxc][img]https://s15.gifyu.com/images/bWaxc.gif[/img][/url]
+https://gifyu.com/image/bWaxc][img]https://s15.gifyu.com/images/bWaxc.gif
 
 ## Build and launch
 
