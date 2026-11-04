@@ -161,6 +161,10 @@ internal static class Program
             Check(LocalizationService.EffectiveCultureCode == "ja");
             Check(LocalizationService.Get("Common.Done") == "完了");
 
+            LocalizationService.SetLanguage(AppLanguage.Korean);
+            Check(LocalizationService.EffectiveCultureCode == "ko");
+            Check(LocalizationService.Get("Common.Done") == "완료");
+
             // Reset to English
             LocalizationService.SetLanguage(AppLanguage.English);
         });
