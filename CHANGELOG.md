@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.3] - 2026-11-04
+
+### Added
+- **🇰🇷 Korean Language Support (`한국어 (Korean)`)**:
+  - Added full localization dictionary for Korean (`한국어` / `ko` in `Strings.ko.cs`).
+  - Maintained 100% dictionary parity (434 keys) across all UI elements, tooltips, dialogs, tray menus, 41 container categories, and 10 container opening animations.
+  - Added culture auto-detection (`ko`), dual-language selector naming (`한국어 (Korean)`), and live switching support for `AppLanguage.Korean`.
+  - Expanded automated test suite in `tests/AppBox.Tests` to verify all 12 supported languages.
+
+---
+
 ## [2.9.2] - 2026-11-04
 
 ### Added

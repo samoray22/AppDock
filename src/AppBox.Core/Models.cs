@@ -7,7 +7,7 @@ public enum ScreenEdge { Left, Right }
 public enum SidebarMonitorMode { PrimaryMonitor, CursorMonitor, SpecificMonitor }
 public enum SidebarHandleColorMode { ThemeAccent, ContainerTint, Custom }
 public enum AppTheme { System, Light, Dark }
-public enum AppLanguage { System, English, Spanish, French, German, Italian, Portuguese, Chinese, Japanese, Dutch, Turkish, Russian }
+public enum AppLanguage { System, English, Spanish, French, German, Italian, Portuguese, Chinese, Japanese, Dutch, Turkish, Russian, Korean }
 public enum TargetKind { Executable, Shortcut, Packaged, InternetShortcut }
 
 public enum SortMode { Manual, RecentFirst }

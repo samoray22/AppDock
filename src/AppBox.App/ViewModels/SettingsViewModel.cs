@@ -425,7 +425,7 @@ public sealed class SettingsViewModel : ObservableObject
         get
         {
             var v = typeof(SettingsViewModel).Assembly.GetName().Version;
-            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 2.9.1";
+            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 2.9.3";
         }
     }
 
