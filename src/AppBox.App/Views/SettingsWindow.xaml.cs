@@ -31,11 +31,11 @@ public partial class SettingsWindow : Window
     public void SelectContainer(AppFolder container) => Model.SelectedFolder = container;
     public void SelectSection(string section) => Sections.SelectedIndex = section switch { "Containers" or "Folders" => 1, "Appearance" => 2, "Taskbar Interaction" or "Taskbar" => 3, "Sidebar" or "Edge Sidebar" => 4, "Help" or "Guide" => 5, "About" => 6, _ => 0 };
     private void Guard(Action action) { try { action(); } catch (Exception ex) { AppDockDialog.Show(this, ex.Message, "AppDock", MessageBoxImage.Information); } }
-    private void NewFolder_Click(object sender, RoutedEventArgs e) { var name = TextPrompt.Ask(this, "Create a Container", "New Container"); if (name is not null) Guard(() => Model.Create(name)); }
-    private void Rename_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is null) return; var name = TextPrompt.Ask(this, "Rename Container", Model.SelectedFolder.Name); if (name is not null) Guard(() => Model.Rename(name)); }
+    private void NewFolder_Click(object sender, RoutedEventArgs e) { var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.CreateContainerTitle"), LocalizationService.Get("Dialog.NewContainerDefault")); if (name is not null) Guard(() => Model.Create(name)); }
+    private void Rename_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is null) return; var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.RenameContainerTitle"), Model.SelectedFolder.Name); if (name is not null) Guard(() => Model.Rename(name)); }
     private void Delete_Click(object sender, RoutedEventArgs e)
     {
-        if (Model.SelectedFolder is { } folder && AppDockDialog.Confirm(this, $"Delete “{folder.Name}” and its app references? Application files will be kept.", "Delete Container", "Delete", isDanger: true))
+        if (Model.SelectedFolder is { } folder && AppDockDialog.Confirm(this, LocalizationService.Format("Dialog.DeleteContainerPrompt", folder.Name), LocalizationService.Get("Dialog.DeleteContainerTitle"), LocalizationService.Get("Common.Delete"), isDanger: true))
         {
             Guard(() =>
             {
@@ -47,14 +47,14 @@ public partial class SettingsWindow : Window
     }
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
-        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, "Create a Container first.", "AppDock"); return; }
-        var dialog = new OpenFileDialog { Filter = "Applications and shortcuts|*.exe;*.lnk;*.url", Multiselect = true, DereferenceLinks = false };
+        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateContainerFirst"), "AppDock"); return; }
+        var dialog = new OpenFileDialog { Filter = LocalizationService.Get("Dialog.BrowseFilter"), Multiselect = true, DereferenceLinks = false };
         if (dialog.ShowDialog(this) != true) return;
         foreach (var file in dialog.FileNames) Guard(() => Model.Add(new AppEntry { Name = Path.GetFileNameWithoutExtension(file), Target = file, Kind = Path.GetExtension(file).Equals(".lnk", StringComparison.OrdinalIgnoreCase) ? TargetKind.Shortcut : TargetKind.Executable }));
     }
     private void Discover_Click(object sender, RoutedEventArgs e)
     {
-        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, "Create a Container first.", "AppDock"); return; }
+        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateContainerFirst"), "AppDock"); return; }
         var picker = new ApplicationPicker { Owner = this };
         if (picker.ShowDialog() == true && picker.Selected is not null) Guard(() => Model.Add(picker.Selected));
     }
@@ -71,7 +71,7 @@ public partial class SettingsWindow : Window
         if (DataContext is not SettingsViewModel || new System.Windows.Interop.WindowInteropHelper(this).Handle == IntPtr.Zero) return;
         NativeStyleState = NativeWindowStyle.Apply(this, Model.UseWindows11Style, ThemeService.Dark);
         StyleToggle.ToolTip = NativeStyleState.Detail;
-        StyleFeedback.Text = "The system backdrop is unavailable; the standard theme is active.";
+        StyleFeedback.Text = LocalizationService.Get("General.BackdropUnavailable");
         StyleFeedback.Visibility = Model.UseWindows11Style && !NativeStyleState.SystemBackdropApplied ? Visibility.Visible : Visibility.Collapsed;
     }
     private void ModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) { if (e.PropertyName == nameof(SettingsViewModel.UseWindows11Style)) ApplyWindowStyle(); }
@@ -95,16 +95,16 @@ public partial class SettingsWindow : Window
     });
     private void PinTaskbar_Click(object sender, RoutedEventArgs e) => Guard(() =>
     {
-        if (Model.SelectedFolder is not { } folder) { AppDockDialog.Show(this, "Create or select a Container first.", "AppDock"); return; }
+        if (Model.SelectedFolder is not { } folder) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateOrSelectContainerFirst"), "AppDock"); return; }
         if (!folder.IsActive) folder.IsActive = true; Model.Config.Settings.EnableTaskbar = true;
         Model.Config.Settings.LayoutMode = LayoutMode.MultipleAppBoxes;
         Model.Persist();
         var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
         var launchers = new ContainerLaunchers(rootDir, AppPaths.Executable);
         if (launchers.PinToTaskbar(folder))
-            AppDockDialog.Show(this, $"“{folder.Name}” has been pinned to your Windows taskbar.", "Pinned to Taskbar", MessageBoxImage.Information);
+            AppDockDialog.Show(this, LocalizationService.Format("Dialog.PinnedSuccess", folder.Name), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Information);
         else
-            AppDockDialog.Show(this, "Windows could not pin this container automatically. Use Open Launcher Shortcuts in the Taskbar tab.", "Pin to Taskbar", MessageBoxImage.Warning);
+            AppDockDialog.Show(this, LocalizationService.Get("Dialog.PinnedManual"), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Warning);
     });
     private void Edit_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) EditContainer?.Invoke(folder); }
     private void Launchers_Click(object sender, RoutedEventArgs e) => Guard(() => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + LaunchersDirectory + "\"") { UseShellExecute = true }));
@@ -112,7 +112,7 @@ public partial class SettingsWindow : Window
     {
         Model.Persist();
         ContainerLaunchers.NotifyShellUpdate();
-        AppDockDialog.Show(this, "Windows taskbar and shell icon caches refreshed.", "AppDock", MessageBoxImage.Information);
+        AppDockDialog.Show(this, LocalizationService.Get("Dialog.IconsRefreshed"), "AppDock", MessageBoxImage.Information);
     });
     private void HandleColorSwatch_Click(object sender, RoutedEventArgs e)
     {
@@ -174,8 +174,8 @@ public partial class SettingsWindow : Window
     {
         var dialog = new SaveFileDialog
         {
-            Title = "Export AppDock Configuration Backup",
-            Filter = "AppDock Backup Archive (*.zip)|*.zip|AppDock Configuration (*.json)|*.json",
+            Title = LocalizationService.Get("Dialog.ExportTitle"),
+            Filter = LocalizationService.Get("Dialog.ExportFilter"),
             DefaultExt = ".zip",
             FileName = $"AppDock_Backup_{DateTime.Now:yyyyMMdd}"
         };
@@ -184,19 +184,19 @@ public partial class SettingsWindow : Window
         {
             var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory) : null;
             Model.ExportBackup(dialog.FileName, rootDir);
-            AppDockDialog.Show(this, $"Configuration backup exported successfully to:\n{dialog.FileName}", "Export Complete", MessageBoxImage.Information);
+            AppDockDialog.Show(this, LocalizationService.Format("Dialog.ExportSuccess", dialog.FileName), LocalizationService.Get("Dialog.ExportComplete"), MessageBoxImage.Information);
         });
     }
     private void ImportBackup_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Import AppDock Configuration Backup",
-            Filter = "AppDock Backup (*.zip;*.json)|*.zip;*.json|AppDock Backup Archive (*.zip)|*.zip|AppDock Configuration (*.json)|*.json",
+            Title = LocalizationService.Get("Dialog.ImportTitle"),
+            Filter = LocalizationService.Get("Dialog.ImportFilter"),
             DereferenceLinks = false
         };
         if (dialog.ShowDialog(this) != true) return;
-        if (!AppDockDialog.Confirm(this, "Importing a backup will replace your current containers and settings with the backup contents. Continue?", "Import Configuration Backup", "Import"))
+        if (!AppDockDialog.Confirm(this, LocalizationService.Get("Dialog.ImportConfirmPrompt"), LocalizationService.Get("Dialog.ImportConfirmTitle"), LocalizationService.Get("Dialog.ImportButton")))
             return;
         Guard(() =>
         {
@@ -205,7 +205,7 @@ public partial class SettingsWindow : Window
             SyncThemes();
             ThemeService.Apply(Model.Config.Settings.Theme);
             ApplyWindowStyle();
-            AppDockDialog.Show(this, $"Configuration restored successfully ({Model.Config.Folders.Count} containers loaded).", "Import Complete", MessageBoxImage.Information);
+            AppDockDialog.Show(this, LocalizationService.Format("Dialog.ImportSuccess", Model.Config.Folders.Count), LocalizationService.Get("Dialog.ImportComplete"), MessageBoxImage.Information);
         });
     }
     private WarpMeshRenderer? previewWarpRenderer;

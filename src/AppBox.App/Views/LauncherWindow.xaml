@@ -15,32 +15,32 @@
       <Border x:Name="Frame" Background="Transparent" BorderThickness="0" CornerRadius="20" Padding="12" ContextMenuOpening="Container_ContextMenuOpening">
         <Border.ContextMenu>
           <ContextMenu Opened="Menu_Opened" Closed="Menu_Closed">
-            <MenuItem Header="Edit Container" Click="EditContainer_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.EditContainer}" Click="EditContainer_Click">
               <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Add Application" Click="Add_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.AddApplication}" Click="Add_Click">
               <MenuItem.Icon><TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Rename Container" Click="RenameContainer_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.RenameContainer}" Click="RenameContainer_Click">
               <MenuItem.Icon><TextBlock Text="&#xE8AC;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Change Container Icon" Click="ChangeIcon_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.ChangeIcon}" Click="ChangeIcon_Click">
               <MenuItem.Icon><TextBlock Text="&#xEB9F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Container Settings" Click="Manage_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.ContainerSettings}" Click="Manage_Click">
               <MenuItem.Icon><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Activate/Deactivate" Click="Activate_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.Active}" Click="Activate_Click">
               <MenuItem.Icon><TextBlock Text="&#xE718;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Manage Containers" Click="Manage_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.ManageContainers}" Click="Manage_Click">
               <MenuItem.Icon><TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
-            <MenuItem Header="Help &amp; Guide" Click="Help_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.Help}" Click="Help_Click">
               <MenuItem.Icon><TextBlock Text="&#xE897;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
             <Separator/>
-            <MenuItem Header="Close" Click="Dismiss_Click">
+            <MenuItem Header="{DynamicResource Str.Launcher.Menu.Close}" Click="Dismiss_Click">
               <MenuItem.Icon><TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
             </MenuItem>
           </ContextMenu>
@@ -54,8 +54,8 @@
 
           <!-- macOS-style Folder Header Bar -->
           <DockPanel x:Name="HeaderPanel" Grid.Row="0" Margin="2,0,2,4" LastChildFill="False" Background="Transparent" MouseEnter="HeaderPanel_MouseEnter" MouseLeave="HeaderPanel_MouseLeave">
-            <Button DockPanel.Dock="Left" Content="‹ All" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Command="{Binding BackCommand}" Visibility="{Binding CanGoBack, Converter={StaticResource BoolVisibility}}" Margin="0,0,4,0" Padding="8,4" ToolTip="Back to all containers"/>
-            <Button DockPanel.Dock="Left" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Padding="3" Margin="0,0,4,0" Click="ChangeIcon_Click" ToolTip="Change container icon" VerticalAlignment="Center">
+            <Button DockPanel.Dock="Left" Content="{DynamicResource Str.Common.Back}" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Command="{Binding BackCommand}" Visibility="{Binding CanGoBack, Converter={StaticResource BoolVisibility}}" Margin="0,0,4,0" Padding="8,4" ToolTip="{DynamicResource Str.Launcher.BackTooltip}"/>
+            <Button DockPanel.Dock="Left" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Padding="3" Margin="0,0,4,0" Click="ChangeIcon_Click" ToolTip="{DynamicResource Str.Launcher.ChangeIconTooltip}" VerticalAlignment="Center">
               <Image Source="{Binding HeaderIcon}" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
             </Button>
             <TextBlock DockPanel.Dock="Left" Text="{Binding HeaderTitle}" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="112" Margin="1,0,5,0"/>
@@ -77,13 +77,13 @@
                 </Border.Style>
                 <Grid>
                   <TextBlock x:Name="SearchIconCollapsed" Text="🔍" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Muted}" IsHitTestVisible="False"/>
-                  <TextBlock x:Name="SearchFilterPlaceholder" Text="🔍 Filter…" FontSize="11" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="6,0,0,0" IsHitTestVisible="False" Visibility="Collapsed"/>
-                  <TextBox x:Name="SearchBox" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Padding="6,2,6,2" Margin="0" FontSize="11.5" VerticalContentAlignment="Center" ToolTip="Filter applications in this container" Opacity="0" GotKeyboardFocus="SearchBox_GotFocus" LostKeyboardFocus="SearchBox_LostFocus"/>
+                  <TextBlock x:Name="SearchFilterPlaceholder" Text="{DynamicResource Str.Common.Filter}" FontSize="11" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="6,0,0,0" IsHitTestVisible="False" Visibility="Collapsed"/>
+                  <TextBox x:Name="SearchBox" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" BorderThickness="0" Padding="6,2,6,2" Margin="0" FontSize="11.5" VerticalContentAlignment="Center" ToolTip="{DynamicResource Str.Common.FilterTooltip}" Opacity="0" GotKeyboardFocus="SearchBox_GotFocus" LostKeyboardFocus="SearchBox_LostFocus"/>
                 </Grid>
               </Border>
-              <Button Content="＋" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Click="Add_Click" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}" Padding="7,4" VerticalAlignment="Center" ToolTip="Add applications"/>
+              <Button Content="＋" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Click="Add_Click" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}" Padding="7,4" VerticalAlignment="Center" ToolTip="{DynamicResource Str.Common.AddTooltip}"/>
               <Button Content="{Binding EditButtonText}" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Command="{Binding ToggleEditCommand}" Visibility="{Binding ShowApplications, Converter={StaticResource BoolVisibility}}" Padding="8,4" VerticalAlignment="Center"/>
-              <Button Content="?" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Click="Help_Click" Padding="7,4" Margin="2,0,0,0" VerticalAlignment="Center" ToolTip="Help &amp; Shortcuts (F1)"/>
+              <Button Content="?" Focusable="False" Style="{StaticResource MacHeaderPillButton}" Click="Help_Click" Padding="7,4" Margin="2,0,0,0" VerticalAlignment="Center" ToolTip="{DynamicResource Str.Common.HelpTooltip}"/>
             </StackPanel>
           </DockPanel>
 
@@ -102,17 +102,17 @@
                     <Button Width="{Binding DataContext.TileButtonWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.TileButtonHeight, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,6,5,4" Style="{StaticResource MacTileButton}" Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" PreviewMouseLeftButtonDown="Tile_MouseDown" PreviewMouseUp="Tile_MouseUp" PreviewMouseMove="Tile_MouseMove" MouseLeave="Tile_MouseLeave" ContextMenuOpening="Tile_ContextMenuOpening">
                       <Button.ContextMenu>
                         <ContextMenu Opened="Menu_Opened" Closed="Menu_Closed">
-                          <MenuItem Header="Launch" Click="Launch_Click">
+                          <MenuItem Header="{DynamicResource Str.Launcher.Menu.Launch}" Click="Launch_Click">
                             <MenuItem.Icon><TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
                           </MenuItem>
-                          <MenuItem Header="Open File Location" Click="Location_Click">
+                          <MenuItem Header="{DynamicResource Str.Launcher.Menu.OpenFileLocation}" Click="Location_Click">
                             <MenuItem.Icon><TextBlock Text="&#xED25;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
                           </MenuItem>
-                          <MenuItem Header="Rename" Click="Rename_Click">
+                          <MenuItem Header="{DynamicResource Str.Launcher.Menu.RenameApp}" Click="Rename_Click">
                             <MenuItem.Icon><TextBlock Text="&#xE8AC;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
                           </MenuItem>
                           <Separator/>
-                          <MenuItem Header="Remove From Container" Click="Remove_Click">
+                          <MenuItem Header="{DynamicResource Str.Launcher.Menu.RemoveFromContainer}" Click="Remove_Click">
                             <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
                           </MenuItem>
                         </ContextMenu>
@@ -124,7 +124,7 @@
     <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2.5" Opacity="0.24"/>
   </controls:AppIcon.Effect>
 </controls:AppIcon>
-                          <Button Style="{StaticResource MacDeleteBadgeButton}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-6,-6,0,0" Visibility="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVisibility}}" Command="{Binding DataContext.RemoveTileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Remove from container" PreviewMouseLeftButtonDown="DeleteBadge_MouseDown"/>
+                          <Button Style="{StaticResource MacDeleteBadgeButton}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-6,-6,0,0" Visibility="{Binding DataContext.IsEditing, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVisibility}}" Command="{Binding DataContext.RemoveTileCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="{DynamicResource Str.Launcher.Menu.RemoveFromContainer}" PreviewMouseLeftButtonDown="DeleteBadge_MouseDown"/>
                           <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-4">
                             <Border Width="5" Height="5" CornerRadius="2.5" Background="{DynamicResource Accent}" Margin="1,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolVisibility}}" ToolTip="Running application">
                               <Border.Effect>
@@ -168,15 +168,15 @@
               <DropShadowEffect Color="Black" BlurRadius="12" ShadowDepth="2" Opacity="0.25"/>
             </Border.Effect>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <TextBlock x:Name="UndoToastText" Text="Removed application" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBlock x:Name="UndoToastText" Text="{DynamicResource Str.Launcher.UndoToastText}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
               <TextBlock Text="·" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-              <Button Content="Undo" Style="{StaticResource MacHeaderPillButton}" Padding="8,2" FontSize="11.5" FontWeight="SemiBold" Click="UndoButton_Click" VerticalAlignment="Center"/>
+              <Button Content="{DynamicResource Str.Common.Undo}" Style="{StaticResource MacHeaderPillButton}" Padding="8,2" FontSize="11.5" FontWeight="SemiBold" Click="UndoButton_Click" VerticalAlignment="Center"/>
             </StackPanel>
           </Border>
 
           <!-- Edit Mode Footer Bar -->
           <DockPanel Grid.Row="2" Margin="2,6,2,0" Visibility="{Binding IsEditing, Converter={StaticResource BoolVisibility}}">
-            <Button DockPanel.Dock="Right" Content="Icon…" Click="ChangeIcon_Click" Padding="10,5" Margin="4,0,0,0" ToolTip="Change container icon"/>
+            <Button DockPanel.Dock="Right" Content="{DynamicResource Str.Launcher.IconTooltip}" Click="ChangeIcon_Click" Padding="10,5" Margin="4,0,0,0" ToolTip="{DynamicResource Str.Launcher.ChangeIconTooltip}"/>
             <TextBlock Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" MaxHeight="40" FontSize="12" Foreground="{DynamicResource Accent}"/>
           </DockPanel>
 
@@ -184,7 +184,7 @@
           <Border Grid.Row="0" Grid.RowSpan="3" Visibility="{Binding ExternalDropActive, Converter={StaticResource BoolVisibility}}" Background="{DynamicResource Hover}" BorderBrush="{DynamicResource Accent}" BorderThickness="1.5" CornerRadius="14" Padding="14" IsHitTestVisible="False">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
               <TextBlock Text="＋" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
-              <TextBlock Text="Drop to add applications" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Str.Launcher.DropOverlay}" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
             </StackPanel>
           </Border>
         </Grid>

@@ -56,6 +56,7 @@ public partial class App : System.Windows.Application
             }
             ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
             ThemeService.Apply(config.Settings.Theme);
+            LanguageResourceService.Apply(config.Settings.Language);
             launchers = new(store.DirectoryPath, AppPaths.Executable);
             launchers.Sync(config);
             if (!diagnosticRun)
@@ -99,7 +100,7 @@ public partial class App : System.Windows.Application
             CreateTray();
             try { launchers.UpdateMain(new ContainerIcons(store.DirectoryPath).ProductIconPath); }
             catch (Exception ex) when (ex is not OutOfMemoryException)
-            { tray?.ShowBalloonTip(5000, "AppDock", "The main launcher shortcut could not be updated. " + ex.Message, Forms.ToolTipIcon.Info); }
+            { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Format("Tray.MainShortcutError", ex.Message), Forms.ToolTipIcon.Info); }
             if (!diagnosticRun)
             {
                 PublishJumpLists();
@@ -119,7 +120,7 @@ public partial class App : System.Windows.Application
                 File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "artifacts", e.Args.Contains("--smoke-secondary") ? "secondary-error.txt" : "smoke-error.txt"), ex.ToString());
                 Shutdown(1); return;
             }
-            AppDockDialog.Show(null, "AppDock could not start. " + ex.Message, "AppDock", MessageBoxImage.Error);
+            AppDockDialog.Show(null, LocalizationService.Format("Dialog.StartFailed", ex.Message), "AppDock", MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -129,7 +130,7 @@ public partial class App : System.Windows.Application
         if (request.Command == ActivationCommand.Open) { ActivateLauncher(request.ContainerId?.ToString() ?? ""); return; }
         var container = request.Resolve(config, requireActive: request.Command == ActivationCommand.EditContainer);
         if (request.ContainerId is not null && container is null)
-        { tray?.ShowBalloonTip(5000, "AppDock", "This container is unavailable. Open Manage Containers from the main launcher.", Forms.ToolTipIcon.Info); return; }
+        { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Get("Tray.ContainerUnavailable"), Forms.ToolTipIcon.Info); return; }
         if (container is not null) { model.SelectedFolder = container; settings?.SelectContainer(container); }
         if (request.Command == ActivationCommand.EditContainer)
         {
@@ -155,7 +156,7 @@ public partial class App : System.Windows.Application
             }
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
-        { tray?.ShowBalloonTip(5000, "AppDock", "Windows could not update application Jump List commands. Click activation remains available. " + ex.Message, Forms.ToolTipIcon.Info); }
+        { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Format("Tray.JumpListError", ex.Message), Forms.ToolTipIcon.Info); }
     }
     private void ActivateLauncher(string folderId = "")
     {
@@ -167,7 +168,7 @@ public partial class App : System.Windows.Application
         if (config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes && Guid.TryParse(folderId, out var id))
         {
             var container = config.Folders.FirstOrDefault(f => f.Id == id && f.IsActive);
-            if (container is null) { tray?.ShowBalloonTip(5000, "AppDock", "This container is inactive or was deleted. Open Settings to manage containers.", Forms.ToolTipIcon.Info); return; }
+            if (container is null) { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Get("Tray.ContainerInactive"), Forms.ToolTipIcon.Info); return; }
             sameView = alreadyVisible && !model.IsOverview && model.SelectedFolder?.Id == container.Id;
             model.OpenContainer(container);
         }
@@ -201,7 +202,7 @@ public partial class App : System.Windows.Application
         UpdateIdentity();
         launcher.Present(!sameView && config.Settings.EnableAnimations, anchor);
     }
-    private void CreateTray()
+    private Forms.ContextMenuStrip BuildTrayMenu()
     {
         var dark = ThemeService.Dark;
         var menu = new Forms.ContextMenuStrip
@@ -210,14 +211,25 @@ public partial class App : System.Windows.Application
             ShowImageMargin = true
         };
 
-        menu.Items.Add("Settings", TrayIconGlyphs.Create("\uE713", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("General")));
-        menu.Items.Add("Sidebar Settings", TrayIconGlyphs.Create("\uE8A0", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Sidebar")));
-        menu.Items.Add("Manage Containers", TrayIconGlyphs.Create("\uE8B7", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Containers")));
-        menu.Items.Add("Open All Containers", TrayIconGlyphs.Create("\uE71D", dark), (_, _) => Dispatcher.Invoke(() => { launcher.SetLateralMode(!config.Settings.EnableTaskbar); model.OpenOverview(); launcher.Present(config.Settings.EnableAnimations); }));
-        menu.Items.Add("Help & Guide", TrayIconGlyphs.Create("\uE897", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Help")));
+        menu.Items.Add(LocalizationService.Get("Tray.Settings"), TrayIconGlyphs.Create("\uE713", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("General")));
+        menu.Items.Add(LocalizationService.Get("Tray.SidebarSettings"), TrayIconGlyphs.Create("\uE8A0", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Sidebar")));
+        menu.Items.Add(LocalizationService.Get("Tray.ManageContainers"), TrayIconGlyphs.Create("\uE8B7", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Containers")));
+        menu.Items.Add(LocalizationService.Get("Tray.OpenAllContainers"), TrayIconGlyphs.Create("\uE71D", dark), (_, _) => Dispatcher.Invoke(() => { launcher.SetLateralMode(!config.Settings.EnableTaskbar); model.OpenOverview(); launcher.Present(config.Settings.EnableAnimations); }));
+        menu.Items.Add(LocalizationService.Get("Tray.HelpAndGuide"), TrayIconGlyphs.Create("\uE897", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Help")));
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Exit AppDock", TrayIconGlyphs.Create("\uE7E8", dark), (_, _) => Dispatcher.Invoke(() => { Save(); Shutdown(); }));
-
+        menu.Items.Add(LocalizationService.Get("Tray.Exit"), TrayIconGlyphs.Create("\uE7E8", dark), (_, _) => Dispatcher.Invoke(() => { Save(); Shutdown(); }));
+        return menu;
+    }
+    private void UpdateTrayMenu()
+    {
+        if (tray is null) return;
+        var old = tray.ContextMenuStrip;
+        tray.ContextMenuStrip = BuildTrayMenu();
+        old?.Dispose();
+    }
+    private void CreateTray()
+    {
+        var menu = BuildTrayMenu();
         var icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? System.Drawing.SystemIcons.Application;
         tray = new() { Text = "AppDock", Icon = icon, Visible = true, ContextMenuStrip = menu };
         tray.MouseClick += (_, e) => { if (e.Button == Forms.MouseButtons.Left) Dispatcher.Invoke(() => OpenSettings("General")); };
@@ -282,13 +294,15 @@ public partial class App : System.Windows.Application
                 UpdateIdentity(); model.Refresh();
             }
         }
-        catch (Exception ex) { ShowMessage("The icon could not be saved. " + ex.Message); }
+        catch (Exception ex) { ShowMessage(LocalizationService.Format("Dialog.IconNotSaved", ex.Message)); }
         finally { launcher.SuppressDismiss = settings is not null; }
     }
     private void Persist()
     {
         store.Save(config);
         ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
+        LanguageResourceService.Apply(config.Settings.Language);
+        UpdateTrayMenu();
         try
         {
             launchers.Sync(config);
@@ -323,7 +337,7 @@ public partial class App : System.Windows.Application
             taskbarHover?.SyncWithConfig();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
-        { tray?.ShowBalloonTip(5000, "AppDock", "Settings were saved, but launcher shortcuts could not be updated. " + ex.Message, Forms.ToolTipIcon.Warning); }
+        { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Format("Tray.ShortcutSaveError", ex.Message), Forms.ToolTipIcon.Warning); }
     }
     private void OpenSettings(string section)
     {
@@ -373,7 +387,7 @@ public partial class App : System.Windows.Application
     {
         try { Persist(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or ArgumentException)
-        { ShowMessage("Changes are in memory but could not be saved. " + ex.Message); }
+        { ShowMessage(LocalizationService.Format("Common.SettingsSavedError", ex.Message)); }
     }
     private void ShowMessage(string text)
     {

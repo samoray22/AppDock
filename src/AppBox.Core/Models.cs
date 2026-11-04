@@ -6,7 +6,8 @@ public enum LayoutMode { SingleAppBox, MultipleAppBoxes }
 public enum ScreenEdge { Left, Right }
 public enum SidebarMonitorMode { PrimaryMonitor, CursorMonitor, SpecificMonitor }
 public enum SidebarHandleColorMode { ThemeAccent, ContainerTint, Custom }
-public enum AppTheme { System, Light, Dark }
+public enum AppTheme { System, Light, Dark }
+public enum AppLanguage { System, English, Spanish, French, German, Italian, Portuguese, Chinese, Japanese, Dutch, Turkish, Russian }
 public enum TargetKind { Executable, Shortcut, Packaged, InternetShortcut }
 
 public enum SortMode { Manual, RecentFirst }
@@ -83,7 +84,8 @@ public sealed class Preferences
     public bool SidebarShowRecentApps { get; set; } = true;
     public int SidebarRecentAppsCount { get; set; } = 3;
     public ContainerOpeningBehavior SidebarOpeningBehavior { get; set; } = ContainerOpeningBehavior.ClickOrHover;
-    public AppTheme Theme { get; set; } = AppTheme.System;
+    public AppTheme Theme { get; set; } = AppTheme.System;
+    public AppLanguage Language { get; set; } = AppLanguage.System;
 }
 
 public sealed class Configuration

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using AppBox.App.Services;
 using AppBox.Core;
 using AppBox.Infrastructure;
 
@@ -14,6 +15,28 @@ public sealed class SettingsViewModel : ObservableObject
     public bool Windows11StyleAvailable { get; }
     public bool IsSingleLayout { get => Config.Settings.LayoutMode == LayoutMode.SingleAppBox; set { if (value) SetPreference(Config.Settings.LayoutMode, LayoutMode.SingleAppBox, v => Config.Settings.LayoutMode = v); } }
     public bool IsMultipleLayout { get => Config.Settings.LayoutMode == LayoutMode.MultipleAppBoxes; set { if (value) SetPreference(Config.Settings.LayoutMode, LayoutMode.MultipleAppBoxes, v => Config.Settings.LayoutMode = v); } }
+    public ObservableCollection<LanguageOption> AvailableLanguages { get; } = [];
+    public LanguageOption? SelectedLanguageOption
+    {
+        get => AvailableLanguages.FirstOrDefault(l => l.Language == Config.Settings.Language) ?? AvailableLanguages.FirstOrDefault();
+        set
+        {
+            if (value is not null && value.Language != Config.Settings.Language)
+            {
+                Language = value.Language;
+            }
+        }
+    }
+    public AppLanguage Language
+    {
+        get => Config.Settings.Language;
+        set
+        {
+            if (Config.Settings.Language == value) return;
+            SetPreference(Config.Settings.Language, value, v => Config.Settings.Language = v);
+            LanguageResourceService.Apply(value);
+        }
+    }
     public bool ShowAppNames { get => Config.Settings.ShowApplicationNames; set => SetPreference(ShowAppNames, value, v => Config.Settings.ShowApplicationNames = v); }
 
     public bool ShortenAppNames { get => Config.Settings.ShortenAppNames; set => SetPreference(ShortenAppNames, value, v => Config.Settings.ShortenAppNames = v); }
@@ -116,7 +139,7 @@ public sealed class SettingsViewModel : ObservableObject
         get => (int)Math.Round(Config.Settings.SidebarHandleOpacity * 100);
         set => SetPreference(Config.Settings.SidebarHandleOpacity, Math.Clamp(value, 0, 100) / 100.0, v => Config.Settings.SidebarHandleOpacity = v);
     }
-    public string SidebarHandleOpacityText => SidebarHandleOpacityPercent == 0 ? "0% (Invisible at rest)" : $"{SidebarHandleOpacityPercent}%";
+    public string SidebarHandleOpacityText => SidebarHandleOpacityPercent == 0 ? LocalizationService.Get("Sidebar.HandleOpacityZero") : $"{SidebarHandleOpacityPercent}%";
     public SidebarHandleColorMode SidebarHandleColorMode
     {
         get => Config.Settings.SidebarHandleColorMode;
@@ -255,7 +278,7 @@ public sealed class SettingsViewModel : ObservableObject
     }
     private void NotifyPreferences()
     {
-        foreach (var property in new[] { nameof(IsSingleLayout), nameof(IsMultipleLayout), nameof(ShowAppNames), nameof(ShortenAppNames), nameof(SortMode), nameof(IsManualSort), nameof(IsRecentFirstSort), nameof(GridColumns), nameof(GridRows), nameof(AutoCloseAfterLaunch), nameof(EnableAnimations), nameof(AnimationStyle), nameof(IsGenieAnimation), nameof(IsSuckAnimation), nameof(IsScaleAnimation), nameof(IsMagicLampAnimation), nameof(IsOrigamiAnimation), nameof(IsPageCurlAnimation), nameof(IsBlackHoleAnimation), nameof(IsFlip3DAnimation), nameof(IsJellyAnimation), nameof(IsRandomAnimation), nameof(AnimationDurationMs), nameof(EnableDockMagnification), nameof(EnableLaunchBounce), nameof(EnableCardTiltOnHover), nameof(EnablePoofOnRemove), nameof(AnimationStyleTitle), nameof(AnimationStyleTagline), nameof(AnimationStyleDescription), nameof(StartWithWindows), nameof(UseWindows11Style), nameof(ShowContainerBorder), nameof(AllowCommandLineShells), nameof(EnableTaskbar), nameof(EnableEdgeSidebar), nameof(IsTaskbarOnlyActive), nameof(IsSidebarOnlyActive), nameof(IsBothSurfacesActive), nameof(TaskbarOpeningBehavior), nameof(IsTaskbarClickOpen), nameof(IsTaskbarHoverOpen), nameof(IsTaskbarClickOrHoverOpen), nameof(SidebarLayoutMode), nameof(IsSidebarSingleLayout), nameof(IsSidebarMultipleLayout), nameof(SidebarEdge), nameof(IsSidebarRightEdge), nameof(IsSidebarLeftEdge), nameof(SidebarVerticalPercent), nameof(SidebarHandleHeight), nameof(SidebarHandleWidth), nameof(SidebarHandleOpacityPercent), nameof(SidebarHandleOpacityText), nameof(SidebarHandleColorMode), nameof(IsHandleColorThemeAccent), nameof(IsHandleColorContainerTint), nameof(IsHandleColorCustom), nameof(SidebarHandleCustomColor), nameof(SidebarAutoHideOnFullscreen), nameof(SidebarMonitorMode), nameof(IsSidebarPrimaryMonitor), nameof(IsSidebarCursorMonitor), nameof(IsSidebarSpecificMonitor), nameof(SidebarMonitorIndex), nameof(SelectedMonitorOption), nameof(SidebarShowRecentApps), nameof(SidebarRecentAppsCount), nameof(SidebarOpeningBehavior), nameof(IsSidebarClickOpen), nameof(IsSidebarHoverOpen), nameof(IsSidebarClickOrHoverOpen), nameof(HoverOpeningDelayMs), nameof(HoverClosingDelayMs) }) Changed(property);
+        foreach (var property in new[] { nameof(Language), nameof(SelectedLanguageOption), nameof(IsSingleLayout), nameof(IsMultipleLayout), nameof(ShowAppNames), nameof(ShortenAppNames), nameof(SortMode), nameof(IsManualSort), nameof(IsRecentFirstSort), nameof(GridColumns), nameof(GridRows), nameof(AutoCloseAfterLaunch), nameof(EnableAnimations), nameof(AnimationStyle), nameof(IsGenieAnimation), nameof(IsSuckAnimation), nameof(IsScaleAnimation), nameof(IsMagicLampAnimation), nameof(IsOrigamiAnimation), nameof(IsPageCurlAnimation), nameof(IsBlackHoleAnimation), nameof(IsFlip3DAnimation), nameof(IsJellyAnimation), nameof(IsRandomAnimation), nameof(AnimationDurationMs), nameof(EnableDockMagnification), nameof(EnableLaunchBounce), nameof(EnableCardTiltOnHover), nameof(EnablePoofOnRemove), nameof(AnimationStyleTitle), nameof(AnimationStyleTagline), nameof(AnimationStyleDescription), nameof(StartWithWindows), nameof(UseWindows11Style), nameof(ShowContainerBorder), nameof(AllowCommandLineShells), nameof(EnableTaskbar), nameof(EnableEdgeSidebar), nameof(IsTaskbarOnlyActive), nameof(IsSidebarOnlyActive), nameof(IsBothSurfacesActive), nameof(TaskbarOpeningBehavior), nameof(IsTaskbarClickOpen), nameof(IsTaskbarHoverOpen), nameof(IsTaskbarClickOrHoverOpen), nameof(SidebarLayoutMode), nameof(IsSidebarSingleLayout), nameof(IsSidebarMultipleLayout), nameof(SidebarEdge), nameof(IsSidebarRightEdge), nameof(IsSidebarLeftEdge), nameof(SidebarVerticalPercent), nameof(SidebarHandleHeight), nameof(SidebarHandleWidth), nameof(SidebarHandleOpacityPercent), nameof(SidebarHandleOpacityText), nameof(SidebarHandleColorMode), nameof(IsHandleColorThemeAccent), nameof(IsHandleColorContainerTint), nameof(IsHandleColorCustom), nameof(SidebarHandleCustomColor), nameof(SidebarAutoHideOnFullscreen), nameof(SidebarMonitorMode), nameof(IsSidebarPrimaryMonitor), nameof(IsSidebarCursorMonitor), nameof(IsSidebarSpecificMonitor), nameof(SidebarMonitorIndex), nameof(SelectedMonitorOption), nameof(SidebarShowRecentApps), nameof(SidebarRecentAppsCount), nameof(SidebarOpeningBehavior), nameof(IsSidebarClickOpen), nameof(IsSidebarHoverOpen), nameof(IsSidebarClickOrHoverOpen), nameof(HoverOpeningDelayMs), nameof(HoverClosingDelayMs) }) Changed(property);
     }
     private readonly FolderManager manager;
     private readonly Action save;
@@ -285,7 +308,7 @@ public sealed class SettingsViewModel : ObservableObject
     public int SelectedAppIndex => selectedApplication?.Index ?? 0;
     public string SelectedAppPositionText =>
         (selectedFolder is not null && selectedApplication is not null && selectedFolder.Applications.Count > 0)
-            ? $"{selectedApplication.Index} of {selectedFolder.Applications.Count}"
+            ? LocalizationService.Format("Containers.AppPos.Format", selectedApplication.Index, selectedFolder.Applications.Count)
             : "—";
     public bool CanMoveUp => selectedApplication is not null && selectedApplication.Index > 1;
     public bool CanMoveDown => selectedApplication is not null && selectedFolder is not null && selectedApplication.Index < selectedFolder.Applications.Count;
@@ -319,16 +342,16 @@ public sealed class SettingsViewModel : ObservableObject
     public bool IsSelectedContainerActive => selectedFolder?.IsActive == true;
     public string FolderName { get => selectedFolder?.Name ?? ""; set { if (selectedFolder is not null) { manager.Rename(selectedFolder, value); Changed(); } } }
     public string SelectedContainerAppsText => selectedFolder is null
-        ? "0 applications"
-        : (selectedFolder.Applications.Count == 1 ? "1 application" : $"{selectedFolder.Applications.Count} applications");
+        ? LocalizationService.Get("Containers.AppsCount.Zero")
+        : (selectedFolder.Applications.Count == 1 ? LocalizationService.Get("Containers.AppsCount.Single") : LocalizationService.Format("Containers.AppsCount.Multiple", selectedFolder.Applications.Count));
     public string SelectedContainerStatusText => selectedFolder is null
-        ? "Not activated"
-        : (selectedFolder.IsActive ? "Activated" : "Not activated");
+        ? LocalizationService.Get("Containers.Status.NotActivated")
+        : (selectedFolder.IsActive ? LocalizationService.Get("Containers.Status.Activated") : LocalizationService.Get("Containers.Status.NotActivated"));
     public bool CanMoveFolderUp => selectedFolder is not null && Config.Folders.IndexOf(selectedFolder) > 0;
     public bool CanMoveFolderDown => selectedFolder is not null && Config.Folders.IndexOf(selectedFolder) >= 0 && Config.Folders.IndexOf(selectedFolder) < Config.Folders.Count - 1;
     public string SelectedContainerPositionText =>
         (selectedFolder is not null && Config.Folders.Count > 0 && Config.Folders.IndexOf(selectedFolder) >= 0)
-            ? $"{Config.Folders.IndexOf(selectedFolder) + 1} of {Config.Folders.Count}"
+            ? LocalizationService.Format("Containers.ContainerPos.Format", Config.Folders.IndexOf(selectedFolder) + 1, Config.Folders.Count)
             : "—";
 
     public SortMode? SelectedFolderSortOverride
@@ -402,7 +425,7 @@ public sealed class SettingsViewModel : ObservableObject
         get
         {
             var v = typeof(SettingsViewModel).Assembly.GetName().Version;
-            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 2.8.1";
+            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 2.9.1";
         }
     }
 
@@ -412,7 +435,9 @@ public sealed class SettingsViewModel : ObservableObject
         this.writeStartup = writeStartup ?? StartupRegistration.SetEnabled;
         this.readStartup = readStartup ?? StartupRegistration.IsEnabled;
         Windows11StyleAvailable = windows11StyleAvailable ?? OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22621);
+        PopulateLanguages();
         PopulateMonitors();
+        LocalizationService.LanguageChanged += OnLanguageChanged;
         Refresh();
     }
     private void PopulateMonitors()
@@ -436,13 +461,36 @@ public sealed class SettingsViewModel : ObservableObject
             AvailableMonitors.Add(new MonitorOption(0, "Display 1 (Primary)"));
         }
     }
+    private void PopulateLanguages()
+    {
+        AvailableLanguages.Clear();
+        foreach (var lang in LocalizationService.SupportedLanguages)
+        {
+            AvailableLanguages.Add(new LanguageOption(lang.Language, lang.DisplayName));
+        }
+    }
+    private void OnLanguageChanged()
+    {
+        Changed(nameof(Language));
+        Changed(nameof(SelectedLanguageOption));
+        Changed(nameof(SelectedContainerAppsText));
+        Changed(nameof(SelectedContainerStatusText));
+        Changed(nameof(SelectedContainerPositionText));
+        Changed(nameof(SelectedAppPositionText));
+        Changed(nameof(SidebarHandleOpacityText));
+        Changed(nameof(AppVersionText));
+        Changed(nameof(AnimationStyleTitle));
+        Changed(nameof(AnimationStyleTagline));
+        Changed(nameof(AnimationStyleDescription));
+        PopulateMonitors();
+    }
     public void ToggleActive() { if (SelectedFolder is not null) { SelectedFolder.IsActive = !SelectedFolder.IsActive; Persist(); } }
     public void Create(string name) { manager.Create(name); Persist(); }
     public void Rename(string name) { if (SelectedFolder is not null) { manager.Rename(SelectedFolder, name); Persist(); } }
     public void Delete() { if (SelectedFolder is not null) { manager.Delete(SelectedFolder); Persist(); } }
     public void Add(AppEntry entry)
     {
-        if (SelectedFolder is null) throw new ArgumentException("Create or select a container first.");
+        if (SelectedFolder is null) throw new ArgumentException(LocalizationService.Get("Dialog.CreateOrSelectContainerFirst"));
         var result = new ApplicationImportService(new WindowsShortcutResolver(), null, () => Config.Settings.AllowCommandLineShells).Import(Config, SelectedFolder, [entry.Kind == TargetKind.Packaged ? "shell:AppsFolder\\" + entry.Target : entry.Target]);
         if (result.Rejected.Count > 0) throw new ArgumentException(result.Rejected[0].Reason);
         Persist();
@@ -566,12 +614,14 @@ public sealed class SettingsViewModel : ObservableObject
         Config.Settings.SidebarRecentAppsCount = imported.Settings.SidebarRecentAppsCount;
         Config.Settings.SidebarOpeningBehavior = imported.Settings.SidebarOpeningBehavior;
         Config.Settings.Theme = imported.Settings.Theme;
+        Config.Settings.Language = imported.Settings.Language;
 
         Config.Folders.Clear();
         Config.Folders.AddRange(imported.Folders);
         Config.SelectedFolderId = imported.SelectedFolderId;
 
         Persist();
+        LanguageResourceService.Apply(Config.Settings.Language);
         NotifyPreferences();
     }
     public void Persist() { save(); Refresh(); }
@@ -639,4 +689,9 @@ public sealed class AppItemViewModel : ObservableObject
 public sealed record MonitorOption(int Index, string Label)
 {
     public override string ToString() => Label;
+}
+
+public sealed record LanguageOption(AppLanguage Language, string DisplayName)
+{
+    public override string ToString() => DisplayName;
 }

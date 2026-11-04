@@ -84,6 +84,7 @@ public sealed class ConfigurationStore
     {
         if (config.SchemaVersion != 1 || config.Settings is null || config.Folders is null ||
             !Enum.IsDefined(config.Settings.LayoutMode) || !Enum.IsDefined(config.Settings.Theme)) throw new JsonException("Unsupported configuration.");
+        if (!Enum.IsDefined(config.Settings.Language)) config.Settings.Language = AppLanguage.System;
         config.Settings.OpeningBehavior = TaskbarCapabilities.EffectiveBehavior(config.Settings.OpeningBehavior);
         config.Settings.HoverOpeningDelayMs = Math.Clamp(config.Settings.HoverOpeningDelayMs, 100, 2000);
         config.Settings.HoverClosingDelayMs = Math.Clamp(config.Settings.HoverClosingDelayMs, 100, 2000);

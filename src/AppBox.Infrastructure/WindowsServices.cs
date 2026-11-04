@@ -175,7 +175,7 @@ public static class StartupRegistration
 
 public static class AppPaths
 {
-    /// <summary>The running executable, whatever it was renamed to (e.g. AppDock_v2.8.1.exe).</summary>
+    /// <summary>The running executable, whatever it was renamed to (e.g. AppDock_v2.9.0.exe).</summary>
     public static string Executable { get; } =
         Environment.ProcessPath is { Length: > 0 } path && !path.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase)
             ? path

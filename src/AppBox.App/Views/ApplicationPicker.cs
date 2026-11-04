@@ -12,15 +12,15 @@ public sealed class ApplicationPicker : Window
     public ApplicationPicker()
     {
         SetResourceReference(StyleProperty, "AppWindow");
-        Title = "Add an application"; Width = 580; Height = 550; ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Title = LocalizationService.Get("AppPicker.Title"); Width = 580; Height = 550; ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var panel = new DockPanel { Margin = new Thickness(24) };
-        var heading = new TextBlock { Text = "Find your application", FontSize = 24, Margin = new Thickness(3,0,0,12) };
+        var heading = new TextBlock { Text = LocalizationService.Get("AppPicker.Heading"), FontSize = 24, Margin = new Thickness(3,0,0,12) };
         DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
-        var search = new TextBox { ToolTip = "Search Start menu and installed apps" }; System.Windows.Automation.AutomationProperties.SetName(search, "Search applications");
+        var search = new TextBox { ToolTip = LocalizationService.Get("AppPicker.SearchTooltip") }; System.Windows.Automation.AutomationProperties.SetName(search, "Search applications");
         DockPanel.SetDock(search, Dock.Top); panel.Children.Add(search);
-        var status = new TextBlock { Text = "Reading the Windows application catalog…", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(3,8,3,8) };
+        var status = new TextBlock { Text = LocalizationService.Get("AppPicker.ReadingCatalog"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(3,8,3,8) };
         DockPanel.SetDock(status, Dock.Bottom); panel.Children.Add(status);
-        var add = new Button { Content = "Add selected application", IsDefault = true, IsEnabled = false };
+        var add = new Button { Content = LocalizationService.Get("AppPicker.AddSelected"), IsDefault = true, IsEnabled = false };
         DockPanel.SetDock(add, Dock.Bottom); panel.Children.Add(add);
         var list = new ListBox { DisplayMemberPath = "Name" }; panel.Children.Add(list); Content = panel;
         list.SelectionChanged += (_, _) => add.IsEnabled = list.SelectedItem is AppEntry;
@@ -38,9 +38,9 @@ public sealed class ApplicationPicker : Window
                 var view = CollectionViewSource.GetDefaultView(apps);
                 view.Filter = item => ((AppEntry)item).Name.Contains(search.Text, StringComparison.CurrentCultureIgnoreCase);
                 search.TextChanged += (_, _) => view.Refresh();
-                status.Text = $"{apps.Count} entries from Start menu and Windows AppsFolder. Some shortcuts may not be launchable.";
+                status.Text = LocalizationService.Format("AppPicker.CatalogStatus", apps.Count);
             }
-            catch (Exception ex) { status.Text = "Discovery is unavailable. You can still browse for files. " + ex.Message; }
+            catch (Exception ex) { status.Text = LocalizationService.Format("AppPicker.DiscoveryUnavailable", ex.Message); }
         };
     }
 }

@@ -24,7 +24,7 @@ public sealed class IconPicker : Window
     {
         this.icons = icons;
         Choice = new() { Kind = current.Kind, BuiltIn = current.BuiltIn, ResourcePath = current.ResourcePath };
-        Title = "Change Container Icon — AppDock";
+        Title = LocalizationService.Get("IconPicker.Title");
         Width = 580;
         Height = 600;
         MinWidth = 480;
@@ -78,8 +78,8 @@ public sealed class IconPicker : Window
         infoStack.Children.Add(selectedSubtitle);
 
         var uploadRow = new WrapPanel();
-        var uploadBtn = CreateButton("Upload Custom Icon…", ImportFromDialog);
-        var resetBtn = CreateButton("Reset to Default", () => { Choice = new(); Refresh(); });
+        var uploadBtn = CreateButton(LocalizationService.Get("IconPicker.UploadCustom"), ImportFromDialog);
+        var resetBtn = CreateButton(LocalizationService.Get("IconPicker.ResetDefault"), () => { Choice = new(); Refresh(); });
         uploadRow.Children.Add(uploadBtn);
         uploadRow.Children.Add(resetBtn);
         infoStack.Children.Add(uploadRow);
@@ -93,7 +93,7 @@ public sealed class IconPicker : Window
         var headerRow = new DockPanel { Margin = new Thickness(2, 0, 2, 8), LastChildFill = false };
         var galleryHeading = new TextBlock
         {
-            Text = $"Container Icons by Category ({ContainerIcons.Categories.Length})",
+            Text = LocalizationService.Format("IconPicker.GalleryHeading", ContainerIcons.Categories.Length),
             FontSize = 12.5,
             FontWeight = FontWeights.SemiBold,
             VerticalAlignment = VerticalAlignment.Center
@@ -102,11 +102,11 @@ public sealed class IconPicker : Window
         DockPanel.SetDock(galleryHeading, Dock.Left);
         headerRow.Children.Add(galleryHeading);
 
-        filterBox.ToolTip = "Filter icon categories by name";
+        filterBox.ToolTip = LocalizationService.Get("IconPicker.FilterTooltip");
         filterBox.TextChanged += (_, _) => ApplyFilter();
         var filterLabel = new TextBlock
         {
-            Text = "🔍 Filter:",
+            Text = LocalizationService.Get("IconPicker.FilterLabel"),
             FontSize = 11.5,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 6, 0)
@@ -141,7 +141,7 @@ public sealed class IconPicker : Window
 
             var label = new TextBlock
             {
-                Text = cat,
+                Text = LocalizationService.GetCategoryDisplayName(cat),
                 FontSize = 11,
                 TextAlignment = TextAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
@@ -162,7 +162,7 @@ public sealed class IconPicker : Window
                 CornerRadius = new CornerRadius(12),
                 BorderThickness = new Thickness(1.5),
                 Cursor = Cursors.Hand,
-                ToolTip = cat,
+                ToolTip = LocalizationService.GetCategoryDisplayName(cat),
                 Child = stack
             };
             card.MouseLeftButtonDown += (_, e) =>
@@ -182,7 +182,7 @@ public sealed class IconPicker : Window
         var footer = new DockPanel { Margin = new Thickness(0, 14, 0, 0), LastChildFill = false };
         var hint = new TextBlock
         {
-            Text = "Drop or upload .png, .ico, .jpg, .bmp, .exe & .lnk",
+            Text = LocalizationService.Get("IconPicker.Hint"),
             FontSize = 11.5,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -190,12 +190,12 @@ public sealed class IconPicker : Window
         DockPanel.SetDock(hint, Dock.Left);
         footer.Children.Add(hint);
 
-        var applyBtn = CreateButton("Apply Icon", () => DialogResult = true);
+        var applyBtn = CreateButton(LocalizationService.Get("IconPicker.ApplyIcon"), () => DialogResult = true);
         applyBtn.IsDefault = true;
         DockPanel.SetDock(applyBtn, Dock.Right);
         footer.Children.Add(applyBtn);
 
-        var cancelBtn = CreateButton("Cancel", () => DialogResult = false);
+        var cancelBtn = CreateButton(LocalizationService.Get("Common.Cancel"), () => DialogResult = false);
         cancelBtn.IsCancel = true;
         DockPanel.SetDock(cancelBtn, Dock.Right);
         footer.Children.Add(cancelBtn);
@@ -223,7 +223,7 @@ public sealed class IconPicker : Window
         var query = filterBox.Text.Trim();
         foreach (var (cat, card) in cards)
         {
-            var match = string.IsNullOrEmpty(query) || cat.Contains(query, StringComparison.OrdinalIgnoreCase);
+            var match = string.IsNullOrEmpty(query) || cat.Contains(query, StringComparison.OrdinalIgnoreCase) || LocalizationService.GetCategoryDisplayName(cat).Contains(query, StringComparison.CurrentCultureIgnoreCase);
             card.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
         }
     }
@@ -232,8 +232,8 @@ public sealed class IconPicker : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Choose or Upload Custom Container Icon",
-            Filter = "Icon & Image files (*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.exe;*.lnk)|*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.exe;*.lnk",
+            Title = LocalizationService.Get("IconPicker.DialogTitle"),
+            Filter = LocalizationService.Get("IconPicker.DialogFilter"),
             DereferenceLinks = false
         };
         if (dialog.ShowDialog(this) == true)
@@ -249,7 +249,7 @@ public sealed class IconPicker : Window
         }
         catch (Exception ex)
         {
-            AppDockDialog.Show(this, "This icon could not be loaded. " + ex.Message, "AppDock", MessageBoxImage.Warning);
+            AppDockDialog.Show(this, LocalizationService.Format("IconPicker.Error", ex.Message), "AppDock", MessageBoxImage.Warning);
         }
     }
 
@@ -258,14 +258,15 @@ public sealed class IconPicker : Window
         preview.Source = icons.Get(Choice);
         if (Choice.Kind == ContainerIconKind.Custom)
         {
-            selectedTitle.Text = "Custom Uploaded Icon";
-            selectedSubtitle.Text = Choice.ResourcePath is { } p ? Path.GetFileName(p) : "Custom icon resource";
+            selectedTitle.Text = LocalizationService.Get("IconPicker.CustomTitle");
+            selectedSubtitle.Text = Choice.ResourcePath is { } p ? Path.GetFileName(p) : LocalizationService.Get("IconPicker.CustomSubtitle");
         }
         else
         {
-            var name = Choice.Kind == ContainerIconKind.BuiltIn ? Choice.BuiltIn : "General Applications";
-            selectedTitle.Text = name;
-            selectedSubtitle.Text = $"AppDock Container Icon — {name}";
+            var canonicalName = Choice.Kind == ContainerIconKind.BuiltIn ? Choice.BuiltIn : "General Applications";
+            var displayName = LocalizationService.GetCategoryDisplayName(canonicalName);
+            selectedTitle.Text = displayName;
+            selectedSubtitle.Text = LocalizationService.Format("IconPicker.CategorySubtitle", displayName);
         }
 
         var activeCat = Choice.Kind == ContainerIconKind.Custom

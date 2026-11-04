@@ -437,7 +437,7 @@ public partial class LauncherWindow : Window
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         if (!Model.IsEditing) Model.SetEditing(true);
-        var dialog = new OpenFileDialog { Filter = "Applications and shortcuts|*.exe;*.lnk;*.url", Multiselect = true, DereferenceLinks = false };
+        var dialog = new OpenFileDialog { Filter = LocalizationService.Get("Dialog.BrowseFilter"), Multiselect = true, DereferenceLinks = false };
         if (dialog.ShowDialog(this) == true) ImportFiles(dialog.FileNames);
     }
 
@@ -711,7 +711,7 @@ public partial class LauncherWindow : Window
     private void Rename_Click(object sender, RoutedEventArgs e)
     {
         if (MenuEntry(sender) is not { } entry) return;
-        var name = TextPrompt.Ask(this, "Rename", entry.Name); if (name is not null) { Model.SetEditing(true); Model.Rename(entry, name); }
+        var name = TextPrompt.Ask(this, LocalizationService.Get("Launcher.Menu.RenameApp"), entry.Name); if (name is not null) { Model.SetEditing(true); Model.Rename(entry, name); }
     }
     private void Location_Click(object sender, RoutedEventArgs e)
     {
@@ -767,7 +767,7 @@ public partial class LauncherWindow : Window
     private void Menu_Closed(object sender, RoutedEventArgs e) => contextMenuOpen = false;
     private void Launch_Click(object sender, RoutedEventArgs e) { if (MenuEntry(sender) is { } entry) { Model.SetEditing(false); Model.LaunchCommand.Execute(Model.Applications.FirstOrDefault(a => a.Entry == entry)); } }
     private void EditContainer_Click(object sender, RoutedEventArgs e) => Model.SetEditing(true);
-    private void RenameContainer_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) { var name = TextPrompt.Ask(this, "Rename Container", folder.Name); if (name is not null) Model.RenameContainer(name); } }
+    private void RenameContainer_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) { var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.RenameContainerTitle"), folder.Name); if (name is not null) Model.RenameContainer(name); } }
     private void ChangeIcon_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) ChangeIcon?.Invoke(folder); }
     private void Activate_Click(object sender, RoutedEventArgs e) => Model.ToggleActive();
     private void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings?.Invoke("General");
@@ -885,7 +885,7 @@ public partial class LauncherWindow : Window
         undoFolder = folder;
         undoEntry = entry;
         undoIndex = index;
-        UndoToastText.Text = $"Removed {entry.Name}";
+        UndoToastText.Text = $"{LocalizationService.Get("Launcher.UndoToastText")} ({entry.Name})";
         UndoToast.Visibility = Visibility.Visible;
 
         if (undoTimer is null)

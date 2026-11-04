@@ -40,7 +40,7 @@ public sealed class AppTile : ObservableObject
 public sealed record ContainerTile(AppFolder Folder, ImageSource Icon)
 {
     public int Count => Folder.Applications.Count;
-    public string CountText => Folder.Applications.Count == 1 ? "1 app" : $"{Folder.Applications.Count} apps";
+    public string CountText => Folder.Applications.Count == 1 ? LocalizationService.Get("Launcher.Badge.Apps.Single") : LocalizationService.Format("Launcher.Badge.Apps.Multiple", Folder.Applications.Count);
 }
 
 public sealed class LauncherViewModel : ObservableObject
@@ -90,14 +90,14 @@ public sealed class LauncherViewModel : ObservableObject
     public bool ShowApplications => !IsOverview;
     public bool ShowSearchBox => !IsOverview && !IsEditing;
     public bool CanGoBack => !IsOverview && canReturnToOverview && !IsEditing;
-    public string HeaderTitle => IsOverview ? "AppDock" : (selected?.Name ?? "Container");
+    public string HeaderTitle => IsOverview ? "AppDock" : (selected?.Name ?? LocalizationService.Get("Dialog.NewContainerDefault"));
     public ImageSource HeaderIcon => IsOverview ? ContainerIcons.BuiltIn("AppDock Box") : containerIcons.Get(selected?.Icon);
     public string HeaderBadge => IsOverview
-        ? (Containers.Count == 1 ? "1 container" : $"{Containers.Count} containers")
-        : (Applications.Count == 1 ? "1 app" : $"{Applications.Count} apps");
+        ? (Containers.Count == 1 ? LocalizationService.Get("Launcher.Badge.Containers.Single") : LocalizationService.Format("Launcher.Badge.Containers.Multiple", Containers.Count))
+        : (Applications.Count == 1 ? LocalizationService.Get("Launcher.Badge.Apps.Single") : LocalizationService.Format("Launcher.Badge.Apps.Multiple", Applications.Count));
     public string EmptyMessage => HasSearchQuery
-        ? $"No matches for “{SearchQuery.Trim()}”"
-        : (IsOverview ? "No active containers. Right-click to manage containers." : "Drop apps here or click ＋ to add applications.");
+        ? LocalizationService.Format("Launcher.EmptySearch", SearchQuery.Trim())
+        : (IsOverview ? LocalizationService.Get("Launcher.EmptyOverview") : LocalizationService.Get("Launcher.EmptyContainer"));
     public string SearchQuery
     {
         get => searchQuery;
@@ -223,7 +223,7 @@ public sealed class LauncherViewModel : ObservableObject
     public bool LaunchBounceEnabled => config.Settings.EnableAnimations && config.Settings.EnableLaunchBounce;
     public bool CardTiltEnabled => config.Settings.EnableAnimations && config.Settings.EnableCardTiltOnHover;
     public bool PoofOnRemoveEnabled => config.Settings.EnableAnimations && config.Settings.EnablePoofOnRemove;
-    public string EditButtonText => IsEditing ? "Done" : "Edit";
+    public string EditButtonText => IsEditing ? LocalizationService.Get("Common.Done") : LocalizationService.Get("Common.Edit");
     public string Status { get => status; private set { if (status == value) return; status = value; Changed(); Changed(nameof(HasStatus)); } }
     public bool HasStatus => !string.IsNullOrEmpty(Status);
     public bool ExternalDropActive { get => externalDrop; set { externalDrop = value; Changed(); } }
@@ -254,7 +254,7 @@ public sealed class LauncherViewModel : ObservableObject
         Changed(nameof(EffectiveColumns)); Changed(nameof(WrapWidth)); Changed(nameof(GridHeight)); Changed(nameof(ContentHeight)); Changed(nameof(DesiredHeight));
     }
 
-    public string Subtitle => IsEditing ? (EffectiveSortMode == SortMode.RecentFirst ? "Edit mode · switch to manual order to rearrange" : "Edit mode · drag to reorder or click − to remove") : config.Settings.LayoutMode == LayoutMode.SingleAppBox ? "Your apps, a little closer." : "Multiple AppDocks · container selection";
+    public string Subtitle => IsEditing ? (EffectiveSortMode == SortMode.RecentFirst ? LocalizationService.Get("Launcher.EditModeRecent") : LocalizationService.Get("Launcher.EditModeManual")) : config.Settings.LayoutMode == LayoutMode.SingleAppBox ? LocalizationService.Get("Launcher.SubtitleSingle") : LocalizationService.Get("Launcher.SubtitleMultiple");
 
     public AppFolder? SelectedFolder
     {
@@ -312,7 +312,18 @@ public sealed class LauncherViewModel : ObservableObject
                 Remove(tile.Entry);
             }
         });
+        LocalizationService.LanguageChanged += OnLanguageChanged;
         ShowHome();
+    }
+
+    private void OnLanguageChanged()
+    {
+        Changed(nameof(HeaderTitle));
+        Changed(nameof(HeaderBadge));
+        Changed(nameof(EmptyMessage));
+        Changed(nameof(EditButtonText));
+        Changed(nameof(Subtitle));
+        Refresh();
     }
 
     public void SetEditing(bool editing)
@@ -334,40 +345,40 @@ public sealed class LauncherViewModel : ObservableObject
 
     public bool Import(IEnumerable<string> items)
     {
-        if (!IsEditing) { Report("Click Edit before adding applications."); return false; }
+        if (!IsEditing) { Report(LocalizationService.Get("Launcher.ClickEditBeforeAdd")); return false; }
         return Edit(() =>
         {
-            selected ??= manager.Create("My apps");
+            selected ??= manager.Create(LocalizationService.Get("Dialog.NewContainerDefault"));
             var result = importer.Import(config, selected, items);
-            return $"{result.Added.Count} added" + (result.Rejected.Count == 0 ? "." : $"; {result.Rejected.Count} skipped.\n" + string.Join("\n", result.Rejected.Select(r => r.Item + ": " + r.Reason)));
+            return result.Rejected.Count == 0 ? LocalizationService.Format("Launcher.StatusAdded", result.Added.Count) : LocalizationService.Format("Launcher.StatusAddedSkipped", result.Added.Count, result.Rejected.Count, string.Join("\n", result.Rejected.Select(r => r.Item + ": " + r.Reason)));
         });
     }
 
-    public bool ImportIntoFolder(AppFolder? folder, IEnumerable<string> items) { return Edit(() => { var targetFolder = folder ?? selected ?? config.Folders.FirstOrDefault(f => f.IsActive) ?? manager.Create("My apps"); selected = targetFolder; var result = importer.Import(config, targetFolder, items); return $"{result.Added.Count} added to {targetFolder.Name}" + (result.Rejected.Count == 0 ? "." : $"; {result.Rejected.Count} skipped.\n" + string.Join("\n", result.Rejected.Select(r => r.Item + ": " + r.Reason))); }); }
+    public bool ImportIntoFolder(AppFolder? folder, IEnumerable<string> items) { return Edit(() => { var targetFolder = folder ?? selected ?? config.Folders.FirstOrDefault(f => f.IsActive) ?? manager.Create(LocalizationService.Get("Dialog.NewContainerDefault")); selected = targetFolder; var result = importer.Import(config, targetFolder, items); return result.Rejected.Count == 0 ? LocalizationService.Format("Launcher.StatusAddedTo", result.Added.Count, targetFolder.Name) : LocalizationService.Format("Launcher.StatusAddedSkipped", result.Added.Count, result.Rejected.Count, string.Join("\n", result.Rejected.Select(r => r.Item + ": " + r.Reason))); }); }
     public bool Reorder(Guid folderId, Guid appId, int index)
     {
         if (!IsEditing || selected?.Id != folderId || config.Settings.SortMode == SortMode.RecentFirst) return false;
-        return Edit(() => { var app = selected.Applications.FirstOrDefault(a => a.Id == appId) ?? throw new ArgumentException("This dragged application is no longer in the container."); manager.Reorder(selected, app, index); return "Application order saved."; });
+        return Edit(() => { var app = selected.Applications.FirstOrDefault(a => a.Id == appId) ?? throw new ArgumentException("This dragged application is no longer in the container."); manager.Reorder(selected, app, index); return LocalizationService.Get("Launcher.StatusOrderSaved"); });
     }
 
     public void Rename(AppEntry entry, string name)
     {
-        if (IsEditing && selected is not null) Edit(() => { manager.RenameApplication(selected, entry, name); return "Display name saved."; });
+        if (IsEditing && selected is not null) Edit(() => { manager.RenameApplication(selected, entry, name); return LocalizationService.Get("Launcher.StatusDisplayNameSaved"); });
     }
 
     public void Remove(AppEntry entry)
     {
-        if (IsEditing && selected is not null) Edit(() => { manager.Remove(selected, entry); return "Removed from container. Application files are unchanged."; });
+        if (IsEditing && selected is not null) Edit(() => { manager.Remove(selected, entry); return LocalizationService.Get("Launcher.StatusRemoved"); });
     }
 
     public void RemoveFromDrag(AppEntry entry)
     {
-        if (selected is not null) Edit(() => { manager.Remove(selected, entry); return "Removed from container. Application files are unchanged."; });
+        if (selected is not null) Edit(() => { manager.Remove(selected, entry); return LocalizationService.Get("Launcher.StatusRemoved"); });
     }
 
     public bool Restore(AppFolder folder, AppEntry entry, int index)
     {
-        return Edit(() => { manager.Insert(folder, entry, index); return $"Restored {entry.Name}."; });
+        return Edit(() => { manager.Insert(folder, entry, index); return LocalizationService.Format("Launcher.StatusRestored", entry.Name); });
     }
 
     public void Report(string text) => Status = text;

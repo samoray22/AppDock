@@ -68,50 +68,11 @@ public static class ContainerWarpMesh
         return Math.Max(40, (int)Math.Round(baseMs * ratio));
     }
 
-    public static string GetTitle(ContainerAnimationStyle style) => style switch
-    {
-        ContainerAnimationStyle.Genie => "Genie",
-        ContainerAnimationStyle.Suck => "Suck",
-        ContainerAnimationStyle.Scale => "Scale",
-        ContainerAnimationStyle.MagicLamp => "Magic Lamp",
-        ContainerAnimationStyle.Origami => "Origami Fold",
-        ContainerAnimationStyle.PageCurl => "Page Curl",
-        ContainerAnimationStyle.BlackHole => "Black Hole",
-        ContainerAnimationStyle.Flip3D => "Flip 3-D",
-        ContainerAnimationStyle.Jelly => "Jelly Bounce",
-        ContainerAnimationStyle.Random => "Random",
-        _ => "Genie"
-    };
+    public static string GetTitle(ContainerAnimationStyle style) => LocalizationService.Get($"Animation.{style}.Title");
 
-    public static string GetTagline(ContainerAnimationStyle style) => style switch
-    {
-        ContainerAnimationStyle.Genie => "The classic stretch & pour.",
-        ContainerAnimationStyle.Suck => "The vacuum corner pull.",
-        ContainerAnimationStyle.Scale => "The smooth zoom & fade.",
-        ContainerAnimationStyle.MagicLamp => "The rippling S-wave genie.",
-        ContainerAnimationStyle.Origami => "The 3-D accordion fan.",
-        ContainerAnimationStyle.PageCurl => "The glossy 3-D page peel.",
-        ContainerAnimationStyle.BlackHole => "The 3-D spiral gravity vortex.",
-        ContainerAnimationStyle.Flip3D => "The Stage Manager perspective swing.",
-        ContainerAnimationStyle.Jelly => "The elastic wobbly spring.",
-        ContainerAnimationStyle.Random => "A surprise 3-D effect on every hover & click.",
-        _ => "The classic stretch & pour."
-    };
+    public static string GetTagline(ContainerAnimationStyle style) => LocalizationService.Get($"Animation.{style}.Tagline");
 
-    public static string GetDescription(ContainerAnimationStyle style) => style switch
-    {
-        ContainerAnimationStyle.Genie => "A true 3-D mesh warp bends the container through a glassy neck and pours it into its dock or sidebar tile — captured frame-perfect so there's no black flash.",
-        ContainerAnimationStyle.Suck => "Pinches the nearest corner first and draws the container sheet along a concave 3-D wave into its dock or sidebar icon.",
-        ContainerAnimationStyle.Scale => "Proportionally zooms and fades the container directly from its taskbar, sidebar, or overview icon.",
-        ContainerAnimationStyle.MagicLamp => "Sways the container through a sinusoidal S-wave funnel as it pours out of or back into its icon.",
-        ContainerAnimationStyle.Origami => "Folds the container into 3-D perspective accordion pleats that fan out smoothly from the dock or sidebar icon.",
-        ContainerAnimationStyle.PageCurl => "Peels and unrolls the container in 3-D cylindrical perspective like a glossy sheet of paper.",
-        ContainerAnimationStyle.BlackHole => "Swirls the container in a 3-D logarithmic vortex into the center of its dock or sidebar icon.",
-        ContainerAnimationStyle.Flip3D => "Swings the container in 3-D perspective around its anchor edge like macOS Stage Manager.",
-        ContainerAnimationStyle.Jelly => "Launches the container with damped harmonic spring physics so trailing edges wobble and settle like gelatin.",
-        ContainerAnimationStyle.Random => "Applies a randomly selected 3-D mesh animation (Genie, Suck, Scale, Magic Lamp, Origami, Page Curl, Black Hole, Stage Flip 3D, or Jelly Bounce) each time a container is opened or closed.",
-        _ => ""
-    };
+    public static string GetDescription(ContainerAnimationStyle style) => LocalizationService.Get($"Animation.{style}.Description");
 
     public static double ComputeCollapseProgress(ContainerAnimationStyle style, double normalizedTime, bool isOpening)
     {

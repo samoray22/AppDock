@@ -23,26 +23,26 @@
   <Grid x:Name="RootGrid" Background="Transparent">
     <Grid.ContextMenu>
       <ContextMenu Opened="ContextMenu_Opened" Closed="ContextMenu_Closed">
-        <MenuItem Header="Open All Containers" Click="AllContainers_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.OpenAllContainers}" Click="AllContainers_Click">
           <MenuItem.Icon><TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Edit Container" Click="EditContainer_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.EditContainer}" Click="EditContainer_Click">
           <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Manage Containers" Click="ManageContainers_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.ManageContainers}" Click="ManageContainers_Click">
           <MenuItem.Icon><TextBlock Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Switch Edge (Left / Right)" Click="SwitchEdge_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.SwitchEdge}" Click="SwitchEdge_Click">
           <MenuItem.Icon><TextBlock Text="&#xE8AB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Switch Sidebar Layout (Single / Multiple)" Click="SwitchSidebarLayout_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.SwitchSidebarLayout}" Click="SwitchSidebarLayout_Click">
           <MenuItem.Icon><TextBlock Text="&#xE8A0;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Sidebar Settings" Click="Settings_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.SidebarSettings}" Click="Settings_Click">
           <MenuItem.Icon><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
         <Separator/>
-        <MenuItem Header="Hide Lateral Sidebar" Click="DisableSidebar_Click">
+        <MenuItem Header="{DynamicResource Str.Sidebar.Menu.HideSidebar}" Click="DisableSidebar_Click">
           <MenuItem.Icon><TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12.5" Foreground="{DynamicResource Ink}" VerticalAlignment="Center" HorizontalAlignment="Center"/></MenuItem.Icon>
         </MenuItem>
       </ContextMenu>
@@ -52,7 +52,7 @@
     <Grid x:Name="HandleRoot"
           Background="#01000000"
           Cursor="Hand"
-          ToolTip="AppDock Lateral Sidebar (Hover or click to open · Drag vertically to reposition · Drop apps to add)"
+          ToolTip="{DynamicResource Str.Sidebar.StripTooltip}"
           MouseLeftButtonDown="Handle_MouseLeftButtonDown"
           MouseMove="Handle_MouseMove"
           MouseLeftButtonUp="Handle_MouseLeftButtonUp">
@@ -158,7 +158,7 @@
                 Height="52"
                 Margin="2,2,2,4"
                 Style="{StaticResource MacTileButton}"
-                ToolTip="AppDock · All Containers (Drop apps here to add)"
+                ToolTip="{DynamicResource Str.Sidebar.SingleModeTooltip}"
                 AutomationProperties.Name="AppDock All Containers"
                 AllowDrop="True"
                 Click="SingleModeButton_Click"
@@ -231,7 +231,7 @@
                     Height="48"
                     Margin="2,4,2,4"
                     Style="{StaticResource MacTileButton}"
-                    ToolTip="No active containers · Click to manage containers"
+                    ToolTip="{DynamicResource Str.Sidebar.EmptyContainersTooltip}"
                     Visibility="Collapsed"
                     Click="ManageContainers_Click">
               <TextBlock Text="＋" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -257,7 +257,7 @@
                     Padding="0"
                     Margin="1,0"
                     Style="{StaticResource MacHeaderPillButton}"
-                    ToolTip="Open All Containers"
+                    ToolTip="{DynamicResource Str.Sidebar.Menu.OpenAllContainers}"
                     AutomationProperties.Name="Open All Containers"
                     Click="AllContainers_Click">
               <TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11.5" Foreground="{DynamicResource Ink}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -267,7 +267,7 @@
                     Padding="0"
                     Margin="1,0"
                     Style="{StaticResource MacHeaderPillButton}"
-                    ToolTip="Edit Container"
+                    ToolTip="{DynamicResource Str.Sidebar.Menu.EditContainer}"
                     AutomationProperties.Name="Edit Container"
                     Click="EditContainer_Click">
               <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11.5" Foreground="{DynamicResource Ink}" HorizontalAlignment="Center" VerticalAlignment="Center"/>

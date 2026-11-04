@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using AppBox.Core;
 
 namespace AppBox.App.Views;
 
@@ -14,7 +15,7 @@ public static class AppDockDialog
         var window = CreateShell(owner, title, 420, out var body, out var footer);
         body.Child = BuildMessageCard(message, icon);
 
-        var okButton = CreatePrimaryButton("OK", isDanger: false);
+        var okButton = CreatePrimaryButton(LocalizationService.Get("Common.OK"), isDanger: false);
         okButton.IsDefault = true;
         okButton.IsCancel = true;
         okButton.Click += (_, _) => window.DialogResult = true;
@@ -23,14 +24,14 @@ public static class AppDockDialog
         window.ShowDialog();
     }
 
-    public static bool Confirm(Window? owner, string message, string title = "AppDock", string confirmText = "Confirm", bool isDanger = true)
+    public static bool Confirm(Window? owner, string message, string title = "AppDock", string? confirmText = null, bool isDanger = true)
     {
         var window = CreateShell(owner, title, 440, out var body, out var footer);
         body.Child = BuildMessageCard(message, MessageBoxImage.Question, isDanger);
 
         var cancelButton = new Button
         {
-            Content = "Cancel",
+            Content = LocalizationService.Get("Common.Cancel"),
             IsCancel = true,
             MinWidth = 88,
             Padding = new Thickness(16, 8, 16, 8),
@@ -38,7 +39,7 @@ public static class AppDockDialog
         };
         cancelButton.Click += (_, _) => window.DialogResult = false;
 
-        var confirmButton = CreatePrimaryButton(confirmText, isDanger);
+        var confirmButton = CreatePrimaryButton(confirmText ?? LocalizationService.Get("Common.Confirm"), isDanger);
         confirmButton.IsDefault = true;
         confirmButton.Click += (_, _) => window.DialogResult = true;
 
@@ -257,7 +258,7 @@ public static class TextPrompt
         var inputStack = new StackPanel();
         var label = new TextBlock
         {
-            Text = "Enter a name (1–60 characters):",
+            Text = LocalizationService.Get("Dialog.EnterNameLabel"),
             FontSize = 12,
             Margin = new Thickness(2, 0, 0, 6)
         };
@@ -275,7 +276,7 @@ public static class TextPrompt
 
         var cancelBtn = new Button
         {
-            Content = "Cancel",
+            Content = LocalizationService.Get("Common.Cancel"),
             IsCancel = true,
             MinWidth = 84,
             Padding = new Thickness(14, 8, 14, 8),
@@ -283,7 +284,7 @@ public static class TextPrompt
         };
         cancelBtn.Click += (_, _) => window.DialogResult = false;
 
-        var saveBtn = AppDockDialog.CreatePrimaryButton("Save", isDanger: false);
+        var saveBtn = AppDockDialog.CreatePrimaryButton(LocalizationService.Get("Common.Save"), isDanger: false);
         saveBtn.IsDefault = true;
         saveBtn.Click += (_, _) =>
         {

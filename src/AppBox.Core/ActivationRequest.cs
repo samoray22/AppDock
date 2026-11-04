@@ -49,9 +49,9 @@ public sealed record TaskbarTask(string Title, ActivationRequest Request);
 public static class TaskbarCommands
 {
     public static IReadOnlyList<TaskbarTask> ForContainer(Guid? id) => [
-        new("AppDock Settings", new(ActivationCommand.Settings, id)),
-        new("Edit Container", new(ActivationCommand.EditContainer, id)),
-        new("Manage Containers", new(ActivationCommand.ManageContainers, id))];
+        new(LocalizationService.Get("JumpList.Settings"), new(ActivationCommand.Settings, id)),
+        new(LocalizationService.Get("JumpList.EditContainer"), new(ActivationCommand.EditContainer, id)),
+        new(LocalizationService.Get("JumpList.ManageContainers"), new(ActivationCommand.ManageContainers, id))];
 }
 
 public enum ContainerOpeningBehavior { Click, Hover, ClickOrHover }
