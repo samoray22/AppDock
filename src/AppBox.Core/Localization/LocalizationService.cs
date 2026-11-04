@@ -26,7 +26,8 @@ public static class LocalizationService
         (AppLanguage.Turkish, "tr", "Türkçe (Turkish)"),
         (AppLanguage.Russian, "ru", "Русский (Russian)"),
         (AppLanguage.Chinese, "zh", "中文 (简体) (Chinese Simplified)"),
-        (AppLanguage.Japanese, "ja", "日本語 (Japanese)")
+        (AppLanguage.Japanese, "ja", "日本語 (Japanese)"),
+        (AppLanguage.Korean, "ko", "한국어 (Korean)")
     ];
 
     static LocalizationService()
@@ -59,6 +60,7 @@ public static class LocalizationService
                 AppLanguage.Russian => "ru",
                 AppLanguage.Chinese => "zh",
                 AppLanguage.Japanese => "ja",
+                AppLanguage.Korean => "ko",
                 _ => "en"
             };
         }
@@ -76,6 +78,7 @@ public static class LocalizationService
             "ru" => "ru",
             "zh" => "zh",
             "ja" => "ja",
+            "ko" => "ko",
             _ => "en"
         };
     }
@@ -92,6 +95,7 @@ public static class LocalizationService
         "ru" => Strings_ru.Map,
         "zh" => Strings_zh.Map,
         "ja" => Strings_ja.Map,
+        "ko" => Strings_ko.Map,
         _ => Strings_en.Map
     };
 
