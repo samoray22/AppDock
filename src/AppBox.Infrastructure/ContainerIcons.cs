@@ -114,12 +114,17 @@ public sealed class ContainerIcons(string directory)
     private static readonly ConcurrentDictionary<string, (long WriteTicks, BitmapSource Image)> FileCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, byte[]> EncodedBuiltInCache = new(StringComparer.OrdinalIgnoreCase);
 
-    public string DirectoryPath => Path.Combine(directory, "Icons");
+    private string BaseDirectory => string.IsNullOrWhiteSpace(directory) ? AppPaths.ActiveDataDirectory : directory;
+
+    public string DirectoryPath => Path.Combine(BaseDirectory, "Icons");
 
     public string ProductIconPath
     {
         get
         {
+            var exeDirIco = Path.Combine(AppPaths.ExecutableDirectory, "AppDock.ico");
+            if (File.Exists(exeDirIco) && new System.IO.FileInfo(exeDirIco).Length > 0) return exeDirIco;
+
             var localIco = Path.Combine(AppContext.BaseDirectory, "AppDock.ico");
             if (File.Exists(localIco) && new System.IO.FileInfo(localIco).Length > 0) return localIco;
 
@@ -150,6 +155,12 @@ public sealed class ContainerIcons(string directory)
     {
         get
         {
+            var exeDirIco = Path.Combine(AppPaths.ExecutableDirectory, "AppDock.ico");
+            if (File.Exists(exeDirIco))
+            {
+                try { return Load(exeDirIco); }
+                catch (Exception ex) when (ex is not OutOfMemoryException) { }
+            }
             var localIco = Path.Combine(AppContext.BaseDirectory, "AppDock.ico");
             if (File.Exists(localIco))
             {
@@ -173,7 +184,19 @@ public sealed class ContainerIcons(string directory)
     public BitmapSource Get(ContainerIcon? icon)
     {
         if (icon is null) return ProductIcon;
-        try { if (icon.Kind == ContainerIconKind.Custom && icon.ResourcePath is { } path) return Load(path); }
+        try
+        {
+            if (icon.Kind == ContainerIconKind.Custom && icon.ResourcePath is { } path && !string.IsNullOrWhiteSpace(path))
+            {
+                if (File.Exists(path)) return Load(path);
+                var fileName = Path.GetFileName(path);
+                if (!string.IsNullOrEmpty(fileName))
+                {
+                    var localCandidate = Path.Combine(DirectoryPath, fileName);
+                    if (File.Exists(localCandidate)) return Load(localCandidate);
+                }
+            }
+        }
         catch (Exception ex) when (ex is not OutOfMemoryException) { /* Keep the choice so a restored resource can recover. */ }
         return BuiltIn(icon.Kind == ContainerIconKind.BuiltIn ? icon.BuiltIn : "General Applications");
     }

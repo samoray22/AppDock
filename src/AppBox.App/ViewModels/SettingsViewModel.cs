@@ -425,8 +425,26 @@ public sealed class SettingsViewModel : ObservableObject
         get
         {
             var v = typeof(SettingsViewModel).Assembly.GetName().Version;
-            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 2.9.3";
+            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 3.0.0";
         }
+    }
+
+    public string ActiveStorageDirectory => AppPaths.ActiveDataDirectory;
+    public string PortableStorageDirectory => AppPaths.PortableDataDirectory;
+    public string AppDataStorageDirectory => AppPaths.LocalAppDataDirectory;
+    public bool IsPortableMode => AppPaths.IsPortableMode;
+    public string ActiveStorageModeText => IsPortableMode
+        ? LocalizationService.Get("Portable.Mode.Portable")
+        : LocalizationService.Get("Portable.Mode.AppData");
+
+    public void NotifyStorageLocationChanged()
+    {
+        Changed(nameof(ActiveStorageDirectory));
+        Changed(nameof(PortableStorageDirectory));
+        Changed(nameof(AppDataStorageDirectory));
+        Changed(nameof(IsPortableMode));
+        Changed(nameof(ActiveStorageModeText));
+        Refresh();
     }
 
     public SettingsViewModel(Configuration config, Action save, Action<bool>? writeStartup = null, Func<bool>? readStartup = null, bool? windows11StyleAvailable = null)
@@ -482,6 +500,7 @@ public sealed class SettingsViewModel : ObservableObject
         Changed(nameof(AnimationStyleTitle));
         Changed(nameof(AnimationStyleTagline));
         Changed(nameof(AnimationStyleDescription));
+        Changed(nameof(ActiveStorageModeText));
         PopulateMonitors();
     }
     public void ToggleActive() { if (SelectedFolder is not null) { SelectedFolder.IsActive = !SelectedFolder.IsActive; Persist(); } }

@@ -283,14 +283,14 @@ internal static class Strings_zh
         ["Help.FeaturesCard.Tint.Desc"] = "每个容器会自动提取其图标主色，为主色边框和计数圆标染色。",
         ["Help.FeaturesCard.Shorten.Title"] = "缩短应用名称",
         ["Help.FeaturesCard.Shorten.Desc"] = "智能剔除常见厂商前缀（如 'Microsoft ' 或 'Adobe '），使排版更整洁。",
-        ["Help.FeaturesCard.Layouts.Title"] = "独立的布局组合",
-        ["Help.FeaturesCard.Layouts.Desc"] = "任务栏使用单图标，同时在屏幕边缘侧边栏使用多图标，随心组合。",
+        ["Help.FeaturesCard.Layouts.Title"] = "便携模式与备份",
+        ["Help.FeaturesCard.Layouts.Desc"] = "在“设置 → 便携行为”中将数据保存在程序旁的 'AppDock_Data' 文件夹或 Windows AppData 中，并在“设置 → 常规”中导出/导入 .zip 完整备份。",
         ["Help.FeaturesCard.Tray.Title"] = "系统托盘图标",
         ["Help.FeaturesCard.Tray.Desc"] = "左键点击打开设置，右键快捷访问侧边栏、容器管理及退出。",
 
         // About Tab
         ["About.Tagline"] = "精巧的容器。更从容的任务栏。",
-        ["About.Description"] = "专为任务栏与屏幕侧边栏设计的原生 Windows 11 启动器。配置保存在本地 %LOCALAPPDATA%\\AppDock\\。",
+        ["About.Description"] = "专为任务栏与屏幕侧边栏设计的原生 Windows 11 启动器。",
         ["About.Privacy"] = "无需安装。无需账户。绝无遥测。无需管理员权限。",
         ["About.DevelopedBy"] = "由 Samoray 开发",
 
@@ -481,6 +481,34 @@ internal static class Strings_zh
 
         ["Animation.Random.Title"] = "随机动效 (Random)",
         ["Animation.Random.Tagline"] = "每次点击或悬停时呈现不同 3-D 惊喜。",
-        ["Animation.Random.Description"] = "每次展开或收起容器时随机应用 9 种 3-D 动效之一。"
+        ["Animation.Random.Description"] = "每次展开或收起容器时随机应用 9 种 3-D 动效之一。",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "便携模式",
+        ["Portable.Heading"] = "便携行为与数据存储",
+        ["Portable.Description"] = "控制 AppDock 是作为独立便携应用在可执行文件旁存储数据，还是将配置保存在 Windows 用户配置文件夹中。",
+        ["Portable.ToggleLabel"] = "启用便携模式（将设置、图标和启动器快捷方式保存在可执行文件旁的 AppDock_Data 文件夹中）",
+        ["Portable.StatusHeading"] = "当前存储状态",
+        ["Portable.ActiveModeLabel"] = "当前模式：",
+        ["Portable.Mode.Portable"] = "便携模式 (可执行文件旁的 AppDock_Data)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "当前文件夹：",
+        ["Portable.PortablePathLabel"] = "便携路径：",
+        ["Portable.AppDataPathLabel"] = "AppData 路径：",
+        ["Portable.OpenDataFolder"] = "打开当前数据文件夹",
+        ["Portable.HowItWorksHeading"] = "便携模式与存储路径说明",
+        ["Portable.HowItWorks.PortableDesc"] = "• 便携文件夹 (AppDock_Data)：将 settings.json、Icons\\ 和 Launchers\\ 存储在 AppDock.exe 旁的 AppDock_Data 子文件夹中，保持根目录整洁，方便随文件夹或 U 盘移动。",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock)：将配置和图标存储在当前 Windows 用户的标准本地应用数据目录中。",
+        ["Portable.HowItWorks.RisksDesc"] = "• 切换或移动前须知：切换模式会自动将当前设置和自定义图标迁移至所选位置并更新任务栏快捷方式。“随 Windows 启动”和已固定的任务栏图标指向当前电脑上的可执行文件路径——如果移动了程序文件夹，只需在新位置运行一次 AppDock 即可自动修复路径。",
+        ["Dialog.StorageChoiceTitle"] = "选择 AppDock 存储位置",
+        ["Dialog.StorageChoiceConflictPrompt"] = "在两个位置均检测到配置文件：\n\n1. 便携目录：{0}\n2. Windows AppData：{1}\n\n您希望 AppDock 使用哪个存储位置？",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "您希望 AppDock 将设置、自定义图标和快捷方式存储在哪里？\n\n• 便携模式 (AppDock_Data)：{0}\n• Windows AppData：{1}",
+        ["Dialog.StorageChoicePortableBtn"] = "便携模式 (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "无法写入便携文件夹：\n{0}\n\nAppDock 将改用 Windows AppData：\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "确认更改存储位置",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "确定切换到便携模式吗？\n\n目标文件夹：\n{0}\n\n变更内容与注意事项：\n• 您的 settings.json、自定义图标 (Icons\\) 和快捷方式 (Launchers\\) 将迁移至可执行文件旁的 AppDock_Data。\n• 已固定的任务栏快捷方式将同步更新。\n• 请确保程序所在目录具有写入权限（请勿放在 C:\\Program Files 下）。\n• 如果日后移动了便携文件夹，请在新位置启动一次 AppDock 以自动修复启动项和任务栏固定图标。",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "确定切换到 Windows AppData 模式吗？\n\n目标文件夹：\n{0}\n\n变更内容与注意事项：\n• 您的 settings.json、自定义图标 (Icons\\) 和快捷方式 (Launchers\\) 将迁移至 %LOCALAPPDATA%\\AppDock。\n• 已固定的任务栏快捷方式将更新为指向 %LOCALAPPDATA%\\AppDock。\n• 将程序文件夹复制到其他电脑时将不再随文件夹携带设置。",
+        ["Dialog.PortableSwitchSuccess"] = "存储位置已成功切换。当前数据文件夹：\n{0}"
     };
 }

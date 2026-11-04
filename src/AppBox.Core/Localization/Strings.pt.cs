@@ -283,14 +283,14 @@ internal static class Strings_pt
         ["Help.FeaturesCard.Tint.Desc"] = "Cada contêiner adota a cor dominante do seu ícone em bordas e contadores.",
         ["Help.FeaturesCard.Shorten.Title"] = "Encurtar nomes",
         ["Help.FeaturesCard.Shorten.Desc"] = "Remove prefixos comuns de fabricantes (como 'Microsoft' ou 'Adobe').",
-        ["Help.FeaturesCard.Layouts.Title"] = "Layouts independentes",
-        ["Help.FeaturesCard.Layouts.Desc"] = "Combine modo Único na barra de tarefas e Múltiplo na barra lateral.",
+        ["Help.FeaturesCard.Layouts.Title"] = "Modo portátil e backups",
+        ["Help.FeaturesCard.Layouts.Desc"] = "Armazene todos os dados na pasta 'AppDock_Data' ao lado do executável ou no Windows AppData (Configurações → Comportamento portátil) e exporte/importe backups .zip em Configurações → Geral.",
         ["Help.FeaturesCard.Tray.Title"] = "Ícone na bandeja do sistema",
         ["Help.FeaturesCard.Tray.Desc"] = "Clique com botão esquerdo para Configurações, direito para menu rápido.",
 
         // About Tab
         ["About.Tagline"] = "Pequenos contêineres. Uma barra de tarefas mais calma.",
-        ["About.Description"] = "Um lançador nativo para Windows 11 para barra de tarefas e lateral. Dados salvos em %LOCALAPPDATA%\\AppDock\\.",
+        ["About.Description"] = "Um lançador nativo para Windows 11 para barra de tarefas e lateral.",
         ["About.Privacy"] = "Sem instalação. Sem conta. Sem telemetria. Sem privilégios de administrador.",
         ["About.DevelopedBy"] = "Desenvolvido por Samoray",
 
@@ -481,6 +481,34 @@ internal static class Strings_pt
 
         ["Animation.Random.Title"] = "Aleatório",
         ["Animation.Random.Tagline"] = "Um efeito 3-D surpresa a cada abertura.",
-        ["Animation.Random.Description"] = "Aplica uma animação 3-D diferente a cada vez que um contêiner é aberto ou fechado."
+        ["Animation.Random.Description"] = "Aplica uma animação 3-D diferente a cada vez que um contêiner é aberto ou fechado.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "Modo portátil",
+        ["Portable.Heading"] = "Comportamento portátil e armazenamento",
+        ["Portable.Description"] = "Controle se o AppDock funciona como um aplicativo portátil autônomo ao lado do executável ou armazena as configurações no seu perfil do Windows.",
+        ["Portable.ToggleLabel"] = "Ativar Modo Portátil (salvar configurações, ícones e atalhos em AppDock_Data ao lado do executável)",
+        ["Portable.StatusHeading"] = "Status atual de armazenamento",
+        ["Portable.ActiveModeLabel"] = "Modo ativo: ",
+        ["Portable.Mode.Portable"] = "Portátil (AppDock_Data ao lado do executável)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "Pasta ativa: ",
+        ["Portable.PortablePathLabel"] = "Caminho portátil: ",
+        ["Portable.AppDataPathLabel"] = "Caminho AppData: ",
+        ["Portable.OpenDataFolder"] = "Abrir pasta de dados ativa",
+        ["Portable.HowItWorksHeading"] = "Como funcionam o modo portátil e os caminhos",
+        ["Portable.HowItWorks.PortableDesc"] = "• Pasta portátil (AppDock_Data): Armazena settings.json, Icons\\ e Launchers\\ na subpasta AppDock_Data ao lado do AppDock.exe para manter a pasta raiz organizada.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): Armazena configurações e ícones no diretório local de dados de aplicativos do usuário do Windows.",
+        ["Portable.HowItWorks.RisksDesc"] = "• O que saber antes de alternar ou mover: Alternar o modo migra automaticamente suas configurações e ícones personalizados e atualiza os atalhos. 'Iniciar com o Windows' e os ícones fixados apontam para o caminho atual neste PC; se você mover a pasta, inicie o AppDock uma vez do novo local para repará-los.",
+        ["Dialog.StorageChoiceTitle"] = "Escolher local de armazenamento do AppDock",
+        ["Dialog.StorageChoiceConflictPrompt"] = "Foram detectadas configurações em ambos os locais:\n\n1. Portátil: {0}\n2. Windows AppData: {1}\n\nQual local de armazenamento o AppDock deve usar?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "Onde você gostaria que o AppDock armazenasse suas configurações, ícones personalizados e atalhos?\n\n• Portátil (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "Portátil (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "Não foi possível gravar na pasta portátil:\n{0}\n\nO AppDock usará o Windows AppData:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "Confirmar alteração do local de armazenamento",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "Alternar para o Modo Portátil?\n\nPasta de destino:\n{0}\n\nO que acontecerá e riscos a considerar:\n• Seu settings.json, ícones (Icons\\) e atalhos (Launchers\\) serão migrados para AppDock_Data ao lado do executável.\n• Os atalhos fixados na barra de tarefas serão atualizados.\n• Certifique-se de que o executável esteja em uma pasta com permissão de gravação (não em C:\\Program Files).\n• Se você mover a pasta futuramente, abra o AppDock uma vez no novo local para reparar os caminhos automaticamente.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "Alternar para o Modo Windows AppData?\n\nPasta de destino:\n{0}\n\nO que acontecerá e riscos a considerar:\n• Seu settings.json, ícones (Icons\\) e atalhos (Launchers\\) serão migrados para %LOCALAPPDATA%\\AppDock.\n• Os atalhos fixados serão atualizados para %LOCALAPPDATA%\\AppDock.\n• Mover a pasta do executável para outro PC não levará mais suas configurações junto.",
+        ["Dialog.PortableSwitchSuccess"] = "Local de armazenamento alterado com sucesso. Pasta ativa:\n{0}"
     };
 }

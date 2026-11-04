@@ -45,8 +45,16 @@ public partial class App : System.Windows.Application
                 if (!e.Args.Contains("--background")) await instance.SignalAsync(request);
                 Shutdown(); return;
             }
-            store = new(e.Args.Contains("--smoke-test") ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N")) : null);
+            var startupDirectory = e.Args.Contains("--smoke-test")
+                ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N"))
+                : ResolveStartupStorageDirectory(e.Args);
+            AppPaths.ActiveDataDirectory = startupDirectory;
+            store = new(startupDirectory);
             config = store.Load();
+            if (!diagnosticRun && !ConfigurationStore.HasSettingsFile(store.DirectoryPath))
+            {
+                try { store.Save(config); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
+            }
             launchService = new(new WindowsShortcutResolver(), new WindowsProcessLauncher(), () => config.Settings.AllowCommandLineShells);
             if (!e.Args.Contains("--smoke-test"))
             {
@@ -359,6 +367,7 @@ public partial class App : System.Windows.Application
             WindowStartupLocation = wasLauncherVisible ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
             LaunchersDirectory = launchers.DirectoryPath,
             ChangeIcon = ChangeIcon,
+            SwitchStorageLocation = SwitchStorageLocation,
             EditContainer = folder =>
             {
                 reopeningForEdit = true;
@@ -383,6 +392,79 @@ public partial class App : System.Windows.Application
         settings.Activate();
         WindowPlacement.SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(settings).Handle);
     }
+    private static string ResolveStartupStorageDirectory(string[] args)
+    {
+        var portableDir = AppPaths.PortableDataDirectory;
+        var appDataDir = AppPaths.LocalAppDataDirectory;
+        var legacyDir = AppPaths.LegacyLocalAppDataDirectory;
+
+        bool hasPortable = ConfigurationStore.HasSettingsFile(portableDir);
+        bool hasAppData = ConfigurationStore.HasSettingsFile(appDataDir) ||
+                          ConfigurationStore.HasSettingsFile(legacyDir);
+
+        if (hasPortable && !hasAppData)
+            return portableDir;
+
+        if (!hasPortable && hasAppData)
+            return appDataDir;
+
+        // Background startup at Windows login should never block with a modal dialog.
+        if (args.Contains("--background"))
+            return hasPortable ? portableDir : appDataDir;
+
+        // Apply system theme and language before showing the initial choice dialog.
+        ThemeService.ConfigureWindows11Style(true);
+        ThemeService.Apply(AppTheme.System);
+        LanguageResourceService.Apply(AppLanguage.System);
+
+        var prompt = (hasPortable && hasAppData)
+            ? LocalizationService.Format("Dialog.StorageChoiceConflictPrompt", portableDir, appDataDir)
+            : LocalizationService.Format("Dialog.StorageChoiceFirstRunPrompt", portableDir, appDataDir);
+
+        var choosePortable = AppDockDialog.ChooseStorageLocation(
+            null,
+            prompt,
+            LocalizationService.Get("Dialog.StorageChoiceTitle"),
+            LocalizationService.Get("Dialog.StorageChoicePortableBtn"),
+            LocalizationService.Get("Dialog.StorageChoiceAppDataBtn"));
+
+        if (choosePortable)
+        {
+            if (AppPaths.IsDirectoryWritable(portableDir))
+            {
+                if (hasPortable && hasAppData)
+                    ConfigurationStore.DeactivateSettingsFile(appDataDir);
+                return portableDir;
+            }
+
+            AppDockDialog.Show(
+                null,
+                LocalizationService.Format("Dialog.PortableNotWritableFallback", portableDir, appDataDir),
+                "AppDock",
+                MessageBoxImage.Warning);
+            return appDataDir;
+        }
+        else
+        {
+            if (hasPortable && hasAppData)
+                ConfigurationStore.DeactivateSettingsFile(portableDir);
+            return appDataDir;
+        }
+    }
+
+    private void SwitchStorageLocation(bool usePortable)
+    {
+        var targetDir = usePortable ? AppPaths.PortableDataDirectory : AppPaths.LocalAppDataDirectory;
+        store = store.MigrateTo(targetDir, config);
+        launchers = new(store.DirectoryPath, AppPaths.Executable);
+        model?.UpdateIconDirectory(store.DirectoryPath);
+        if (settings is not null)
+            settings.LaunchersDirectory = launchers.DirectoryPath;
+        Persist();
+        try { launchers.UpdateMain(new ContainerIcons(store.DirectoryPath).ProductIconPath); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { }
+    }
+
     private void Save()
     {
         try { Persist(); }

@@ -49,7 +49,8 @@ public sealed class LauncherViewModel : ObservableObject
     private readonly FolderManager manager;
     private readonly Action persist;
     private readonly ApplicationImportService importer;
-    private readonly ContainerIcons containerIcons;
+    private ContainerIcons containerIcons;
+    public void UpdateIconDirectory(string directory) { containerIcons = new(directory); Refresh(); }
     public LauncherInteraction Interaction { get; } = new();
     private AppFolder? selected;
     private string status = "";

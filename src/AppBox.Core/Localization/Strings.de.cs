@@ -283,14 +283,14 @@ internal static class Strings_de
         ["Help.FeaturesCard.Tint.Desc"] = "Jeder Container passt Rahmen und Zähler an die dominante Symbolfarbe an.",
         ["Help.FeaturesCard.Shorten.Title"] = "App-Namen kürzen",
         ["Help.FeaturesCard.Shorten.Desc"] = "Entfernt Hersteller-Präfixe (wie 'Microsoft' oder 'Adobe') für saubere Kacheln.",
-        ["Help.FeaturesCard.Layouts.Title"] = "Unabhängige Layouts",
-        ["Help.FeaturesCard.Layouts.Desc"] = "Kombinieren Sie Einzelmodus auf der Taskleiste mit Mehrfachmodus in der Leiste.",
+        ["Help.FeaturesCard.Layouts.Title"] = "Portabler Modus & Backups",
+        ["Help.FeaturesCard.Layouts.Desc"] = "Speichern Sie alle Daten im Ordner 'AppDock_Data' neben der .exe oder in Windows AppData (Einstellungen → Portables Verhalten) und exportieren/importieren Sie .zip-Backups unter Einstellungen → Allgemein.",
         ["Help.FeaturesCard.Tray.Title"] = "Infobereich-Symbol (Tray)",
         ["Help.FeaturesCard.Tray.Desc"] = "Linksklick für Einstellungen, Rechtsklick für das Schnellmenü.",
 
         // About Tab
         ["About.Tagline"] = "Kompakte Container. Eine ruhigere Taskleiste.",
-        ["About.Description"] = "Ein nativer Windows 11 Launcher für Taskleiste und Seitenleiste. Ihre Daten liegen in %LOCALAPPDATA%\\AppDock\\.",
+        ["About.Description"] = "Ein nativer Windows 11 Launcher für Taskleiste und Seitenleiste.",
         ["About.Privacy"] = "Keine Installation. Kein Konto. Keine Telemetrie. Keine Administratorrechte.",
         ["About.DevelopedBy"] = "Entwickelt von Samoray",
 
@@ -481,6 +481,34 @@ internal static class Strings_de
 
         ["Animation.Random.Title"] = "Zufall",
         ["Animation.Random.Tagline"] = "Ein überraschender 3D-Effekt bei jedem Klick.",
-        ["Animation.Random.Description"] = "Wendet bei jedem Öffnen und Schließen einen zufällig ausgewählten 3D-Effekt an."
+        ["Animation.Random.Description"] = "Wendet bei jedem Öffnen und Schließen einen zufällig ausgewählten 3D-Effekt an.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "Portabler Modus",
+        ["Portable.Heading"] = "Portables Verhalten & Datenspeicherung",
+        ["Portable.Description"] = "Legen Sie fest, ob AppDock als eigenständige portable Anwendung neben der Programmdatei läuft oder die Konfiguration im Windows-Benutzerprofil speichert.",
+        ["Portable.ToggleLabel"] = "Portablen Modus aktivieren (Einstellungen, Symbole und Starter in AppDock_Data neben der .exe speichern)",
+        ["Portable.StatusHeading"] = "Aktueller Speicherstatus",
+        ["Portable.ActiveModeLabel"] = "Aktiver Modus: ",
+        ["Portable.Mode.Portable"] = "Portabel (AppDock_Data neben der .exe)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "Aktiver Ordner: ",
+        ["Portable.PortablePathLabel"] = "Portabler Pfad: ",
+        ["Portable.AppDataPathLabel"] = "AppData-Pfad: ",
+        ["Portable.OpenDataFolder"] = "Aktiven Datenordner öffnen",
+        ["Portable.HowItWorksHeading"] = "Wie der portable Modus und die Pfade funktionieren",
+        ["Portable.HowItWorks.PortableDesc"] = "• Portabler Ordner (AppDock_Data): Speichert settings.json, Icons\\ und Launchers\\ im Unterordner AppDock_Data direkt neben AppDock.exe, damit das Hauptverzeichnis sauber bleibt.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): Speichert Konfiguration und Symbole im lokalen AppData-Verzeichnis des aktuellen Windows-Benutzers.",
+        ["Portable.HowItWorks.RisksDesc"] = "• Wichtige Hinweise vor dem Wechseln oder Verschieben: Beim Moduswechsel werden Ihre Einstellungen und Symbole automatisch migriert und Taskleisten-Verknüpfungen aktualisiert. 'Mit Windows starten' und angeheftete Taskleisten-Symbole verweisen auf den aktuellen Pfad auf diesem PC – nach einem Verschieben starten Sie AppDock einfach einmal vom neuen Ort, um die Pfade automatisch zu reparieren.",
+        ["Dialog.StorageChoiceTitle"] = "AppDock-Speicherort auswählen",
+        ["Dialog.StorageChoiceConflictPrompt"] = "In beiden Speicherorten wurden Einstellungen gefunden:\n\n1. Portabel: {0}\n2. Windows AppData: {1}\n\nWelchen Speicherort soll AppDock verwenden?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "Wo soll AppDock Ihre Einstellungen, benutzerdefinierten Symbole und Verknüpfungen speichern?\n\n• Portabel (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "Portabel (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "In den portablen Ordner konnte nicht geschrieben werden:\n{0}\n\nAppDock verwendet stattdessen Windows AppData:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "Wechsel des Speicherorts bestätigen",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "In den portablen Modus wechseln?\n\nZielordner:\n{0}\n\nWas passiert & zu beachtende Risiken:\n• Ihre settings.json, Symbole (Icons\\) und Verknüpfungen (Launchers\\) werden nach AppDock_Data neben der .exe migriert.\n• Angeheftete Taskleisten-Verknüpfungen werden aktualisiert.\n• Stellen Sie sicher, dass der Ordner beschreibbar ist (nicht C:\\Program Files).\n• Wenn Sie den Ordner später verschieben, starten Sie AppDock einmal am neuen Speicherort, um Pfade automatisch zu aktualisieren.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "In den Windows AppData-Modus wechseln?\n\nZielordner:\n{0}\n\nWas passiert & zu beachtende Risiken:\n• Ihre settings.json, Symbole (Icons\\) und Verknüpfungen (Launchers\\) werden nach %LOCALAPPDATA%\\AppDock migriert.\n• Angeheftete Taskleisten-Verknüpfungen werden auf %LOCALAPPDATA%\\AppDock aktualisiert.\n• Beim Kopieren des Programmordners auf einen anderen PC werden die Einstellungen nicht mehr im Programmordner mitgeführt.",
+        ["Dialog.PortableSwitchSuccess"] = "Speicherort erfolgreich gewechselt. Aktiver Datenordner:\n{0}"
     };
 }

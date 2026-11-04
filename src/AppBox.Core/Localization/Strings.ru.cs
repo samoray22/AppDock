@@ -274,13 +274,13 @@ internal static class Strings_ru
         ["Help.FeaturesCard.Tint.Desc"] = "Каждый контейнер определяет основной цвет значка и окрашивает бейдж счетчика и рамку фокуса.",
         ["Help.FeaturesCard.Shorten.Title"] = "Сокращение названий",
         ["Help.FeaturesCard.Shorten.Desc"] = "Убирает распространенные префиксы издателей ('Microsoft ', 'Adobe ') для аккуратного размещения названий.",
-        ["Help.FeaturesCard.Layouts.Title"] = "Независимые макеты",
-        ["Help.FeaturesCard.Layouts.Desc"] = "Используйте одиночный режим на панели задач и множественный на боковой панели (или наоборот).",
+        ["Help.FeaturesCard.Layouts.Title"] = "Портативный режим и резервные копии",
+        ["Help.FeaturesCard.Layouts.Desc"] = "Храните все данные в папке 'AppDock_Data' рядом с .exe или в Windows AppData (Настройки → Портативный режим), а также экспортируйте и импортируйте резервные копии .zip в разделе Настройки → Общие.",
         ["Help.FeaturesCard.Tray.Title"] = "Значок в системном трее",
         ["Help.FeaturesCard.Tray.Desc"] = "Левый клик по значку в трее открывает Настройки, правый клик открывает быстрое меню действий.",
         // About Tab
         ["About.Tagline"] = "Компактные контейнеры. Спокойная панель задач.",
-        ["About.Description"] = "Нативный лаунчер для Windows 11, созданный для панели задач и боковой панели. Все настройки и контейнеры хранятся локально в %LOCALAPPDATA%\\AppDock\\.",
+        ["About.Description"] = "Нативный лаунчер для Windows 11, созданный для панели задач и боковой панели.",
         ["About.Privacy"] = "Без установки. Без учетных записей. Без телеметрии. Без прав администратора.",
         ["About.DevelopedBy"] = "Разработчик: Samoray",
         // Launcher Window & Menu
@@ -455,6 +455,34 @@ internal static class Strings_ru
         ["Animation.Jelly.Description"] = "Запускает контейнер с физикой гармонических колебаний: края упруго колеблются и затухают словно желе.",
         ["Animation.Random.Title"] = "Случайный",
         ["Animation.Random.Tagline"] = "Неожиданный 3D-эффект при каждом открытии.",
-        ["Animation.Random.Description"] = "Применяет случайно выбранную 3D-анимацию (Джинн, Втягивание, Масштабирование, Волшебная лампа, Оригами, Перелистывание, Черная дыра, Stage Flip 3D или Желейный отскок) при каждом открытии или закрытии."
+        ["Animation.Random.Description"] = "Применяет случайно выбранную 3D-анимацию (Джинн, Втягивание, Масштабирование, Волшебная лампа, Оригами, Перелистывание, Черная дыра, Stage Flip 3D или Желейный отскок) при каждом открытии или закрытии.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "Портативный режим",
+        ["Portable.Heading"] = "Портативный режим и хранение данных",
+        ["Portable.Description"] = "Выберите, должен ли AppDock работать как автономное портативное приложение рядом с исполняемым файлом или хранить настройки в профиле пользователя Windows.",
+        ["Portable.ToggleLabel"] = "Включить портативный режим (хранить настройки, значки и ярлыки в папке AppDock_Data рядом с .exe)",
+        ["Portable.StatusHeading"] = "Текущее расположение хранилища",
+        ["Portable.ActiveModeLabel"] = "Активный режим: ",
+        ["Portable.Mode.Portable"] = "Портативный (AppDock_Data рядом с .exe)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "Активная папка: ",
+        ["Portable.PortablePathLabel"] = "Портативный путь: ",
+        ["Portable.AppDataPathLabel"] = "Путь AppData: ",
+        ["Portable.OpenDataFolder"] = "Открыть активную папку данных",
+        ["Portable.HowItWorksHeading"] = "Как работают портативный режим и пути хранения",
+        ["Portable.HowItWorks.PortableDesc"] = "• Портативная папка (AppDock_Data): Хранит settings.json, Icons\\ и Launchers\\ в подпапке AppDock_Data рядом с AppDock.exe, оставляя корневую папку чистой.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): Хранит конфигурацию и значки в стандартной локальной папке данных приложений пользователя Windows.",
+        ["Portable.HowItWorks.RisksDesc"] = "• Важно знать перед переключением или перемещением: Переключение режима автоматически переносит ваши настройки и значки и обновляет ярлыки панели задач. «Запускать вместе с Windows» и закрепленные ярлыки ссылаются на текущий путь на этом ПК — при перемещении папки просто запустите AppDock один раз из нового расположения для автоматического обновления путей.",
+        ["Dialog.StorageChoiceTitle"] = "Выберите место хранения данных AppDock",
+        ["Dialog.StorageChoiceConflictPrompt"] = "Настройки обнаружены в обоих расположениях:\n\n1. Портативное: {0}\n2. Windows AppData: {1}\n\nКакое расположение следует использовать AppDock?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "Где вы хотите хранить настройки, пользовательские значки и ярлыки AppDock?\n\n• Портативно (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "Портативно (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "Не удалось записать данные в портативную папку:\n{0}\n\nAppDock будет использовать Windows AppData:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "Подтверждение смены места хранения",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "Переключиться в портативный режим?\n\nЦелевая папка:\n{0}\n\nЧто изменится и возможные риски:\n• Файл settings.json, значки (Icons\\) и ярлыки (Launchers\\) будут перенесены в папку AppDock_Data рядом с исполняемым файлом.\n• Закрепленные ярлыки на панели задач будут обновлены.\n• Убедитесь, что папка доступна для записи (не находится в C:\\Program Files).\n• При перемещении папки в будущем запустите AppDock один раз на новом месте для обновления путей.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "Переключиться в режим Windows AppData?\n\nЦелевая папка:\n{0}\n\nЧто изменится и возможные риски:\n• Файл settings.json, значки (Icons\\) и ярлыки (Launchers\\) будут перенесены в %LOCALAPPDATA%\\AppDock.\n• Закрепленные ярлыки будут обновлены на %LOCALAPPDATA%\\AppDock.\n• При переносе папки программы на другой ПК настройки больше не будут переноситься внутри папки.",
+        ["Dialog.PortableSwitchSuccess"] = "Место хранения успешно изменено. Активная папка данных:\n{0}"
     };
 }

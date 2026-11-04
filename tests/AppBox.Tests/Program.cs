@@ -271,7 +271,7 @@ internal static class Program
             var config = new Configuration();
             var vm = new SettingsViewModel(config, () => { });
             Check(vm.AvailableLanguages.Count == LocalizationService.SupportedLanguages.Length);
-            Check(vm.AppVersionText.Contains("2.9.3"), $"Expected version 2.9.3, got {vm.AppVersionText}");
+            Check(vm.AppVersionText.Contains("3.0.0"), $"Expected version 3.0.0, got {vm.AppVersionText}");
 
             var deOption = vm.AvailableLanguages.FirstOrDefault(l => l.Language == AppLanguage.German);
             Check(deOption != null, "German option missing in AvailableLanguages");
@@ -367,6 +367,45 @@ internal static class Program
         {
             var bounds = PopupPlacement.Calculate(new(0, 0, 1920, 1080), new(0, 0, 1920, 1032), new(1900, 1050), 1);
             Check(bounds.X == 1920 - 468 - 8 && bounds.Y + bounds.Height < 1032);
+        });
+
+        // 8. Portable Mode & Storage Migration Tests
+        Test("Portable mode migration copies settings and custom icons and deactivates source settings", () =>
+        {
+            var sourceDir = Path.Combine(Root, "storage-appdata");
+            var portableDir = Path.Combine(Root, "storage-portable", "AppDock_Data");
+            Directory.CreateDirectory(Path.Combine(sourceDir, "Icons"));
+
+            var store = new ConfigurationStore(sourceDir);
+            var config = new Configuration();
+            var manager = new FolderManager(config);
+            var folder = manager.Create("DevTools");
+            var customIconPath = Path.Combine(sourceDir, "Icons", "mycustom.ico");
+            File.WriteAllBytes(customIconPath, [0, 0, 1, 0]);
+            folder.Icon = new ContainerIcon { Kind = ContainerIconKind.Custom, ResourcePath = customIconPath };
+            store.Save(config);
+
+            Check(ConfigurationStore.HasSettingsFile(sourceDir), "Source settings should exist before migration");
+
+            var migratedStore = store.MigrateTo(portableDir, config);
+            Check(ConfigurationStore.HasSettingsFile(portableDir), "Target portable settings should exist after migration");
+            Check(!ConfigurationStore.HasSettingsFile(sourceDir), "Source settings should be deactivated after migration");
+            Check(File.Exists(Path.Combine(sourceDir, "settings.migrated.json")), "Source settings should be preserved as settings.migrated.json");
+            Check(File.Exists(Path.Combine(portableDir, "Icons", "mycustom.ico")), "Custom icon should be copied to portable Icons folder");
+            Check(string.Equals(folder.Icon.ResourcePath, Path.Combine(portableDir, "Icons", "mycustom.ico"), StringComparison.OrdinalIgnoreCase),
+                $"Custom icon ResourcePath was not updated to portable folder: {folder.Icon.ResourcePath}");
+
+            // Simulate moving the portable folder to another drive/directory and reloading
+            var movedPortableDir = Path.Combine(Root, "moved-usb-drive", "AppDock_Data");
+            Directory.CreateDirectory(Path.Combine(movedPortableDir, "Icons"));
+            File.Copy(Path.Combine(portableDir, "settings.json"), Path.Combine(movedPortableDir, "settings.json"));
+            File.Copy(Path.Combine(portableDir, "Icons", "mycustom.ico"), Path.Combine(movedPortableDir, "Icons", "mycustom.ico"));
+
+            var movedStore = new ConfigurationStore(movedPortableDir);
+            var reloaded = movedStore.Load();
+            Check(reloaded.Folders.Count == 1);
+            Check(string.Equals(reloaded.Folders[0].Icon.ResourcePath, Path.Combine(movedPortableDir, "Icons", "mycustom.ico"), StringComparison.OrdinalIgnoreCase),
+                $"Custom icon path did not self-heal after moving portable folder: {reloaded.Folders[0].Icon.ResourcePath}");
         });
 
         Console.WriteLine("\n========================================");

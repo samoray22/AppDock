@@ -233,7 +233,7 @@ internal static class Strings_en
         ["Help.ModesCard.Step1.Title"] = "1. Active Surfaces",
         ["Help.ModesCard.Step1.Desc"] = "In Settings → General, choose 'Taskbar Only', 'Edge Sidebar Only' (automatically unpins taskbar shortcuts for a clean taskbar), or 'Both Taskbar & Sidebar'.",
         ["Help.ModesCard.Step2.Title"] = "2. Independent Layouts",
-        ["Help.ModesCard.Step2.Desc"] = "You can independently choose Single AppDock or Multiple AppDocks for the Taskbar (in General / Taskbar tabs) and for the Lateral Sidebar (in the Sidebar tab).",
+        ["Help.ModesCard.Step2.Desc"] = "You can independently choose Single AppDock or Multiple AppDocks for the Taskbar (in the Taskbar tab) and for the Lateral Sidebar (in the Sidebar tab).",
         ["Help.ModesCard.Step3.Title"] = "3. Pin a Container (Taskbar)",
         ["Help.ModesCard.Step3.Desc"] = "Go to Settings → Containers, select your container, and click 'Pin to Taskbar'. This activates the container, enables Taskbar Multiple mode, and pins its icon to your Windows taskbar.",
         ["Help.ModesCard.Step4.Title"] = "4. Unpin / Hide a Container",
@@ -283,14 +283,14 @@ internal static class Strings_en
         ["Help.FeaturesCard.Tint.Desc"] = "Each container automatically samples its icon’s dominant color to tint the count badge, search focus border, and tile focus ring.",
         ["Help.FeaturesCard.Shorten.Title"] = "Shorten App Names",
         ["Help.FeaturesCard.Shorten.Desc"] = "Strips common vendor prefixes (like 'Microsoft ' or 'Adobe ') on two-line labels so names fit cleanly, while keeping the full name in the tooltip.",
-        ["Help.FeaturesCard.Layouts.Title"] = "Independent Layouts",
-        ["Help.FeaturesCard.Layouts.Desc"] = "Mix and match Single AppDock on the taskbar with Multiple AppDocks on the Lateral Edge Sidebar (or vice versa).",
+        ["Help.FeaturesCard.Layouts.Title"] = "Portable Mode & Backups",
+        ["Help.FeaturesCard.Layouts.Desc"] = "Store all data in a portable 'AppDock_Data' folder next to the executable or in Windows AppData (Settings → Portable Behavior), and export/import full .zip backups in Settings → General.",
         ["Help.FeaturesCard.Tray.Title"] = "System Tray Icon",
         ["Help.FeaturesCard.Tray.Desc"] = "Left-click the tray icon to open Settings, or right-click for quick access to Sidebar Settings, Containers, Help, and Exit.",
 
         // About Tab
         ["About.Tagline"] = "Small containers. A calmer taskbar.",
-        ["About.Description"] = "A native Windows 11 launcher built for Taskbar and Lateral Edge Sidebar. Your containers and preferences are stored locally in %LOCALAPPDATA%\\AppDock\\.",
+        ["About.Description"] = "A native Windows 11 launcher built for Taskbar and Lateral Edge Sidebar.",
         ["About.Privacy"] = "No installation needed. No account. No telemetry. No administrator privileges.",
         ["About.DevelopedBy"] = "Developed by Samoray",
 
@@ -481,6 +481,34 @@ internal static class Strings_en
 
         ["Animation.Random.Title"] = "Random",
         ["Animation.Random.Tagline"] = "A surprise 3-D effect on every hover & click.",
-        ["Animation.Random.Description"] = "Applies a randomly selected 3-D mesh animation (Genie, Suck, Scale, Magic Lamp, Origami, Page Curl, Black Hole, Stage Flip 3D, or Jelly Bounce) each time a container is opened or closed."
+        ["Animation.Random.Description"] = "Applies a randomly selected 3-D mesh animation (Genie, Suck, Scale, Magic Lamp, Origami, Page Curl, Black Hole, Stage Flip 3D, or Jelly Bounce) each time a container is opened or closed.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "Portable Behavior",
+        ["Portable.Heading"] = "Portable Behavior & Data Storage",
+        ["Portable.Description"] = "Control whether AppDock runs as a self-contained portable application next to the executable or stores configuration in your Windows user profile.",
+        ["Portable.ToggleLabel"] = "Enable Portable Mode (store settings, icons, and launchers in AppDock_Data next to the executable)",
+        ["Portable.StatusHeading"] = "Current Storage Status",
+        ["Portable.ActiveModeLabel"] = "Active Mode: ",
+        ["Portable.Mode.Portable"] = "Portable (AppDock_Data next to executable)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "Active Folder: ",
+        ["Portable.PortablePathLabel"] = "Portable Path: ",
+        ["Portable.AppDataPathLabel"] = "AppData Path: ",
+        ["Portable.OpenDataFolder"] = "Open Active Data Folder",
+        ["Portable.HowItWorksHeading"] = "How Portable Mode & Storage Paths Work",
+        ["Portable.HowItWorks.PortableDesc"] = "• Portable Folder (AppDock_Data): Stores settings.json, Icons\\, and Launchers\\ in a clean AppDock_Data subfolder next to AppDock.exe so your root folder stays tidy and can be moved across folders or drives.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): Stores configuration and icons in the standard Windows local application data directory for the current user.",
+        ["Portable.HowItWorks.RisksDesc"] = "• What to Know Before Switching or Moving: Switching modes automatically migrates your current settings and custom icons to the chosen location and updates taskbar shortcuts. 'Start with Windows' and pinned taskbar shortcuts reference the current executable path on this PC — if you move the application folder, simply launch AppDock once from its new location to automatically repair those paths.",
+        ["Dialog.StorageChoiceTitle"] = "Choose AppDock Storage Location",
+        ["Dialog.StorageChoiceConflictPrompt"] = "Settings were detected in both locations:\n\n1. Portable: {0}\n2. Windows AppData: {1}\n\nWhich storage location would you like AppDock to use?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "Where would you like AppDock to store your settings, custom icons, and launcher shortcuts?\n\n• Portable (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "Portable (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "The portable folder could not be written to:\n{0}\n\nAppDock will use Windows AppData instead:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "Confirm Storage Location Change",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "Switch to Portable Mode?\n\nTarget Folder:\n{0}\n\nWhat will happen & risks to consider:\n• Your settings.json, custom icons (Icons\\), and launcher shortcuts (Launchers\\) will be migrated to AppDock_Data next to the executable.\n• Pinned taskbar shortcuts will be updated to the new folder.\n• Ensure the executable resides in a writable folder (not C:\\Program Files).\n• If you later move or unplug the portable folder, launch AppDock once from the new location so 'Start with Windows' and taskbar pins update automatically.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "Switch to Windows AppData Mode?\n\nTarget Folder:\n{0}\n\nWhat will happen & risks to consider:\n• Your settings.json, custom icons (Icons\\), and launcher shortcuts (Launchers\\) will be migrated to %LOCALAPPDATA%\\AppDock.\n• Pinned taskbar shortcuts will be updated to point to %LOCALAPPDATA%\\AppDock.\n• Moving the executable folder to another PC will no longer carry your settings unless you switch back to Portable Mode or export a backup.",
+        ["Dialog.PortableSwitchSuccess"] = "Storage location switched successfully. Active data folder:\n{0}"
     };
 }

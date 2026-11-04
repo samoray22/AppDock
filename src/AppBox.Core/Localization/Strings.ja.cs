@@ -283,14 +283,14 @@ internal static class Strings_ja
         ["Help.FeaturesCard.Tint.Desc"] = "アイコンの代表色を自動抽出し、枠線やバッジの色調に反映します。",
         ["Help.FeaturesCard.Shorten.Title"] = "アプリ名のスマート短縮",
         ["Help.FeaturesCard.Shorten.Desc"] = "「Microsoft」や「Adobe」等の表記を自動で省略し、見やすく整えます。",
-        ["Help.FeaturesCard.Layouts.Title"] = "独立したレイアウト構成",
-        ["Help.FeaturesCard.Layouts.Desc"] = "タスクバーは1つのアイコン、サイドバーは複数アイコンなど自由に構成可能。",
+        ["Help.FeaturesCard.Layouts.Title"] = "ポータブルモードとバックアップ",
+        ["Help.FeaturesCard.Layouts.Desc"] = "すべてのデータを実行ファイル横の 'AppDock_Data' フォルダーまたは Windows AppData に保存し（設定 → ポータブル動作）、「設定 → 一般」で .zip バックアップを書き出し・読み込みできます。",
         ["Help.FeaturesCard.Tray.Title"] = "システムトレイアイコン",
         ["Help.FeaturesCard.Tray.Desc"] = "左クリックで設定を開き、右クリックで主要機能へ素早くアクセスできます。",
 
         // About Tab
         ["About.Tagline"] = "小さなコンテナー。よりすっきりとしたタスクバー。",
-        ["About.Description"] = "タスクバーとサイドバーのために作られたネイティブ Windows 11 ランチャー。データは %LOCALAPPDATA%\\AppDock\\ に保存されます。",
+        ["About.Description"] = "タスクバーとサイドバーのために作られたネイティブ Windows 11 ランチャー。",
         ["About.Privacy"] = "インストール不要。アカウント不要。テレメトリなし。管理者権限不要。",
         ["About.DevelopedBy"] = "Samoray により開発",
 
@@ -481,6 +481,34 @@ internal static class Strings_ja
 
         ["Animation.Random.Title"] = "ランダム",
         ["Animation.Random.Tagline"] = "開閉するたびに驚きの 3D エフェクト。",
-        ["Animation.Random.Description"] = "コンテナーを開閉するたびに 9 種類のエフェクトからランダムに切り替えて適用します。"
+        ["Animation.Random.Description"] = "コンテナーを開閉するたびに 9 種類のエフェクトからランダムに切り替えて適用します。",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "ポータブル動作",
+        ["Portable.Heading"] = "ポータブル動作とデータ保存先",
+        ["Portable.Description"] = "AppDock を実行ファイルの隣にデータを保存する自己完結型ポータブルアプリとして動作させるか、Windows ユーザープロファイルに保存するかを選択します。",
+        ["Portable.ToggleLabel"] = "ポータブルモードを有効にする（実行ファイルと同じ場所の AppDock_Data に設定・アイコン・ショートカットを保存）",
+        ["Portable.StatusHeading"] = "現在の保存ステータス",
+        ["Portable.ActiveModeLabel"] = "現在のモード: ",
+        ["Portable.Mode.Portable"] = "ポータブル (実行ファイル隣の AppDock_Data)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "有効なフォルダー: ",
+        ["Portable.PortablePathLabel"] = "ポータブルパス: ",
+        ["Portable.AppDataPathLabel"] = "AppData パス: ",
+        ["Portable.OpenDataFolder"] = "現在のデータフォルダーを開く",
+        ["Portable.HowItWorksHeading"] = "ポータブルモードと保存パスの仕組み",
+        ["Portable.HowItWorks.PortableDesc"] = "• ポータブルフォルダー (AppDock_Data): ルートフォルダーを綺麗に保つため、settings.json、Icons\\、Launchers\\ を AppDock.exe の隣の AppDock_Data サブフォルダーに保存します。",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): 設定とアイコンを Windows 標準のローカルアプリケーションデータフォルダーに保存します。",
+        ["Portable.HowItWorks.RisksDesc"] = "• 切り替え・移動時の注意点: モードを切り替えると、現在の設定とカスタムアイコンが自動的に移行され、タスクバーのショートカットも更新されます。「Windows 起動時に実行」とタスクバーのピン留めはこの PC 上の現在の実行ファイルパスを参照するため、フォルダーを移動した場合は新しい場所から一度 AppDock を起動してパスを自動修復してください。",
+        ["Dialog.StorageChoiceTitle"] = "AppDock のデータ保存先の選択",
+        ["Dialog.StorageChoiceConflictPrompt"] = "両方の場所で設定ファイルが検出されました:\n\n1. ポータブル: {0}\n2. Windows AppData: {1}\n\nどちらの保存先を使用しますか？",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "AppDock の設定、カスタムアイコン、ショートカットをどこに保存しますか？\n\n• ポータブル (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "ポータブル (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "ポータブルフォルダーに書き込めませんでした:\n{0}\n\n代わりに Windows AppData を使用します:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "保存先の変更の確認",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "ポータブルモードに切り替えますか？\n\n移動先フォルダー:\n{0}\n\n影響する内容と注意点:\n• settings.json、カスタムアイコン (Icons\\)、ショートカット (Launchers\\) が実行ファイル隣の AppDock_Data に移行されます。\n• タスクバーにピン留めされたショートカットが更新されます。\n• 実行ファイルのフォルダーが書き込み可能であることを確認してください（C:\\Program Files 以外）。\n• 後でフォルダーを移動した場合は、新しい場所から一度 AppDock を起動してパスを自動更新してください。",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "Windows AppData モードに切り替えますか？\n\n移動先フォルダー:\n{0}\n\n影響する内容と注意点:\n• settings.json、カスタムアイコン (Icons\\)、ショートカット (Launchers\\) が %LOCALAPPDATA%\\AppDock に移行されます。\n• ピン留めされたショートカットが %LOCALAPPDATA%\\AppDock に更新されます。\n• 実行ファイルのフォルダーを別の PC に移動しても設定は一緒に持ち運ばれなくなります。",
+        ["Dialog.PortableSwitchSuccess"] = "保存先を切り替えました。現在のデータフォルダー:\n{0}"
     };
 }

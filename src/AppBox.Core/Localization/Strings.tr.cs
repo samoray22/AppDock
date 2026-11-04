@@ -274,13 +274,13 @@ internal static class Strings_tr
         ["Help.FeaturesCard.Tint.Desc"] = "Her konteyner, rozeti, arama kenarlığını ve odak çerçevesini renklendirmek için simgesinin baskın rengini otomatik örnekler.",
         ["Help.FeaturesCard.Shorten.Title"] = "Uygulama Adlarını Kısalt",
         ["Help.FeaturesCard.Shorten.Desc"] = "Adların temiz sığması için iki satırlı etiketlerde yaygın üretici ön eklerini ('Microsoft ', 'Adobe ' gibi) kaldırır.",
-        ["Help.FeaturesCard.Layouts.Title"] = "Bağımsız Düzenler",
-        ["Help.FeaturesCard.Layouts.Desc"] = "Görev çubuğunda Tekli AppDock ile yan kenar çubuğunda Çoklu AppDock'ı karıştırıp eşleştirin.",
+        ["Help.FeaturesCard.Layouts.Title"] = "Taşınabilir Mod ve Yedeklemeler",
+        ["Help.FeaturesCard.Layouts.Desc"] = "Tüm verileri yürütülebilir dosyanın yanındaki 'AppDock_Data' klasöründe veya Windows AppData'da saklayın (Ayarlar → Taşınabilir Davranış) ve Ayarlar → Genel bölümünden .zip yedeklerini dışa/içe aktarın.",
         ["Help.FeaturesCard.Tray.Title"] = "Sistem Tepsisi Simgesi",
         ["Help.FeaturesCard.Tray.Desc"] = "Ayarlar'ı açmak için tepsi simgesine sol tıklayın veya hızlı erişim için sağ tıklayın.",
         // About Tab
         ["About.Tagline"] = "Küçük konteynerler. Daha sakin bir görev çubuğu.",
-        ["About.Description"] = "Görev Çubuğu ve Yan Kenar Çubuğu için geliştirilmiş yerel Windows 11 başlatıcısı. Konteynerleriniz ve tercihleriniz yerel olarak %LOCALAPPDATA%\\AppDock\\ içinde saklanır.",
+        ["About.Description"] = "Görev Çubuğu ve Yan Kenar Çubuğu için geliştirilmiş yerel Windows 11 başlatıcısı.",
         ["About.Privacy"] = "Kurulum gerektirmez. Hesap yok. Telemetri yok. Yönetici ayrıcalığı gerekmez.",
         ["About.DevelopedBy"] = "Samoray tarafından geliştirildi",
         // Launcher Window & Menu
@@ -455,6 +455,34 @@ internal static class Strings_tr
         ["Animation.Jelly.Description"] = "Sönümlü harmonik yay fiziği ile konteyneri fırlatır; böylece kenarlar jelatin gibi sallanır ve dengelenir.",
         ["Animation.Random.Title"] = "Rastgele",
         ["Animation.Random.Tagline"] = "Her üzerine gelmede ve tıklamada sürpriz 3D efekt.",
-        ["Animation.Random.Description"] = "Konteyner her açıldığında veya kapandığında rastgele seçilen bir 3D animasyon (Cin, Vakum, Ölçek, Sihirli Lamba, Origami, Sayfa Kıvrımı, Kara Delik, Stage Flip 3D veya Jöle Sıçraması) uygular."
+        ["Animation.Random.Description"] = "Konteyner her açıldığında veya kapandığında rastgele seçilen bir 3D animasyon (Cin, Vakum, Ölçek, Sihirli Lamba, Origami, Sayfa Kıvrımı, Kara Delik, Stage Flip 3D veya Jöle Sıçraması) uygular.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "Taşınabilir Mod",
+        ["Portable.Heading"] = "Taşınabilir Davranış ve Veri Depolama",
+        ["Portable.Description"] = "AppDock'un çalıştırılabilir dosyanın yanında bağımsız bir taşınabilir uygulama olarak mı çalışacağını yoksa ayarları Windows kullanıcı profilinizde mi saklayacağını kontrol edin.",
+        ["Portable.ToggleLabel"] = "Taşınabilir Modu Etkinleştir (ayarları, simgeleri ve kısayolları çalıştırılabilir dosyanın yanındaki AppDock_Data klasöründe sakla)",
+        ["Portable.StatusHeading"] = "Mevcut Depolama Durumu",
+        ["Portable.ActiveModeLabel"] = "Aktif Mod: ",
+        ["Portable.Mode.Portable"] = "Taşınabilir (çalıştırılabilir dosyanın yanında AppDock_Data)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "Aktif Klasör: ",
+        ["Portable.PortablePathLabel"] = "Taşınabilir Yol: ",
+        ["Portable.AppDataPathLabel"] = "AppData Yolu: ",
+        ["Portable.OpenDataFolder"] = "Aktif Veri Klasörünü Aç",
+        ["Portable.HowItWorksHeading"] = "Taşınabilir Mod ve Depolama Yolları Nasıl Çalışır",
+        ["Portable.HowItWorks.PortableDesc"] = "• Taşınabilir Klasör (AppDock_Data): Kök klasörün düzenli kalması için settings.json, Icons\\ ve Launchers\\ dosyalarını AppDock.exe'nin yanındaki AppDock_Data alt klasöründe saklar.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): Yapılandırmayı ve simgeleri mevcut kullanıcı için standart Windows yerel uygulama verileri dizininde saklar.",
+        ["Portable.HowItWorks.RisksDesc"] = "• Değiştirmeden veya Taşımadan Önce Bilinmesi Gerekenler: Mod değiştirmek mevcut ayarlarınızı ve özel simgelerinizi seçilen konuma otomatik olarak taşır ve görev çubuğu kısayollarını günceller. 'Windows ile Başlat' ve sabitlenmiş görev çubuğu kısayolları bu bilgisayardaki mevcut yolu gösterir; klasörü taşırsanız yolları otomatik onarmak için AppDock'u yeni konumundan bir kez başlatmanız yeterlidir.",
+        ["Dialog.StorageChoiceTitle"] = "AppDock Depolama Konumunu Seçin",
+        ["Dialog.StorageChoiceConflictPrompt"] = "Her iki konumda da ayarlar algılandı:\n\n1. Taşınabilir: {0}\n2. Windows AppData: {1}\n\nAppDock hangi depolama konumunu kullansın?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "AppDock'un ayarlarınızı, özel simgelerinizi ve kısayollarınızı nerede saklamasını istersiniz?\n\n• Taşınabilir (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "Taşınabilir (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "Taşınabilir klasöre yazılamadı:\n{0}\n\nAppDock bunun yerine Windows AppData kullanacak:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "Depolama Konumu Değişikliğini Onayla",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "Taşınabilir Moda geçilsin mi?\n\nHedef Klasör:\n{0}\n\nNeler olacağı ve dikkate alınması gerekenler:\n• settings.json, özel simgeler (Icons\\) ve kısayollar (Launchers\\) çalıştırılabilir dosyanın yanındaki AppDock_Data klasörüne taşınacak.\n• Görev çubuğuna sabitlenmiş kısayollar güncellenecek.\n• Klasörün yazılabilir olduğundan emin olun (C:\\Program Files içinde olmamalıdır).\n• Klasörü daha sonra taşırsanız yolları onarmak için AppDock'u yeni konumdan bir kez çalıştırın.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "Windows AppData Moduna geçilsin mi?\n\nHedef Klasör:\n{0}\n\nNeler olacağı ve dikkate alınması gerekenler:\n• settings.json, özel simgeler (Icons\\) ve kısayollar (Launchers\\) %LOCALAPPDATA%\\AppDock konumuna taşınacak.\n• Sabitlenmiş kısayollar %LOCALAPPDATA%\\AppDock konumuna güncellenecek.\n• Uygulama klasörünü başka bir bilgisayara taşımak artık ayarlarınızı beraberinde taşımayacaktır.",
+        ["Dialog.PortableSwitchSuccess"] = "Depolama konumu başarıyla değiştirildi. Aktif veri klasörü:\n{0}"
     };
 }

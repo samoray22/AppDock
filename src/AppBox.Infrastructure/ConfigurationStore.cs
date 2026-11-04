@@ -17,9 +17,29 @@ public sealed class ConfigurationStore
     public string DirectoryPath => directory;
     public ConfigurationStore(string? directory = null, string? legacyDirectory = null)
     {
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        this.directory = directory ?? Path.Combine(local, "AppDock");
-        this.legacyDirectory = legacyDirectory ?? (directory is null ? Path.Combine(local, "AppBox") : null);
+        this.directory = directory ?? AppPaths.ActiveDataDirectory;
+        this.legacyDirectory = legacyDirectory ?? (directory is null && !AppPaths.IsPortableDirectory(this.directory) ? AppPaths.LegacyLocalAppDataDirectory : null);
+    }
+
+    public static bool HasSettingsFile(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory)) return false;
+        try { return ConfigurationExists(Path.Combine(directory, "settings.json")); }
+        catch { return false; }
+    }
+
+    public static void DeactivateSettingsFile(string directory, string suffix = "inactive")
+    {
+        if (string.IsNullOrWhiteSpace(directory)) return;
+        var settingsPath = Path.Combine(directory, "settings.json");
+        if (!File.Exists(settingsPath)) return;
+        var archivedPath = Path.Combine(directory, $"settings.{suffix}.json");
+        try
+        {
+            File.Copy(settingsPath, archivedPath, overwrite: true);
+            File.Delete(settingsPath);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { }
     }
 
     public Configuration Load()
@@ -41,6 +61,7 @@ public sealed class ConfigurationStore
         try
         {
             var config = JsonSerializer.Deserialize<Configuration>(File.ReadAllText(FilePath), Json) ?? throw new JsonException("Empty configuration.");
+            HealCustomIconPaths(config, directory);
             Validate(config);
             return config;
         }
@@ -51,6 +72,97 @@ public sealed class ConfigurationStore
             RecoveryMessage = "Your configuration could not be read. The original was preserved at " + backup;
             return new();
         }
+    }
+
+    public static void HealCustomIconPaths(Configuration config, string dataDirectory)
+    {
+        if (config?.Folders is null || string.IsNullOrWhiteSpace(dataDirectory)) return;
+        var iconsDir = Path.Combine(dataDirectory, "Icons");
+        foreach (var folder in config.Folders)
+        {
+            if (folder?.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } && !string.IsNullOrWhiteSpace(resPath))
+            {
+                var fileName = Path.GetFileName(resPath);
+                if (string.IsNullOrEmpty(fileName)) continue;
+
+                var iconsCandidate = Path.Combine(iconsDir, fileName);
+                if (File.Exists(iconsCandidate))
+                {
+                    folder.Icon.ResourcePath = iconsCandidate;
+                    continue;
+                }
+
+                var rootCandidate = Path.Combine(dataDirectory, fileName);
+                if (File.Exists(rootCandidate))
+                {
+                    folder.Icon.ResourcePath = rootCandidate;
+                }
+            }
+        }
+    }
+
+    public ConfigurationStore MigrateTo(string targetDirectory, Configuration config)
+    {
+        if (string.IsNullOrWhiteSpace(targetDirectory)) throw new ArgumentException("Choose a valid target storage directory.");
+        var fullSource = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var fullTarget = Path.GetFullPath(targetDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (string.Equals(fullSource, fullTarget, StringComparison.OrdinalIgnoreCase))
+            return this;
+
+        Validate(config);
+        if (!AppPaths.IsDirectoryWritable(fullTarget))
+            throw new IOException("The selected storage directory is not writable: " + fullTarget);
+
+        Directory.CreateDirectory(fullTarget);
+        var targetIconsDir = Path.Combine(fullTarget, "Icons");
+        Directory.CreateDirectory(targetIconsDir);
+
+        // Copy Icons\*.ico from current directory
+        var sourceIconsDir = Path.Combine(fullSource, "Icons");
+        if (Directory.Exists(sourceIconsDir))
+        {
+            foreach (var iconFile in Directory.EnumerateFiles(sourceIconsDir, "*.ico", SearchOption.TopDirectoryOnly))
+            {
+                var dest = Path.Combine(targetIconsDir, Path.GetFileName(iconFile));
+                File.Copy(iconFile, dest, overwrite: true);
+            }
+        }
+
+        // Also copy any root-level .ico files (e.g., from older backup imports) into Icons\
+        if (Directory.Exists(fullSource))
+        {
+            foreach (var iconFile in Directory.EnumerateFiles(fullSource, "*.ico", SearchOption.TopDirectoryOnly))
+            {
+                var dest = Path.Combine(targetIconsDir, Path.GetFileName(iconFile));
+                File.Copy(iconFile, dest, overwrite: true);
+            }
+        }
+
+        // Also copy any custom icon referenced by a folder if it exists elsewhere
+        foreach (var folder in config.Folders)
+        {
+            if (folder.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } &&
+                !string.IsNullOrWhiteSpace(resPath) && File.Exists(resPath))
+            {
+                var fileName = Path.GetFileName(resPath);
+                if (!string.IsNullOrEmpty(fileName))
+                {
+                    var dest = Path.Combine(targetIconsDir, fileName);
+                    if (!string.Equals(Path.GetFullPath(resPath), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Copy(resPath, dest, overwrite: true);
+                    }
+                }
+            }
+        }
+
+        HealCustomIconPaths(config, fullTarget);
+        var targetStore = new ConfigurationStore(fullTarget);
+        targetStore.Save(config);
+
+        DeactivateSettingsFile(fullSource, "migrated");
+        AppPaths.ActiveDataDirectory = fullTarget;
+        return targetStore;
     }
 
     public void Save(Configuration config)
@@ -211,6 +323,8 @@ public sealed class ConfigurationStore
                 ?? throw new JsonException("Empty configuration in backup archive.");
         }
 
+        var iconsDir = Path.Combine(directory, "Icons");
+        Directory.CreateDirectory(iconsDir);
         foreach (var entry in archive.Entries)
         {
             if (entry.FullName.StartsWith("icons/", StringComparison.OrdinalIgnoreCase) &&
@@ -219,28 +333,13 @@ public sealed class ConfigurationStore
                 var safeName = Path.GetFileName(entry.Name);
                 if (!string.IsNullOrEmpty(safeName))
                 {
-                    var destIconPath = Path.Combine(directory, safeName);
+                    var destIconPath = Path.Combine(iconsDir, safeName);
                     entry.ExtractToFile(destIconPath, overwrite: true);
                 }
             }
         }
 
-        foreach (var folder in imported.Folders)
-        {
-            if (folder.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } && !string.IsNullOrWhiteSpace(resPath))
-            {
-                var fileName = Path.GetFileName(resPath);
-                if (!string.IsNullOrEmpty(fileName))
-                {
-                    var localCandidate = Path.Combine(directory, fileName);
-                    if (File.Exists(localCandidate))
-                    {
-                        folder.Icon.ResourcePath = localCandidate;
-                    }
-                }
-            }
-        }
-
+        HealCustomIconPaths(imported, directory);
         Validate(imported);
         Save(imported);
         return imported;

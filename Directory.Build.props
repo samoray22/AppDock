@@ -3,7 +3,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <Version>2.9.3</Version>
+    <Version>3.0.0</Version>
     <Authors>samoray</Authors>
     <Company>samoray</Company>
     <Copyright>Developed by samoray</Copyright>

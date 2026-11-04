@@ -283,14 +283,14 @@ internal static class Strings_es
         ["Help.FeaturesCard.Tint.Desc"] = "Cada contenedor toma el color dominante de su icono para teñir bordes y contadores.",
         ["Help.FeaturesCard.Shorten.Title"] = "Acortar nombres",
         ["Help.FeaturesCard.Shorten.Desc"] = "Elimina prefijos comunes de fabricantes (como 'Microsoft' o 'Adobe') en etiquetas de 2 líneas.",
-        ["Help.FeaturesCard.Layouts.Title"] = "Diseños independientes",
-        ["Help.FeaturesCard.Layouts.Desc"] = "Combine modo Único en la barra de tareas con modo Múltiple en la barra lateral.",
+        ["Help.FeaturesCard.Layouts.Title"] = "Modo portátil y copias de seguridad",
+        ["Help.FeaturesCard.Layouts.Desc"] = "Guarde todos los datos en 'AppDock_Data' junto al ejecutable o en Windows AppData (Configuración → Comportamiento portátil), y exporte o importe copias .zip en Configuración → General.",
         ["Help.FeaturesCard.Tray.Title"] = "Icono en la bandeja del sistema",
         ["Help.FeaturesCard.Tray.Desc"] = "Clic izquierdo para Configuración, o clic derecho para opciones rápidas.",
 
         // About Tab
         ["About.Tagline"] = "Contenedores pequeños. Una barra de tareas más tranquila.",
-        ["About.Description"] = "Un lanzador nativo de Windows 11 para la barra de tareas y barra lateral. Sus datos se guardan en %LOCALAPPDATA%\\AppDock\\.",
+        ["About.Description"] = "Un lanzador nativo de Windows 11 para la barra de tareas y barra lateral.",
         ["About.Privacy"] = "Sin instalación. Sin cuenta. Sin telemetría. Sin privilegios de administrador.",
         ["About.DevelopedBy"] = "Desarrollado por Samoray",
 
@@ -481,6 +481,34 @@ internal static class Strings_es
 
         ["Animation.Random.Title"] = "Aleatorio",
         ["Animation.Random.Tagline"] = "Un efecto 3-D sorpresa en cada apertura.",
-        ["Animation.Random.Description"] = "Aplica una animación 3-D diferente cada vez que se abre o cierra un contenedor."
+        ["Animation.Random.Description"] = "Aplica una animación 3-D diferente cada vez que se abre o cierra un contenedor.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "Modo portátil",
+        ["Portable.Heading"] = "Comportamiento portátil y almacenamiento",
+        ["Portable.Description"] = "Controle si AppDock se ejecuta como una aplicación portátil autónoma junto al ejecutable o si guarda la configuración en su perfil de Windows.",
+        ["Portable.ToggleLabel"] = "Activar modo portátil (guardar configuración, iconos y accesos directos en AppDock_Data junto al ejecutable)",
+        ["Portable.StatusHeading"] = "Estado de almacenamiento actual",
+        ["Portable.ActiveModeLabel"] = "Modo activo: ",
+        ["Portable.Mode.Portable"] = "Portátil (AppDock_Data junto al ejecutable)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "Carpeta activa: ",
+        ["Portable.PortablePathLabel"] = "Ruta portátil: ",
+        ["Portable.AppDataPathLabel"] = "Ruta AppData: ",
+        ["Portable.OpenDataFolder"] = "Abrir carpeta de datos activa",
+        ["Portable.HowItWorksHeading"] = "Cómo funcionan el modo portátil y las rutas",
+        ["Portable.HowItWorks.PortableDesc"] = "• Carpeta portátil (AppDock_Data): Guarda settings.json, Icons\\ y Launchers\\ en la subcarpeta AppDock_Data junto a AppDock.exe para mantener limpia la carpeta raíz.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): Guarda la configuración y los iconos en la carpeta de datos de aplicaciones locales del usuario de Windows.",
+        ["Portable.HowItWorks.RisksDesc"] = "• Notas importantes al cambiar o mover: Cambiar de modo migra automáticamente su configuración e iconos personalizados y actualiza los accesos directos. 'Iniciar con Windows' y los iconos anclados apuntan a la ruta actual en este PC; si mueve la carpeta, inicie AppDock una vez desde la nueva ubicación para repararlos automáticamente.",
+        ["Dialog.StorageChoiceTitle"] = "Elegir ubicación de almacenamiento de AppDock",
+        ["Dialog.StorageChoiceConflictPrompt"] = "Se detectó configuración en ambas ubicaciones:\n\n1. Portátil: {0}\n2. Windows AppData: {1}\n\n¿Qué ubicación de almacenamiento desea utilizar?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "¿Dónde desea que AppDock guarde su configuración, iconos personalizados y accesos directos?\n\n• Portátil (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "Portátil (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "No se pudo escribir en la carpeta portátil:\n{0}\n\nAppDock usará Windows AppData en su lugar:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "Confirmar cambio de ubicación de almacenamiento",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "¿Cambiar al modo portátil?\n\nCarpeta de destino:\n{0}\n\nQué cambiará y riesgos a tener en cuenta:\n• Su archivo settings.json, iconos personalizados (Icons\\) y accesos directos (Launchers\\) se migrarán a AppDock_Data junto al ejecutable.\n• Los accesos directos anclados a la barra de tareas se actualizarán.\n• Asegúrese de que el ejecutable esté en una carpeta con permisos de escritura (no en C:\\Program Files).\n• Si mueve la carpeta más adelante, ejecute AppDock una vez desde la nueva ubicación para actualizar 'Iniciar con Windows' y los iconos anclados.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "¿Cambiar al modo Windows AppData?\n\nCarpeta de destino:\n{0}\n\nQué cambiará y riesgos a tener en cuenta:\n• Su archivo settings.json, iconos personalizados (Icons\\) y accesos directos (Launchers\\) se migrarán a %LOCALAPPDATA%\\AppDock.\n• Los accesos directos anclados se actualizarán a %LOCALAPPDATA%\\AppDock.\n• Mover la carpeta del ejecutable a otro PC ya no llevará su configuración a menos que vuelva al modo portátil o exporte una copia de seguridad.",
+        ["Dialog.PortableSwitchSuccess"] = "La ubicación de almacenamiento se cambió correctamente. Carpeta activa:\n{0}"
     };
 }

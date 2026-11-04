@@ -29,7 +29,7 @@ public partial class SettingsWindow : Window
     }
     public Guid? SelectedContainerId => Model.SelectedFolder?.Id;
     public void SelectContainer(AppFolder container) => Model.SelectedFolder = container;
-    public void SelectSection(string section) => Sections.SelectedIndex = section switch { "Containers" or "Folders" => 1, "Appearance" => 2, "Taskbar Interaction" or "Taskbar" => 3, "Sidebar" or "Edge Sidebar" => 4, "Help" or "Guide" => 5, "About" => 6, _ => 0 };
+    public void SelectSection(string section) => Sections.SelectedIndex = section switch { "Containers" or "Folders" => 1, "Appearance" => 2, "Taskbar Interaction" or "Taskbar" => 3, "Sidebar" or "Edge Sidebar" => 4, "Portable" or "Portable Behavior" => 5, "Help" or "Guide" => 6, "About" => 7, _ => 0 };
     private void Guard(Action action) { try { action(); } catch (Exception ex) { AppDockDialog.Show(this, ex.Message, "AppDock", MessageBoxImage.Information); } }
     private void NewFolder_Click(object sender, RoutedEventArgs e) { var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.CreateContainerTitle"), LocalizationService.Get("Dialog.NewContainerDefault")); if (name is not null) Guard(() => Model.Create(name)); }
     private void Rename_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is null) return; var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.RenameContainerTitle"), Model.SelectedFolder.Name); if (name is not null) Guard(() => Model.Rename(name)); }
@@ -39,7 +39,7 @@ public partial class SettingsWindow : Window
         {
             Guard(() =>
             {
-                var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
+                var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
                 new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
                 Model.Delete();
             });
@@ -89,7 +89,7 @@ public partial class SettingsWindow : Window
         Model.ToggleActive();
         if (folder is { IsActive: false })
         {
-            var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
+            var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
             new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
         }
     });
@@ -99,7 +99,7 @@ public partial class SettingsWindow : Window
         if (!folder.IsActive) folder.IsActive = true; Model.Config.Settings.EnableTaskbar = true;
         Model.Config.Settings.LayoutMode = LayoutMode.MultipleAppBoxes;
         Model.Persist();
-        var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
+        var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
         var launchers = new ContainerLaunchers(rootDir, AppPaths.Executable);
         if (launchers.PinToTaskbar(folder))
             AppDockDialog.Show(this, LocalizationService.Format("Dialog.PinnedSuccess", folder.Name), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Information);
@@ -114,6 +114,44 @@ public partial class SettingsWindow : Window
         ContainerLaunchers.NotifyShellUpdate();
         AppDockDialog.Show(this, LocalizationService.Get("Dialog.IconsRefreshed"), "AppDock", MessageBoxImage.Information);
     });
+    public Action<bool>? SwitchStorageLocation { get; set; }
+    private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        Directory.CreateDirectory(AppPaths.ActiveDataDirectory);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + AppPaths.ActiveDataDirectory + "\"") { UseShellExecute = true });
+    });
+    private void PortableModeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var targetPortable = PortableModeToggle.IsChecked == true;
+        PortableModeToggle.IsChecked = Model.IsPortableMode;
+
+        var targetDir = targetPortable ? AppPaths.PortableDataDirectory : AppPaths.LocalAppDataDirectory;
+        var prompt = targetPortable
+            ? LocalizationService.Format("Dialog.PortableSwitchToPortablePrompt", targetDir)
+            : LocalizationService.Format("Dialog.PortableSwitchToAppDataPrompt", targetDir);
+
+        if (!AppDockDialog.Confirm(this, prompt, LocalizationService.Get("Dialog.PortableSwitchConfirmTitle"), LocalizationService.Get("Common.Confirm"), isDanger: false))
+        {
+            return;
+        }
+
+        Guard(() =>
+        {
+            if (SwitchStorageLocation is not null)
+            {
+                SwitchStorageLocation(targetPortable);
+            }
+            else
+            {
+                var currentStore = new ConfigurationStore(AppPaths.ActiveDataDirectory);
+                currentStore.MigrateTo(targetDir, Model.Config);
+            }
+            Model.NotifyStorageLocationChanged();
+            PortableModeToggle.IsChecked = Model.IsPortableMode;
+            AppDockDialog.Show(this, LocalizationService.Format("Dialog.PortableSwitchSuccess", AppPaths.ActiveDataDirectory), "AppDock", MessageBoxImage.Information);
+        });
+        PortableModeToggle.IsChecked = Model.IsPortableMode;
+    }
     private void HandleColorSwatch_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: string hex })

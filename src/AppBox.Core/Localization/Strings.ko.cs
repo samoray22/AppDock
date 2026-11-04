@@ -233,7 +233,7 @@ internal static class Strings_ko
         ["Help.ModesCard.Step1.Title"] = "1. 활성 실행 위치",
         ["Help.ModesCard.Step1.Desc"] = "설정 → 일반에서 '작업 표시줄만 사용', '에지 사이드바만 사용'(깔끔한 작업 표시줄을 위해 작업 표시줄 바로 가기 자동 고정 해제), 또는 '작업 표시줄 및 사이드바 모두 사용'을 선택합니다.",
         ["Help.ModesCard.Step2.Title"] = "2. 독립적인 레이아웃",
-        ["Help.ModesCard.Step2.Desc"] = "작업 표시줄(일반 / 작업 표시줄 탭)과 측면 사이드바(사이드바 탭)에 대해 단일 AppDock 또는 다중 AppDock을 각각 독립적으로 선택할 수 있습니다.",
+        ["Help.ModesCard.Step2.Desc"] = "작업 표시줄(작업 표시줄 탭)과 측면 사이드바(사이드바 탭)에 대해 단일 AppDock 또는 다중 AppDock을 각각 독립적으로 선택할 수 있습니다.",
         ["Help.ModesCard.Step3.Title"] = "3. 컨테이너 고정 (작업 표시줄)",
         ["Help.ModesCard.Step3.Desc"] = "설정 → 컨테이너로 이동하여 컨테이너를 선택하고 '작업 표시줄에 고정'을 클릭합니다. 컨테이너가 활성화되고 작업 표시줄 다중 모드가 켜지며 아이콘이 Windows 작업 표시줄에 고정됩니다.",
         ["Help.ModesCard.Step4.Title"] = "4. 컨테이너 고정 해제 / 숨기기",
@@ -283,14 +283,14 @@ internal static class Strings_ko
         ["Help.FeaturesCard.Tint.Desc"] = "각 컨테이너는 아이콘의 대표 색상을 자동으로 추출하여 개수 배지, 검색 포커스 테두리 및 타일 포커스 링에 적용합니다.",
         ["Help.FeaturesCard.Shorten.Title"] = "앱 이름 줄이기",
         ["Help.FeaturesCard.Shorten.Desc"] = "두 줄 레이블에서 자주 사용되는 접두사('Microsoft ', 'Adobe ' 등)를 깔끔하게 제거하며, 도구 설명에는 전체 이름을 그대로 유지합니다.",
-        ["Help.FeaturesCard.Layouts.Title"] = "독립적인 레이아웃",
-        ["Help.FeaturesCard.Layouts.Desc"] = "작업 표시줄에는 단일 AppDock을, 측면 에지 사이드바에는 다중 AppDock을 자유롭게 조합하여 사용할 수 있습니다 (반대도 가능).",
+        ["Help.FeaturesCard.Layouts.Title"] = "포터블 모드 및 백업",
+        ["Help.FeaturesCard.Layouts.Desc"] = "실행 파일 옆의 'AppDock_Data' 폴더 또는 Windows AppData에 모든 데이터를 저장하고(설정 → 포터블 동작), 설정 → 일반에서 전체 .zip 백업을 내보내거나 가져올 수 있습니다.",
         ["Help.FeaturesCard.Tray.Title"] = "시스템 트레이 아이콘",
         ["Help.FeaturesCard.Tray.Desc"] = "트레이 아이콘을 왼쪽 클릭하여 설정을 열거나, 오른쪽 클릭으로 사이드바 설정, 컨테이너, 도움말 및 종료에 빠르게 접근할 수 있습니다.",
 
         // About Tab
         ["About.Tagline"] = "작은 컨테이너. 한결 깔끔해진 작업 표시줄.",
-        ["About.Description"] = "작업 표시줄 및 측면 에지 사이드바를 위한 Windows 11 네이티브 실행기입니다. 컨테이너 및 환경 설정은 %LOCALAPPDATA%\\AppDock\\에 로컬로 저장됩니다.",
+        ["About.Description"] = "작업 표시줄 및 측면 에지 사이드바를 위한 Windows 11 네이티브 실행기입니다.",
         ["About.Privacy"] = "설치가 필요 없습니다. 계정 없음. 원격 측정 없음. 관리자 권한 불필요.",
         ["About.DevelopedBy"] = "Samoray 개발",
 
@@ -482,6 +482,34 @@ internal static class Strings_ko
 
         ["Animation.Random.Title"] = "임의 (Random)",
         ["Animation.Random.Tagline"] = "마우스를 올리거나 클릭할 때마다 깜짝 3D 효과.",
-        ["Animation.Random.Description"] = "컨테이너를 열거나 닫을 때마다 임의로 선택된 3D 메시 애니메이션(지니, 흡입, 축척, 요술 램프, 종이접기, 페이지 말기, 블랙홀, 스테이지 회전 3D 또는 젤리 바운스)을 적용합니다."
+        ["Animation.Random.Description"] = "컨테이너를 열거나 닫을 때마다 임의로 선택된 3D 메시 애니메이션(지니, 흡입, 축척, 요술 램프, 종이접기, 페이지 말기, 블랙홀, 스테이지 회전 3D 또는 젤리 바운스)을 적용합니다.",
+
+        // Portable Behavior Tab & Storage Dialogs
+        ["Settings.Tab.Portable"] = "포터블 동작",
+        ["Portable.Heading"] = "포터블 동작 및 데이터 저장소",
+        ["Portable.Description"] = "AppDock을 실행 파일 옆에 데이터를 저장하는 독립형 포터블 애플리케이션으로 실행할지, 아니면 Windows 사용자 프로필에 설정을 저장할지 선택합니다.",
+        ["Portable.ToggleLabel"] = "포터블 모드 활성화 (실행 파일 옆의 AppDock_Data 폴더에 설정, 아이콘 및 바로가기 저장)",
+        ["Portable.StatusHeading"] = "현재 저장소 상태",
+        ["Portable.ActiveModeLabel"] = "활성 모드: ",
+        ["Portable.Mode.Portable"] = "포터블 (실행 파일 옆 AppDock_Data)",
+        ["Portable.Mode.AppData"] = "Windows AppData (%LOCALAPPDATA%\\AppDock)",
+        ["Portable.ActivePathLabel"] = "활성 폴더: ",
+        ["Portable.PortablePathLabel"] = "포터블 경로: ",
+        ["Portable.AppDataPathLabel"] = "AppData 경로: ",
+        ["Portable.OpenDataFolder"] = "활성 데이터 폴더 열기",
+        ["Portable.HowItWorksHeading"] = "포터블 모드 및 저장 경로 작동 방식",
+        ["Portable.HowItWorks.PortableDesc"] = "• 포터블 폴더 (AppDock_Data): 루트 폴더를 깔끔하게 유지하기 위해 AppDock.exe 옆의 AppDock_Data 하위 폴더에 settings.json, Icons\\ 및 Launchers\\를 저장합니다.",
+        ["Portable.HowItWorks.AppDataDesc"] = "• Windows AppData (%LOCALAPPDATA%\\AppDock): 현재 사용자의 표준 Windows 로컬 앱 데이터 디렉터리에 설정과 아이콘을 저장합니다.",
+        ["Portable.HowItWorks.RisksDesc"] = "• 전환 또는 이동 전 참고 사항: 모드를 전환하면 현재 설정과 사용자 지정 아이콘이 선택한 위치로 자동 마이그레이션되고 작업 표시줄 바로가기가 업데이트됩니다. 'Windows 시작 시 실행' 및 작업 표시줄 고정 아이콘은 이 PC의 현재 실행 파일 경로를 가리키므로, 폴더를 이동한 경우 새 위치에서 AppDock을 한 번 실행하여 경로를 자동 복구하세요.",
+        ["Dialog.StorageChoiceTitle"] = "AppDock 저장 위치 선택",
+        ["Dialog.StorageChoiceConflictPrompt"] = "두 위치 모두에서 설정 파일이 감지되었습니다:\n\n1. 포터블: {0}\n2. Windows AppData: {1}\n\nAppDock에서 어느 저장 위치를 사용하시겠습니까?",
+        ["Dialog.StorageChoiceFirstRunPrompt"] = "AppDock의 설정, 사용자 지정 아이콘 및 바로가기를 어디에 저장하시겠습니까?\n\n• 포터블 (AppDock_Data): {0}\n• Windows AppData: {1}",
+        ["Dialog.StorageChoicePortableBtn"] = "포터블 (AppDock_Data)",
+        ["Dialog.StorageChoiceAppDataBtn"] = "Windows AppData",
+        ["Dialog.PortableNotWritableFallback"] = "포터블 폴더에 쓸 수 없습니다:\n{0}\n\n대신 Windows AppData를 사용합니다:\n{1}",
+        ["Dialog.PortableSwitchConfirmTitle"] = "저장 위치 변경 확인",
+        ["Dialog.PortableSwitchToPortablePrompt"] = "포터블 모드로 전환하시겠습니까?\n\n대상 폴더:\n{0}\n\n변경 사항 및 주의 사항:\n• settings.json, 사용자 지정 아이콘(Icons\\) 및 바로가기(Launchers\\)가 실행 파일 옆의 AppDock_Data로 이동됩니다.\n• 작업 표시줄에 고정된 바로가기가 새 폴더로 업데이트됩니다.\n• 실행 파일 폴더에 쓰기 권한이 있는지 확인하세요(C:\\Program Files 제외).\n• 나중에 폴더를 이동하는 경우 새 위치에서 AppDock을 한 번 실행하여 경로를 자동으로 복구하세요.",
+        ["Dialog.PortableSwitchToAppDataPrompt"] = "Windows AppData 모드로 전환하시겠습니까?\n\n대상 폴더:\n{0}\n\n변경 사항 및 주의 사항:\n• settings.json, 사용자 지정 아이콘(Icons\\) 및 바로가기(Launchers\\)가 %LOCALAPPDATA%\\AppDock으로 이동됩니다.\n• 고정된 바로가기가 %LOCALAPPDATA%\\AppDock으로 업데이트됩니다.\n• 실행 파일 폴더를 다른 PC로 이동해도 더 이상 설정이 함께 이동되지 않습니다.",
+        ["Dialog.PortableSwitchSuccess"] = "저장 위치가 성공적으로 전환되었습니다. 활성 데이터 폴더:\n{0}"
     };
 }

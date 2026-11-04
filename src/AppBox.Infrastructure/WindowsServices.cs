@@ -175,11 +175,87 @@ public static class StartupRegistration
 
 public static class AppPaths
 {
+    public const string PortableFolderName = "AppDock_Data";
+
     /// <summary>The running executable, whatever it was renamed to (e.g. AppDock_v2.9.0.exe).</summary>
     public static string Executable { get; } =
         Environment.ProcessPath is { Length: > 0 } path && !path.EndsWith("dotnet.exe", StringComparison.OrdinalIgnoreCase)
             ? path
             : Path.Combine(AppContext.BaseDirectory, "AppDock.exe");
+
+    /// <summary>The directory where the running executable resides.</summary>
+    public static string ExecutableDirectory { get; } =
+        Path.GetDirectoryName(Executable) is { Length: > 0 } dir ? dir : AppContext.BaseDirectory;
+
+    /// <summary>Portable data subfolder next to the executable (&lt;ExeDir&gt;\AppDock_Data).</summary>
+    public static string PortableDataDirectory { get; set; } =
+        Path.Combine(ExecutableDirectory, PortableFolderName);
+
+    /// <summary>Standard Windows LocalAppData folder (%LOCALAPPDATA%\AppDock).</summary>
+    public static string LocalAppDataDirectory { get; set; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppDock");
+
+    /// <summary>Legacy LocalAppData folder (%LOCALAPPDATA%\AppBox) for one-time migration.</summary>
+    public static string LegacyLocalAppDataDirectory { get; set; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AppBox");
+
+    private static string? activeDataDirectory;
+
+    /// <summary>Currently active data directory (Portable or LocalAppData).</summary>
+    public static string ActiveDataDirectory
+    {
+        get => activeDataDirectory ?? ResolveAutomaticDirectory();
+        set => activeDataDirectory = value;
+    }
+
+    public static bool IsPortableMode => IsPortableDirectory(ActiveDataDirectory);
+
+    public static bool IsPortableDirectory(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory)) return false;
+        try
+        {
+            var normDir = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var normPortable = Path.GetFullPath(PortableDataDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return string.Equals(normDir, normPortable, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static string ResolveAutomaticDirectory()
+    {
+        bool hasPortable = ConfigurationStore.HasSettingsFile(PortableDataDirectory);
+        bool hasAppData = ConfigurationStore.HasSettingsFile(LocalAppDataDirectory) ||
+                          ConfigurationStore.HasSettingsFile(LegacyLocalAppDataDirectory);
+
+        if (hasPortable && !hasAppData) return PortableDataDirectory;
+        return LocalAppDataDirectory;
+    }
+
+    public static bool IsDirectoryWritable(string directory)
+    {
+        var existedBefore = Directory.Exists(directory);
+        var probeFile = Path.Combine(directory, ".write-probe-" + Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(probeFile, [1]);
+            File.Delete(probeFile);
+            if (!existedBefore && !Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                try { Directory.Delete(directory); } catch { }
+            }
+            return true;
+        }
+        catch
+        {
+            try { if (File.Exists(probeFile)) File.Delete(probeFile); } catch { }
+            return false;
+        }
+    }
 }
 
 public static class SystemTheme

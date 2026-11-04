@@ -49,6 +49,48 @@ public static class AppDockDialog
         return window.ShowDialog() == true;
     }
 
+    /// <summary>
+    /// Prompts the user to choose between Portable (AppDock_Data) and Windows AppData (%LOCALAPPDATA%\AppDock).
+    /// Returns true if Portable Mode is selected, false if Windows AppData is selected.
+    /// </summary>
+    public static bool ChooseStorageLocation(Window? owner, string message, string title, string portableButtonText, string appDataButtonText)
+    {
+        var window = CreateShell(owner, title, 490, out var body, out var footer);
+        body.Child = BuildMessageCard(message, MessageBoxImage.Question, isDanger: false);
+
+        var usePortable = false;
+
+        var appDataButton = new Button
+        {
+            Content = appDataButtonText,
+            IsCancel = true,
+            MinWidth = 130,
+            Padding = new Thickness(16, 8, 16, 8),
+            Margin = new Thickness(0, 0, 10, 0),
+            Cursor = Cursors.Hand
+        };
+        appDataButton.Click += (_, _) =>
+        {
+            usePortable = false;
+            window.DialogResult = true;
+        };
+
+        var portableButton = CreatePrimaryButton(portableButtonText, isDanger: false);
+        portableButton.IsDefault = true;
+        portableButton.MinWidth = 150;
+        portableButton.Click += (_, _) =>
+        {
+            usePortable = true;
+            window.DialogResult = true;
+        };
+
+        footer.Children.Add(appDataButton);
+        footer.Children.Add(portableButton);
+
+        window.ShowDialog();
+        return usePortable;
+    }
+
     internal static Window CreateShell(Window? owner, string title, double width, out Border contentCard, out StackPanel footerPanel)
     {
         var validOwner = owner is { IsLoaded: true, IsVisible: true } ? owner : null;

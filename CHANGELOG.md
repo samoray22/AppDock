@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-11-04
+
+### Added & Changed
+- **📦 True Portable Mode (`AppDock_Data`) & Dual-Path Storage**:
+  - Added full support for storing all application data (`settings.json`, `Icons\`, and `Launchers\`) inside a dedicated `<ExeDir>\AppDock_Data` subfolder alongside the executable, in addition to `%LOCALAPPDATA%\AppDock`.
+  - Resolved the portable directory via `AppPaths.Executable` (`Environment.ProcessPath`) so portable storage works reliably even when launched at Windows login (`--background`) where the working directory is `C:\Windows\System32`.
+  - Added interactive startup storage choice dialog (`AppDockDialog.ChooseStorageLocation`) on first launch or when settings exist in both locations, while automatically loading silently when only one location is active or during `--background` startup.
+- **⚙️ Dedicated "Portable Behavior" Tab in Settings**:
+  - Added a new **Portable Behavior** navigation tab in Settings featuring:
+    - Live **Enable Portable Mode** toggle switch with a detailed risk & impact confirmation dialog before migrating data.
+    - **Current Storage Status** card displaying the active mode, active folder path, candidate paths, and an **Open Active Data Folder** button.
+    - Comprehensive user guide explaining how Portable Mode (`AppDock_Data`), Windows AppData (`%LOCALAPPDATA%\AppDock`), taskbar pins, and *Start with Windows* interact.
+  - Added automatic live migration (`ConfigurationStore.MigrateTo`) that copies `settings.json` and custom `.ico` assets to the selected location, updates taskbar shortcuts and Jump Lists, and safely preserves the previous configuration as `settings.migrated.json`.
+  - Added self-healing custom icon path resolution (`ConfigurationStore.HealCustomIconPaths`) so moving the portable folder across directories or drives automatically updates custom container icon references on load.
+  - Localized all 26 new Portable Behavior UI strings and dialog prompts across all 12 supported languages (460 total keys per language with 100% parity).
+- **📖 Help & Quick Guide & About Tab Updates**:
+  - Updated **Independent Layouts** step in **Help & Guide** to accurately reference the **Taskbar** tab.
+  - Replaced the duplicate *Independent Layouts* row in the features card with **Portable Mode & Backups**, documenting the `AppDock_Data` portable folder, **Settings → Portable Behavior**, and `.zip` backup export/import across all 12 supported languages.
+  - Removed the hardcoded `%LOCALAPPDATA%\AppDock\` path reference from the **About** tab description across all 12 languages since storage paths are now managed and displayed dynamically in **Portable Behavior**.
+
+---
+
 ## [2.9.3] - 2026-11-04
 
 ### Added
