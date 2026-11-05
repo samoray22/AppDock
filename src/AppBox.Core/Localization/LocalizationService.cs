@@ -26,6 +26,7 @@ public static class LocalizationService
         (AppLanguage.Turkish, "tr", "Türkçe (Turkish)"),
         (AppLanguage.Russian, "ru", "Русский (Russian)"),
         (AppLanguage.Chinese, "zh", "中文 (简体) (Chinese Simplified)"),
+        (AppLanguage.TraditionalChinese, "zh-Hant", "中文 (繁體) (Chinese Traditional)"),
         (AppLanguage.Japanese, "ja", "日本語 (Japanese)"),
         (AppLanguage.Korean, "ko", "한국어 (Korean)")
     ];
@@ -59,13 +60,29 @@ public static class LocalizationService
                 AppLanguage.Turkish => "tr",
                 AppLanguage.Russian => "ru",
                 AppLanguage.Chinese => "zh",
+                AppLanguage.TraditionalChinese => "zh-Hant",
                 AppLanguage.Japanese => "ja",
                 AppLanguage.Korean => "ko",
                 _ => "en"
             };
         }
 
-        var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var uiCulture = CultureInfo.CurrentUICulture;
+        var culture = uiCulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        if (culture == "zh")
+        {
+            var name = uiCulture.Name;
+            if (name.StartsWith("zh-TW", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("zh-HK", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("zh-MO", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("zh-Hant", StringComparison.OrdinalIgnoreCase) ||
+                uiCulture.ThreeLetterWindowsLanguageName.Equals("CHT", StringComparison.OrdinalIgnoreCase))
+            {
+                return "zh-Hant";
+            }
+            return "zh";
+        }
+
         return culture switch
         {
             "es" => "es",
@@ -76,14 +93,13 @@ public static class LocalizationService
             "nl" => "nl",
             "tr" => "tr",
             "ru" => "ru",
-            "zh" => "zh",
             "ja" => "ja",
             "ko" => "ko",
             _ => "en"
         };
     }
 
-    public static IReadOnlyDictionary<string, string> GetDictionary(string cultureCode) => cultureCode switch
+    public static IReadOnlyDictionary<string, string> GetDictionary(string cultureCode) => cultureCode?.ToLowerInvariant() switch
     {
         "es" => Strings_es.Map,
         "fr" => Strings_fr.Map,
@@ -94,6 +110,7 @@ public static class LocalizationService
         "tr" => Strings_tr.Map,
         "ru" => Strings_ru.Map,
         "zh" => Strings_zh.Map,
+        "zh-hant" or "zh-tw" or "zh-hk" or "zh-mo" or "zh-cht" => Strings_zh_Hant.Map,
         "ja" => Strings_ja.Map,
         "ko" => Strings_ko.Map,
         _ => Strings_en.Map

@@ -46,10 +46,10 @@ internal static class Program
             Check(baseline.ContainsKey("Common.Cancel"));
         });
 
-        Test("All 12 supported language dictionaries contain 100% of baseline keys", () =>
+        Test("All 13 supported language dictionaries contain 100% of baseline keys", () =>
         {
             var baseline = LocalizationService.GetDictionary("en");
-            var languages = new[] { "es", "fr", "de", "it", "pt", "nl", "tr", "ru", "zh", "ja", "ko" };
+            var languages = new[] { "es", "fr", "de", "it", "pt", "nl", "tr", "ru", "zh", "zh-Hant", "ja", "ko" };
 
             foreach (var lang in languages)
             {
@@ -157,6 +157,10 @@ internal static class Program
             Check(LocalizationService.EffectiveCultureCode == "zh");
             Check(LocalizationService.Get("Common.Done") == "完成");
 
+            LocalizationService.SetLanguage(AppLanguage.TraditionalChinese);
+            Check(LocalizationService.EffectiveCultureCode == "zh-Hant");
+            Check(LocalizationService.Get("Common.Done") == "完成");
+
             LocalizationService.SetLanguage(AppLanguage.Japanese);
             Check(LocalizationService.EffectiveCultureCode == "ja");
             Check(LocalizationService.Get("Common.Done") == "完了");
@@ -164,6 +168,25 @@ internal static class Program
             LocalizationService.SetLanguage(AppLanguage.Korean);
             Check(LocalizationService.EffectiveCultureCode == "ko");
             Check(LocalizationService.Get("Common.Done") == "완료");
+
+            // Culture auto-detection for Traditional Chinese
+            var originalCulture = System.Globalization.CultureInfo.CurrentUICulture;
+            try
+            {
+                foreach (var code in new[] { "zh-TW", "zh-HK", "zh-MO", "zh-Hant" })
+                {
+                    System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo(code);
+                    Check(LocalizationService.ResolveCultureCode(AppLanguage.System) == "zh-Hant",
+                        $"Expected zh-Hant for system culture {code}, got {LocalizationService.ResolveCultureCode(AppLanguage.System)}");
+                }
+                System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("zh-CN");
+                Check(LocalizationService.ResolveCultureCode(AppLanguage.System) == "zh",
+                    $"Expected zh for system culture zh-CN, got {LocalizationService.ResolveCultureCode(AppLanguage.System)}");
+            }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentUICulture = originalCulture;
+            }
 
             // Reset to English
             LocalizationService.SetLanguage(AppLanguage.English);
@@ -203,7 +226,7 @@ internal static class Program
             var categories = ContainerIcons.Categories;
             Check(categories.Length == 41, $"Expected 41 categories, got {categories.Length}");
 
-            foreach (var lang in new[] { AppLanguage.English, AppLanguage.German, AppLanguage.Japanese, AppLanguage.Spanish, AppLanguage.Dutch, AppLanguage.Turkish, AppLanguage.Russian, AppLanguage.Korean })
+            foreach (var lang in new[] { AppLanguage.English, AppLanguage.German, AppLanguage.Japanese, AppLanguage.Spanish, AppLanguage.Dutch, AppLanguage.Turkish, AppLanguage.Russian, AppLanguage.Korean, AppLanguage.TraditionalChinese })
             {
                 LocalizationService.SetLanguage(lang);
                 foreach (var cat in categories)
@@ -271,7 +294,7 @@ internal static class Program
             var config = new Configuration();
             var vm = new SettingsViewModel(config, () => { });
             Check(vm.AvailableLanguages.Count == LocalizationService.SupportedLanguages.Length);
-            Check(vm.AppVersionText.Contains("3.0.0"), $"Expected version 3.0.0, got {vm.AppVersionText}");
+            Check(vm.AppVersionText.Contains("3.0.1"), $"Expected version 3.0.1, got {vm.AppVersionText}");
 
             var deOption = vm.AvailableLanguages.FirstOrDefault(l => l.Language == AppLanguage.German);
             Check(deOption != null, "German option missing in AvailableLanguages");
@@ -288,7 +311,7 @@ internal static class Program
             }
 
             // Verify General.LanguageHeading contains '(Language)' in all non-English dictionaries
-            foreach (var lang in new[] { "es", "fr", "de", "it", "pt", "nl", "tr", "ru", "zh", "ja", "ko" })
+            foreach (var lang in new[] { "es", "fr", "de", "it", "pt", "nl", "tr", "ru", "zh", "zh-Hant", "ja", "ko" })
             {
                 var dict = LocalizationService.GetDictionary(lang);
                 Check(dict["General.LanguageHeading"].Contains("(Language)"),

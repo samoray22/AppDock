@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.1] - 2026-11-05
+
+### Added
+- **🇹🇼 Traditional Chinese Language Support (`中文 (繁體) (Chinese Traditional)`)**:
+  - Added full localization dictionary for Traditional Chinese (`中文 (繁體)` / `zh-Hant` in `Strings.zh-Hant.cs`).
+  - Maintained 100% dictionary parity (460 keys) across all UI elements, tooltips, dialogs, tray menus, 41 container categories, and 10 container opening animations using authentic Windows Traditional Chinese terminology (工作列, 釘選, 圖示, 應用程式, 捷徑, 儲存, 復原, 匯入/匯出).
+  - Added culture auto-detection (`zh-TW`, `zh-HK`, `zh-MO`, `zh-Hant`), dual-language selector naming (`中文 (繁體) (Chinese Traditional)`), and live switching support for `AppLanguage.TraditionalChinese`.
+  - Expanded automated test suite in `tests/AppBox.Tests` to verify all 13 supported languages.
+
+---
+
 ## [3.0.0] - 2026-11-04
 
 ### Added & Changed

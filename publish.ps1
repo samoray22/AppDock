@@ -15,7 +15,7 @@ $root = $PSScriptRoot
 
 [xml]$props = Get-Content "$root\Directory.Build.props"
 $version = $props.Project.PropertyGroup.Version
-if (-not $version) { $version = "3.0.0" }
+if (-not $version) { $version = "3.0.1" }
 
 if ($Type -eq 'Tiny') {
     Write-Host "Publishing Tiny Single-File Portable (~2 MB)..." -ForegroundColor Cyan
