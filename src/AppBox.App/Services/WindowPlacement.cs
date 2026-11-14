@@ -39,6 +39,7 @@ public static class WindowPlacement
     private const uint SWP_NOACTIVATE = 0x0010;
     private const uint SWP_FRAMECHANGED = 0x0020;
     private static readonly IntPtr HWND_TOPMOST = new(-1);
+    private static readonly IntPtr HWND_BOTTOM = new(1);
 
     [ComImport, Guid("56FDF342-FD6D-11d0-958A-006097C9A090"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface ITaskbarList
@@ -107,6 +108,8 @@ public static class WindowPlacement
         }
         else
         {
+            var ncrpDisabled = 1;
+            DwmSetWindowAttribute(hwnd, 2, ref ncrpDisabled, sizeof(int));
             var corners = 1;
             DwmSetWindowAttribute(hwnd, 33, ref corners, sizeof(int));
             var borderNone = unchecked((int)0xFFFFFFFE);
@@ -171,6 +174,58 @@ public static class WindowPlacement
             : PopupPlacement.CalculateEdgeHandle(work, edge, verticalPosition, scale, widthDip, heightDip);
         SetWindowPos(hwnd, HWND_TOPMOST, bounds.X, bounds.Y, bounds.Width, bounds.Height, 0x0010 /* SWP_NOACTIVATE */);
         return (bounds, work, scale);
+    }
+
+    public static void SendToDesktopBottom(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == IntPtr.Zero) return;
+        SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+
+    public static (PopupBounds Bounds, PixelRect WorkArea, double DpiScale) PlaceDesktopContainers(
+        Window window,
+        double normX,
+        double normY,
+        double widthDip,
+        double heightDip,
+        SidebarMonitorMode monitorMode = SidebarMonitorMode.PrimaryMonitor,
+        int monitorIndex = 0)
+    {
+        var hwnd = new WindowInteropHelper(window).EnsureHandle();
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        var monitor = ResolveSidebarMonitor(monitorMode, monitorIndex);
+        if (!GetMonitorInfo(monitor, ref info)) return default;
+        if (MonitorFromWindow(hwnd, 2) != monitor)
+            SetWindowPos(hwnd, IntPtr.Zero, info.Work.Left + 12, info.Work.Top + 12, 0, 0, 0x15);
+        var scale = GetDpiForWindow(hwnd) / 96.0;
+        var work = new PixelRect(info.Work.Left, info.Work.Top, info.Work.Right, info.Work.Bottom);
+        var bounds = PopupPlacement.CalculateDesktopContainers(work, normX, normY, scale, widthDip, heightDip);
+        SetWindowPos(hwnd, HWND_BOTTOM, bounds.X, bounds.Y, bounds.Width, bounds.Height, SWP_NOACTIVATE);
+        return (bounds, work, scale);
+    }
+
+    public static (PixelRect Work, double DpiScale, IntPtr Hwnd) ResolveDesktopWorkArea(
+        Window window,
+        SidebarMonitorMode monitorMode = SidebarMonitorMode.PrimaryMonitor,
+        int monitorIndex = 0)
+    {
+        var hwnd = new WindowInteropHelper(window).EnsureHandle();
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        var monitor = ResolveSidebarMonitor(monitorMode, monitorIndex);
+        if (!GetMonitorInfo(monitor, ref info)) return (default, 1.0, hwnd);
+        if (MonitorFromWindow(hwnd, 2) != monitor)
+            SetWindowPos(hwnd, IntPtr.Zero, info.Work.Left + 12, info.Work.Top + 12, 0, 0, 0x15);
+        var scale = GetDpiForWindow(hwnd) / 96.0;
+        if (scale <= 0 || !double.IsFinite(scale)) scale = 1.0;
+        var work = new PixelRect(info.Work.Left, info.Work.Top, info.Work.Right, info.Work.Bottom);
+        return (work, scale, hwnd);
+    }
+
+    public static void SetWindowPixelBounds(IntPtr hwnd, int x, int y, int width, int height)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        SetWindowPos(hwnd, HWND_BOTTOM, x, y, width, height, SWP_NOACTIVATE);
     }
 
     public static IntPtr ResolveSidebarMonitor(SidebarMonitorMode monitorMode, int monitorIndex)

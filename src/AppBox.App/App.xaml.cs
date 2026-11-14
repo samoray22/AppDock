@@ -19,7 +19,9 @@ public partial class App : System.Windows.Application
     private Configuration config = null!;
     private LauncherWindow launcher = null!;
     private EdgeSidebarWindow? edgeSidebar;
+    private DesktopContainersWindow? desktopContainers;
     private TaskbarHoverWatcher? taskbarHover;
+    private TaskbarMagnifierService? taskbarMagnifier;
     private LauncherViewModel model = null!;
     private SettingsWindow? settings;
     private ContainerLaunchers launchers = null!;
@@ -38,13 +40,67 @@ public partial class App : System.Windows.Application
             var request = ActivationRequest.ParseArguments(e.Args);
             diagnosticRun = e.Args.Contains("--smoke-test");
             if (diagnosticRun) Environment.SetEnvironmentVariable("APPDOCK_DIAGNOSTIC_SESSION", Guid.NewGuid().ToString());
-            instance = new(diagnosticRun || e.Args.Contains("--smoke-secondary") ? Environment.GetEnvironmentVariable("APPDOCK_DIAGNOSTIC_SESSION") : null);
+            var scope = diagnosticRun || e.Args.Contains("--smoke-secondary") ? Environment.GetEnvironmentVariable("APPDOCK_DIAGNOSTIC_SESSION") : null;
+            instance = new(scope);
             if (!instance.IsPrimary)
             {
-                if (e.Args.Contains("--smoke-test")) throw new InvalidOperationException("Exit the running AppDock instance before starting a diagnostic run.");
-                if (!e.Args.Contains("--background")) await instance.SignalAsync(request);
-                Shutdown(); return;
+                if (e.Args.Contains("--smoke-test"))
+                {
+                    instance.Dispose();
+                    instance = null;
+                    throw new InvalidOperationException("Exit the running AppDock instance before starting a diagnostic run.");
+                }
+                if (e.Args.Contains("--background"))
+                {
+                    instance.Dispose();
+                    instance = null;
+                    Shutdown();
+                    return;
+                }
+                try
+                {
+                    await instance.SignalAsync(request);
+                    instance.Dispose();
+                    instance = null;
+                    Shutdown();
+                    return;
+                }
+                catch (TimeoutException)
+                {
+                    instance?.Dispose();
+                    instance = null;
+                    foreach (var proc in System.Diagnostics.Process.GetProcesses())
+                    {
+                        try
+                        {
+                            if (proc.Id != Environment.ProcessId &&
+                                (proc.ProcessName.StartsWith("AppDock", StringComparison.OrdinalIgnoreCase) ||
+                                 proc.ProcessName.StartsWith("AppBox", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                proc.Kill();
+                                proc.WaitForExit(2000);
+                            }
+                        }
+                        catch { }
+                        finally
+                        {
+                            proc.Dispose();
+                        }
+                    }
+                    instance = new(scope);
+                    if (!instance.IsPrimary)
+                    {
+                        instance.Dispose();
+                        instance = null;
+                        throw;
+                    }
+                }
             }
+            instance.Listen(value => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+            {
+                if (launcher is null || model is null) return;
+                HandleActivation(value);
+            }));
             var startupDirectory = e.Args.Contains("--smoke-test")
                 ? Path.Combine(Path.GetTempPath(), "AppBox-Smoke-" + Guid.NewGuid().ToString("N"))
                 : ResolveStartupStorageDirectory(e.Args);
@@ -92,19 +148,36 @@ public partial class App : System.Windows.Application
             MainWindow = launcher;
             if (!diagnosticRun)
             {
+                if (config.Settings.HideDesktopIcons)
+                {
+                    DesktopIconsService.SetDesktopIconsHidden(true);
+                }
                 edgeSidebar = new(config, model, launcher, Persist, OpenSettings);
+                desktopContainers = new(config, model, launcher, Persist, OpenSettings);
                 taskbarHover = new(config, model, launcher, launchers, () => settings is not null, ActivateLauncherFromTaskbarHover);
+                taskbarMagnifier = new(config, store.DirectoryPath, launchers, () => settings is not null, () => launcher.IsVisible && !launcher.IsLateralFlyout);
+                launcher.IsVisibleChanged += (_, _) =>
+                {
+                    if (launcher.IsVisible && !launcher.IsLateralFlyout)
+                        taskbarMagnifier.NotifyLauncherOpened();
+                    else
+                        taskbarMagnifier.NotifyLauncherClosed();
+                };
                 launcher.IsPointerOverSidebar = () => edgeSidebar.IsCursorOverSidebar();
+                launcher.IsPointerOverDesktopContainer = () => desktopContainers.IsCursorOverDesktopContainers();
                 launcher.IsPointerOverTaskbarButton = () => taskbarHover.IsCursorOverHoveredTaskbarButton();
                 launcher.ClosedFromLaunchOrDismiss = () =>
                 {
                     edgeSidebar.CollapseAfterLaunch();
+                    desktopContainers.NotifyLauncherClosed();
                     taskbarHover.NotifyLauncherClosed();
+                    taskbarMagnifier.NotifyLauncherClosed();
                 };
                 edgeSidebar.SyncWithConfig();
+                desktopContainers.SyncWithConfig();
                 taskbarHover.SyncWithConfig();
+                taskbarMagnifier.SyncWithConfig();
             }
-            instance.Listen(value => Dispatcher.BeginInvoke(() => HandleActivation(value)));
             CreateTray();
             try { launchers.UpdateMain(new ContainerIcons(store.DirectoryPath).ProductIconPath); }
             catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -112,7 +185,7 @@ public partial class App : System.Windows.Application
             if (!diagnosticRun)
             {
                 PublishJumpLists();
-                ShellIcon.PreloadInBackground(config.Folders.SelectMany(f => f.Applications));
+                ShellIcon.PreloadInBackground(config.Folders.SelectMany(f => f.Applications).Concat(config.DesktopFolders.SelectMany(f => f.Applications)));
                 ApplicationDiscovery.WarmUpInBackground();
             }
             SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
@@ -122,6 +195,8 @@ public partial class App : System.Windows.Application
         }
         catch (Exception ex)
         {
+            try { instance?.Dispose(); } catch { }
+            instance = null;
             if (e.Args.Contains("--smoke-test") || e.Args.Contains("--smoke-secondary"))
             {
                 Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "artifacts"));
@@ -221,6 +296,7 @@ public partial class App : System.Windows.Application
 
         menu.Items.Add(LocalizationService.Get("Tray.Settings"), TrayIconGlyphs.Create("\uE713", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("General")));
         menu.Items.Add(LocalizationService.Get("Tray.SidebarSettings"), TrayIconGlyphs.Create("\uE8A0", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Sidebar")));
+        menu.Items.Add(LocalizationService.Get("Tray.DesktopSettings"), TrayIconGlyphs.Create("\uE7F4", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Desktop")));
         menu.Items.Add(LocalizationService.Get("Tray.ManageContainers"), TrayIconGlyphs.Create("\uE8B7", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Containers")));
         menu.Items.Add(LocalizationService.Get("Tray.OpenAllContainers"), TrayIconGlyphs.Create("\uE71D", dark), (_, _) => Dispatcher.Invoke(() => { launcher.SetLateralMode(!config.Settings.EnableTaskbar); model.OpenOverview(); launcher.Present(config.Settings.EnableAnimations); }));
         menu.Items.Add(LocalizationService.Get("Tray.HelpAndGuide"), TrayIconGlyphs.Create("\uE897", dark), (_, _) => Dispatcher.Invoke(() => OpenSettings("Help")));
@@ -342,7 +418,9 @@ public partial class App : System.Windows.Application
                 if (launcher.IsLoaded) UpdateIdentity();
             }
             edgeSidebar?.SyncWithConfig();
+            desktopContainers?.SyncWithConfig();
             taskbarHover?.SyncWithConfig();
+            taskbarMagnifier?.SyncWithConfig();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Format("Tray.ShortcutSaveError", ex.Message), Forms.ToolTipIcon.Warning); }
@@ -483,15 +561,23 @@ public partial class App : System.Windows.Application
         {
             if (config.Settings.Theme == AppTheme.System) ThemeService.Apply(AppTheme.System);
             edgeSidebar?.ApplyWindowStyle();
+            desktopContainers?.SyncWithConfig();
         });
     }
     protected override void OnExit(ExitEventArgs e)
     {
         SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
+        if (config is not null)
+        {
+            DesktopIconsService.RestoreOnExit(config.Settings.RestoreDesktopIconsOnExit);
+        }
         if (tray is not null) { tray.Visible = false; tray.Icon?.Dispose(); tray.ContextMenuStrip?.Dispose(); tray.Dispose(); }
         edgeSidebar?.Cleanup();
         edgeSidebar?.Close();
+        desktopContainers?.Cleanup();
+        desktopContainers?.Close();
         taskbarHover?.Cleanup();
+        taskbarMagnifier?.Cleanup();
         launcher?.Cleanup();
         instance?.Dispose(); base.OnExit(e);
     }

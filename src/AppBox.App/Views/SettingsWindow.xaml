@@ -438,6 +438,19 @@
         <Slider x:Name="TaskbarHoverCloseDelaySlider" Minimum="100" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding HoverClosingDelayMs, Mode=TwoWay}" Margin="0,2,0,10"/>
         <CheckBox Content="{DynamicResource Str.Taskbar.ShowPointer}" IsChecked="{Binding Config.Settings.ShowPopupPointer}" Click="Preference_Click" Margin="4,2"/>
         <CheckBox Content="{DynamicResource Str.Taskbar.EnableAnimations}" IsChecked="{Binding Config.Settings.EnableAnimations}" Click="Preference_Click" Margin="4,2,4,12"/>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,4,0,12"/>
+        <TextBlock Text="{DynamicResource Str.Taskbar.MagnificationHeading}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="{DynamicResource Str.Taskbar.MagnificationDescription}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="11.5" Margin="0,0,0,10"/>
+        <controls:AppDockToggleSwitch x:Name="TaskbarMagnificationToggle" Content="{DynamicResource Str.Taskbar.EnableMagnification}" IsChecked="{Binding EnableTaskbarMagnification, Mode=TwoWay}" AutomationProperties.Name="Enable taskbar icon magnification"/>
+        <StackPanel IsEnabled="{Binding EnableTaskbarMagnification}" Margin="0,8,0,0">
+          <TextBlock Text="{DynamicResource Str.Taskbar.MagnificationScope.Heading}" FontSize="13.5" FontWeight="SemiBold" Margin="4,4,0,6"/>
+          <RadioButton x:Name="MagnifyAllRadio" Content="{DynamicResource Str.Taskbar.MagnificationScope.All}" IsChecked="{Binding IsTaskbarMagnifyAll, Mode=TwoWay}" GroupName="TaskbarMagScope" Margin="4,2"/>
+          <RadioButton x:Name="MagnifyAppDockOnlyRadio" Content="{DynamicResource Str.Taskbar.MagnificationScope.AppDockOnly}" IsChecked="{Binding IsTaskbarMagnifyAppDockOnly, Mode=TwoWay}" GroupName="TaskbarMagScope" Margin="4,2,4,8"/>
+          <DockPanel Margin="0,4,0,2"><TextBlock Text="{DynamicResource Str.Taskbar.MagnificationScale}" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding TaskbarMagnificationScaleText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+          <Slider x:Name="TaskbarMagnificationScaleSlider" Minimum="1.25" Maximum="1.85" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding TaskbarMagnificationScale, Mode=TwoWay}" Margin="0,2,0,10" AutomationProperties.Name="Taskbar peak magnification scale"/>
+          <CheckBox Content="{DynamicResource Str.Taskbar.MagnificationShowLabel}" IsChecked="{Binding ShowTaskbarMagnificationLabel, Mode=TwoWay}" Margin="4,2,4,12"/>
+        </StackPanel>
+        <Border Height="1" Background="{DynamicResource Line}" Margin="0,4,0,12"/>
         <WrapPanel Margin="0,0,0,12"><Button Content="{DynamicResource Str.Taskbar.OpenShortcuts}" Click="Launchers_Click" Margin="0,0,8,0"/><Button Content="{DynamicResource Str.Taskbar.RefreshIcons}" Click="RefreshIcons_Click"/></WrapPanel>
         <TextBlock Text="{DynamicResource Str.Taskbar.JumpListInfo}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Muted}" Margin="0,0,0,8"/>
         <TextBlock TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Muted}" Text="{DynamicResource Str.Taskbar.PinInstruction}"/>
@@ -518,6 +531,163 @@
         <DockPanel Margin="0,0,0,2"><TextBlock Text="{DynamicResource Str.Taskbar.HoverCloseDelay}" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding HoverClosingDelayMs}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
         <Slider x:Name="HoverCloseDelaySlider" Minimum="100" Maximum="2000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding HoverClosingDelayMs, Mode=TwoWay}" Margin="0,2,0,4"/>
       </StackPanel></Border></ScrollViewer></TabItem>
+      <TabItem Header="{DynamicResource Str.Settings.Tab.Desktop}" Tag="&#xE7F4;">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <Border Background="{DynamicResource Card}" Padding="18" CornerRadius="8">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource Str.Desktop.Heading}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.Description}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+              <controls:AppDockToggleSwitch x:Name="DesktopContainersToggle" Content="{DynamicResource Str.Desktop.Enable}" IsChecked="{Binding EnableDesktopContainers, Mode=TwoWay}" AutomationProperties.Name="Enable Desktop Containers"/>
+              <controls:AppDockToggleSwitch x:Name="HideDesktopIconsToggle" Content="{DynamicResource Str.Desktop.HideIcons}" IsChecked="{Binding HideDesktopIcons, Mode=TwoWay}" AutomationProperties.Name="Hide Windows Desktop Icons"/>
+              <CheckBox x:Name="RestoreDesktopIconsCheck" Content="{DynamicResource Str.Desktop.RestoreIconsOnExit}" IsChecked="{Binding RestoreDesktopIconsOnExit, Mode=TwoWay}" Margin="4,4,4,4"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.HideIconsTip}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Muted}" Margin="0,2,0,4"/>
+              <Border Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,6,0,4">
+                <Border.Style>
+                  <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsFencesDetected}" Value="True">
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Border.Style>
+                <TextBlock Text="{DynamicResource Str.Desktop.FencesDetectedWarning}" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource Ink}"/>
+              </Border>
+
+              <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.DisplayStyleHeading}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.DisplayStyleDescription}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+              <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <controls:LayoutSelectionCard x:Name="DesktopCompactFlyoutCard" GroupName="DesktopDisplayStyle" Title="{DynamicResource Str.Desktop.Style.CompactFlyout.Title}" Description="{DynamicResource Str.Desktop.Style.CompactFlyout.Desc}" IsChecked="{Binding IsDesktopCompactFlyout, Mode=TwoWay}" AutomationProperties.Name="Compact Flyout Dock"/>
+                <controls:LayoutSelectionCard x:Name="DesktopExpandedBoxesCard" Grid.Column="2" GroupName="DesktopDisplayStyle" Title="{DynamicResource Str.Desktop.Style.ExpandedBoxes.Title}" Multiple="True" Description="{DynamicResource Str.Desktop.Style.ExpandedBoxes.Desc}" IsChecked="{Binding IsDesktopExpandedBoxes, Mode=TwoWay}" AutomationProperties.Name="Expanded Desktop Boxes"/>
+              </Grid>
+
+              <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.ContentSourceHeading}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.ContentSourceDescription}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,10"/>
+              <Grid Margin="0,0,0,8">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <Border Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="12,10">
+                  <RadioButton x:Name="DesktopSharedContentRadio" GroupName="DesktopContentSource" IsChecked="{Binding IsDesktopSharedContent, Mode=TwoWay}" VerticalContentAlignment="Top">
+                    <StackPanel Margin="4,0,0,0">
+                      <TextBlock Text="{DynamicResource Str.Desktop.Content.Shared.Title}" FontWeight="SemiBold" FontSize="13.5"/>
+                      <TextBlock Text="{DynamicResource Str.Desktop.Content.Shared.Desc}" Foreground="{DynamicResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    </StackPanel>
+                  </RadioButton>
+                </Border>
+                <Border Grid.Column="2" Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="12,10">
+                  <RadioButton x:Name="DesktopSeparateContentRadio" GroupName="DesktopContentSource" IsChecked="{Binding IsDesktopSeparateContent, Mode=TwoWay}" VerticalContentAlignment="Top">
+                    <StackPanel Margin="4,0,0,0">
+                      <TextBlock Text="{DynamicResource Str.Desktop.Content.Separate.Title}" FontWeight="SemiBold" FontSize="13.5"/>
+                      <TextBlock Text="{DynamicResource Str.Desktop.Content.Separate.Desc}" Foreground="{DynamicResource Muted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                    </StackPanel>
+                  </RadioButton>
+                </Border>
+              </Grid>
+
+              <!-- Separate Desktop Containers Manager (shown when Separate Content is selected) -->
+              <Border Background="{DynamicResource PreviewSurface}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,4,0,8"
+                      Visibility="{Binding IsDesktopSeparateContent, Converter={StaticResource BoolVisibility}}">
+                <StackPanel>
+                  <StackPanel.Resources>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                      <Setter Property="Padding" Value="10,6"/>
+                      <Setter Property="Margin" Value="2"/>
+                      <Setter Property="FontSize" Value="12"/>
+                    </Style>
+                  </StackPanel.Resources>
+                  <DockPanel Margin="0,0,0,8">
+                    <WrapPanel DockPanel.Dock="Right">
+                      <Button x:Name="ImportDesktopShortcutsBtn" Content="{DynamicResource Str.Desktop.ImportShortcuts}" Click="ImportDesktopShortcuts_Click" ToolTip="{DynamicResource Str.Desktop.ImportShortcutsTooltip}"/>
+                      <Button x:Name="CopyFromSidebarBtn" Content="{DynamicResource Str.Desktop.CopyFromSidebar}" Click="CopyFromSidebar_Click" ToolTip="{DynamicResource Str.Desktop.CopyFromSidebarTooltip}"/>
+                    </WrapPanel>
+                    <TextBlock Text="{DynamicResource Str.Desktop.SeparateManagerHeading}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  </DockPanel>
+                  <WrapPanel Margin="0,0,0,6">
+                    <Button Content="{DynamicResource Str.Containers.NewContainer}" Click="NewDesktopFolder_Click"/>
+                    <Button Content="{DynamicResource Str.Containers.Rename}" Click="RenameDesktopFolder_Click" IsEnabled="{Binding HasSelectedDesktopFolder}"/>
+                    <Button Content="{DynamicResource Str.Containers.ChangeIcon}" Click="DesktopIcon_Click" IsEnabled="{Binding HasSelectedDesktopFolder}"/>
+                    <Button Content="{DynamicResource Str.Containers.Active}" Click="DesktopActive_Click" IsEnabled="{Binding HasSelectedDesktopFolder}"/>
+                    <Button Content="{DynamicResource Str.Containers.MoveUp}" Click="DesktopFolderUp_Click" IsEnabled="{Binding CanMoveDesktopFolderUp}"/>
+                    <Button Content="{DynamicResource Str.Containers.MoveDown}" Click="DesktopFolderDown_Click" IsEnabled="{Binding CanMoveDesktopFolderDown}"/>
+                    <Button Content="{DynamicResource Str.Containers.DeleteContainer}" Click="DeleteDesktopFolder_Click" IsEnabled="{Binding HasSelectedDesktopFolder}"/>
+                  </WrapPanel>
+                  <Grid Height="220">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <ListBox x:Name="DesktopFoldersList" ItemsSource="{Binding DesktopFolders}" SelectedItem="{Binding SelectedDesktopFolder}" AutomationProperties.Name="Desktop Containers">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel Orientation="Horizontal" Margin="2,1">
+                            <Image Source="{Binding Icon, Converter={StaticResource ContainerIcon}}" Width="24" Height="24" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0" MaxWidth="130"/>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <ListBox x:Name="DesktopApplicationsList" Grid.Column="2" ItemsSource="{Binding DesktopApplications}" SelectedItem="{Binding SelectedDesktopApplication}" AutomationProperties.Name="Desktop Applications">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Grid Margin="2,1">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="36"/>
+                              <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="{DynamicResource Hover}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="5" Width="28" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding IndexBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Text="{Binding Target}" Foreground="{DynamicResource Muted}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Target}" Margin="0,1,0,0"/>
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                  <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,6,0,6">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Text="Apps: " Foreground="{DynamicResource Muted}" FontSize="12"/>
+                      <TextBlock Text="{Binding SelectedDesktopContainerAppsText}" FontWeight="Bold" FontSize="12" Margin="0,0,12,0"/>
+                      <TextBlock Text="{DynamicResource Str.Containers.Status.Label}" Foreground="{DynamicResource Muted}" FontSize="12"/>
+                      <TextBlock Text="{Binding SelectedDesktopContainerStatusText}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentText}"/>
+                      <TextBlock Text="{DynamicResource Str.Containers.ContainerPos.Label}" Foreground="{DynamicResource Muted}" FontSize="12" Margin="12,0,0,0"/>
+                      <TextBlock Text="{Binding SelectedDesktopContainerPositionText}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentText}"/>
+                      <TextBlock Text="{DynamicResource Str.Containers.AppPos.Label}" Foreground="{DynamicResource Muted}" FontSize="12" Margin="12,0,0,0"/>
+                      <TextBlock Text="{Binding SelectedDesktopAppPositionText}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentText}"/>
+                    </StackPanel>
+                  </Border>
+                  <WrapPanel>
+                    <Button Content="{DynamicResource Str.Containers.BrowseFiles}" Click="DesktopBrowse_Click"/>
+                    <Button Content="{DynamicResource Str.Containers.StartMenuInstalled}" Click="DesktopDiscover_Click" Margin="2,2,10,2"/>
+                    <Button Content="{DynamicResource Str.Containers.RemoveApp}" Click="DesktopRemoveApp_Click" IsEnabled="{Binding HasSelectedDesktopApplication}"/>
+                    <Button Content="{DynamicResource Str.Containers.MoveAppTop}" Click="DesktopAppTop_Click" IsEnabled="{Binding CanMoveDesktopAppUp}"/>
+                    <Button Content="{DynamicResource Str.Containers.MoveAppUp}" Click="DesktopAppUp_Click" IsEnabled="{Binding CanMoveDesktopAppUp}"/>
+                    <Button Content="{DynamicResource Str.Containers.MoveAppDown}" Click="DesktopAppDown_Click" IsEnabled="{Binding CanMoveDesktopAppDown}"/>
+                    <Button Content="{DynamicResource Str.Containers.MoveAppBottom}" Click="DesktopAppBottom_Click" IsEnabled="{Binding CanMoveDesktopAppDown}"/>
+                  </WrapPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Height="1" Background="{DynamicResource Line}" Margin="0,12,0,12"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.InteractionHeading}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+              <TextBlock Text="{DynamicResource Str.Desktop.InteractionDescription}" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,0,0,8"/>
+              <RadioButton x:Name="DesktopClickRadio" Content="{DynamicResource Str.Taskbar.Opening.Click}" IsChecked="{Binding IsDesktopClickOpen, Mode=TwoWay}" GroupName="DesktopOpening" Margin="4,4"/>
+              <RadioButton x:Name="DesktopHoverRadio" Content="{DynamicResource Str.Taskbar.Opening.Hover}" IsChecked="{Binding IsDesktopHoverOpen, Mode=TwoWay}" GroupName="DesktopOpening" Margin="4,4"/>
+              <RadioButton x:Name="DesktopClickOrHoverRadio" Content="{DynamicResource Str.Taskbar.Opening.ClickOrHover}" IsChecked="{Binding IsDesktopClickOrHoverOpen, Mode=TwoWay}" GroupName="DesktopOpening" Margin="4,4,4,10"/>
+
+              <DockPanel Margin="0,2,0,4"><TextBlock Text="{DynamicResource Str.Desktop.Opacity}" VerticalAlignment="Center"/><TextBlock DockPanel.Dock="Right" Text="{Binding DesktopContainerOpacityText}" FontWeight="SemiBold" HorizontalAlignment="Right"/></DockPanel>
+              <Slider x:Name="DesktopOpacitySlider" Minimum="30" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding DesktopContainerOpacityPercent, Mode=TwoWay}" Margin="0,2,0,12"/>
+
+              <DockPanel Margin="0,2,0,4">
+                <Button DockPanel.Dock="Right" Content="{DynamicResource Str.Desktop.ResetPosition}" Click="ResetDesktopPosition_Click" Padding="10,5" VerticalAlignment="Center"/>
+                <controls:AppDockToggleSwitch x:Name="LockDesktopContainersToggle" Content="{DynamicResource Str.Desktop.LockPosition}" IsChecked="{Binding LockDesktopContainers, Mode=TwoWay}" VerticalAlignment="Center" AutomationProperties.Name="Lock Desktop Containers Position"/>
+              </DockPanel>
+            </StackPanel>
+          </Border>
+        </ScrollViewer>
+      </TabItem>
       <TabItem Header="{DynamicResource Str.Settings.Tab.Portable}" Tag="&#xE7B8;">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
           <Border Background="{DynamicResource Card}" Padding="18" CornerRadius="8">
@@ -655,7 +825,7 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
-      <TabItem Header="{DynamicResource Str.Settings.Tab.About}" Tag="&#xE946;"><DockPanel Margin="15,8"><TextBlock DockPanel.Dock="Bottom" Margin="0,16,0,4" Foreground="{DynamicResource Muted}" Text="{DynamicResource Str.About.DevelopedBy}"/><StackPanel><Image Source="pack://application:,,,/AppDock;component/Resources/Branding/AppDock128.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Margin="0,0,0,16"/><TextBlock Text="AppDock" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="{Binding AppVersionText, FallbackValue='Version 3.0.1'}" Foreground="{DynamicResource Accent}" Margin="0,10,0,24"/><TextBlock Text="{DynamicResource Str.About.Tagline}" FontSize="18"/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="{DynamicResource Str.About.Description}"/><TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Muted}" Text="{DynamicResource Str.About.Privacy}"/></StackPanel></DockPanel></TabItem>
+      <TabItem Header="{DynamicResource Str.Settings.Tab.About}" Tag="&#xE946;"><DockPanel Margin="15,8"><TextBlock DockPanel.Dock="Bottom" Margin="0,16,0,4" Foreground="{DynamicResource Muted}" Text="{DynamicResource Str.About.DevelopedBy}"/><StackPanel><Image Source="pack://application:,,,/AppDock;component/Resources/Branding/AppDock128.png" Width="96" Height="96" RenderOptions.BitmapScalingMode="HighQuality" HorizontalAlignment="Left" Margin="0,0,0,16"/><TextBlock Text="AppDock" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="{Binding AppVersionText, FallbackValue='Version 3.1.0'}" Foreground="{DynamicResource Accent}" Margin="0,10,0,24"/><TextBlock Text="{DynamicResource Str.About.Tagline}" FontSize="18"/><TextBlock TextWrapping="Wrap" Margin="0,20,0,0" Text="{DynamicResource Str.About.Description}"/><TextBlock Margin="0,16,0,0" Foreground="{DynamicResource Muted}" Text="{DynamicResource Str.About.Privacy}"/></StackPanel></DockPanel></TabItem>
     </TabControl>
     <Grid Grid.Row="2" Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{DynamicResource Str.Common.ChangesSavedAuto}" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/><Button Grid.Column="1" Content="{DynamicResource Str.Common.Done}" IsCancel="True" Click="Done_Click"/></Grid>
   </Grid>

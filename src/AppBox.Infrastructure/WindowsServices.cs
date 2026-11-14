@@ -340,6 +340,8 @@ public static class ShellIcon
 {
     private static readonly ConcurrentDictionary<string, ImageSource?> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static ImageSource? cachedUrlIcon;
+    private static ImageSource? cachedRecycleBinEmpty;
+    private static ImageSource? cachedRecycleBinFull;
 
     [StructLayout(LayoutKind.Sequential)] private struct Size { public int Width; public int Height; }
     [ComImport, Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -351,6 +353,45 @@ public static class ShellIcon
     private struct FileInfo { public IntPtr Icon; public int Index; public uint Attributes; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string Name; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string TypeName; }
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr SHGetFileInfo(string file, uint attributes, out FileInfo info, uint size, uint flags);
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr icon);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct SHSTOCKICONINFO
+    {
+        public uint cbSize;
+        public IntPtr hIcon;
+        public int iSysImageIndex;
+        public int iIcon;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szPath;
+    }
+
+    [DllImport("shell32.dll", SetLastError = false)]
+    private static extern int SHGetStockIconInfo(uint siid, uint uFlags, ref SHSTOCKICONINFO psii);
+
+    public static ImageSource? GetRecycleBinIcon(bool isFull)
+    {
+        if (isFull && cachedRecycleBinFull is not null) return cachedRecycleBinFull;
+        if (!isFull && cachedRecycleBinEmpty is not null) return cachedRecycleBinEmpty;
+
+        var sii = new SHSTOCKICONINFO { cbSize = (uint)Marshal.SizeOf<SHSTOCKICONINFO>() };
+        int hr = SHGetStockIconInfo(isFull ? 32u : 31u, 0x00000100 /* SHGSI_ICON */, ref sii);
+        if (hr == 0 && sii.hIcon != IntPtr.Zero)
+        {
+            try
+            {
+                var img = Imaging.CreateBitmapSourceFromHIcon(sii.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                img.Freeze();
+                if (isFull) cachedRecycleBinFull = img;
+                else cachedRecycleBinEmpty = img;
+                return img;
+            }
+            finally
+            {
+                DestroyIcon(sii.hIcon);
+            }
+        }
+        return null;
+    }
 
     public static void PreloadInBackground(IEnumerable<AppEntry> entries)
     {
@@ -418,5 +459,326 @@ public static class ShellIcon
             return "P:" + entry.Target;
         var ticks = File.Exists(entry.Target) ? File.GetLastWriteTimeUtc(entry.Target).Ticks : 0;
         return $"{(int)entry.Kind}:{entry.Target}:{ticks}";
+    }
+}
+
+public static class DesktopIconsService
+{
+    private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowW(string? lpClassName, string? lpWindowName);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowExW(IntPtr hwndParent, IntPtr hwndChildAfter, string? lpszClass, string? lpszWindow);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    private const int SW_HIDE = 0;
+    private const int SW_SHOW = 5;
+
+    private static bool hiddenByApp;
+
+    public static IntPtr FindDesktopListView()
+    {
+        try
+        {
+            var progman = FindWindowW("Progman", null);
+            var defView = IntPtr.Zero;
+            if (progman != IntPtr.Zero)
+            {
+                defView = FindWindowExW(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
+            }
+
+            if (defView == IntPtr.Zero)
+            {
+                EnumWindows((topHwnd, _) =>
+                {
+                    var childDef = FindWindowExW(topHwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                    if (childDef != IntPtr.Zero)
+                    {
+                        defView = childDef;
+                        return false;
+                    }
+                    return true;
+                }, IntPtr.Zero);
+            }
+
+            if (defView == IntPtr.Zero) return IntPtr.Zero;
+            var listView = FindWindowExW(defView, IntPtr.Zero, "SysListView32", null);
+            return listView != IntPtr.Zero ? listView : defView;
+        }
+        catch
+        {
+            return IntPtr.Zero;
+        }
+    }
+
+    public static bool AreDesktopIconsHidden()
+    {
+        var hwnd = FindDesktopListView();
+        if (hwnd == IntPtr.Zero) return false;
+        return !IsWindowVisible(hwnd);
+    }
+
+    public static bool IsHiddenByAppDock => hiddenByApp;
+
+    public static bool IsStardockFencesRunning()
+    {
+        try
+        {
+            var procs = Process.GetProcessesByName("Fences");
+            if (procs.Length > 0)
+            {
+                foreach (var p in procs) p.Dispose();
+                return true;
+            }
+
+            // Stardock Fences also runs in-process inside explorer.exe via DesktopDock.dll;
+            // check the active per-user Fences registry state when installed.
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Stardock\Fences");
+            if (key is not null)
+            {
+                var installDir = key.GetValue("InstallDir") as string ?? key.GetValue("Path") as string;
+                if (!string.IsNullOrWhiteSpace(installDir) && Directory.Exists(installDir))
+                {
+                    var disabled = key.GetValue("DisableFences");
+                    if (disabled is int d && d != 0) return false;
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    public static bool IsStardockFencesDetected()
+    {
+        try
+        {
+            if (IsStardockFencesRunning()) return true;
+            using var hkcu = Registry.CurrentUser.OpenSubKey(@"Software\Stardock\Fences");
+            if (hkcu is not null) return true;
+            using var hklm = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Stardock\ObjectDesktop\Fences");
+            if (hklm is not null) return true;
+        }
+        catch
+        {
+        }
+        return false;
+    }
+
+    public enum DesktopVisibilityAction { None, Hide, Show }
+
+    public static (DesktopVisibilityAction Action, bool NewHiddenByApp) EvaluateTransition(
+        bool hideRequested,
+        bool currentlyVisible,
+        bool wasHiddenByApp,
+        bool explicitUserAction,
+        bool fencesRunning)
+    {
+        if (hideRequested)
+        {
+            if (!currentlyVisible)
+            {
+                // Already hidden externally (e.g. by Fences or Windows Explorer) or earlier by AppDock.
+                return (DesktopVisibilityAction.None, wasHiddenByApp);
+            }
+
+            if (!explicitUserAction && fencesRunning)
+            {
+                // Avoid forcefully hiding SysListView32 behind Stardock Fences' back on automatic startup sync.
+                return (DesktopVisibilityAction.None, false);
+            }
+
+            return (DesktopVisibilityAction.Hide, true);
+        }
+        else
+        {
+            if (currentlyVisible)
+            {
+                return (DesktopVisibilityAction.None, false);
+            }
+
+            // Only unhide if AppDock was the one that hid it, or the user explicitly toggled it in UI.
+            if (wasHiddenByApp || explicitUserAction)
+            {
+                return (DesktopVisibilityAction.Show, false);
+            }
+
+            return (DesktopVisibilityAction.None, false);
+        }
+    }
+
+    public static void SetDesktopIconsHidden(bool hide, bool explicitUserAction = false)
+    {
+        try
+        {
+            var hwnd = FindDesktopListView();
+            if (hwnd == IntPtr.Zero) return;
+
+            bool currentlyVisible = IsWindowVisible(hwnd);
+            bool fencesRunning = IsStardockFencesRunning();
+            var (action, newHiddenByApp) = EvaluateTransition(hide, currentlyVisible, hiddenByApp, explicitUserAction, fencesRunning);
+            hiddenByApp = newHiddenByApp;
+
+            if (action == DesktopVisibilityAction.Hide)
+            {
+                ShowWindow(hwnd, SW_HIDE);
+            }
+            else if (action == DesktopVisibilityAction.Show)
+            {
+                ShowWindow(hwnd, SW_SHOW);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    public static void RestoreOnExit(bool restoreOnExit)
+    {
+        if (restoreOnExit && hiddenByApp)
+        {
+            SetDesktopIconsHidden(false, explicitUserAction: false);
+        }
+    }
+
+    public static IReadOnlyList<string> DiscoverDesktopShortcutFiles()
+    {
+        var files = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var dirs = new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory)
+        };
+
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = false,
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.ReparsePoint | FileAttributes.System
+        };
+
+        foreach (var dir in dirs)
+        {
+            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir)) continue;
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(dir, "*.*", options))
+                {
+                    var ext = Path.GetExtension(file);
+                    if (!ext.Equals(".lnk", StringComparison.OrdinalIgnoreCase) &&
+                        !ext.Equals(".exe", StringComparison.OrdinalIgnoreCase) &&
+                        !ext.Equals(".url", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var nameNoExt = Path.GetFileNameWithoutExtension(file);
+                    if (nameNoExt.StartsWith("AppDock", StringComparison.OrdinalIgnoreCase) ||
+                        nameNoExt.StartsWith("AppBox", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (seen.Add(file))
+                    {
+                        files.Add(file);
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return files;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SHQUERYRBINFO
+    {
+        public int cbSize;
+        public long i64Size;
+        public long i64NumItems;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHQueryRecycleBinW(string? pszRootPath, ref SHQUERYRBINFO pSHQueryRBInfo);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHEmptyRecycleBinW(IntPtr hwnd, string? pszRootPath, uint dwFlags);
+
+    public static (long ItemCount, long TotalBytes) GetRecycleBinStatus()
+    {
+        try
+        {
+            var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
+            int hr = SHQueryRecycleBinW(null, ref info);
+            if (hr == 0)
+            {
+                return (Math.Max(0, info.i64NumItems), Math.Max(0, info.i64Size));
+            }
+        }
+        catch { }
+        return (0, 0);
+    }
+
+    public static void OpenRecycleBin()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", "shell:RecycleBinFolder") { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    public static void EmptyRecycleBin(IntPtr ownerHwnd)
+    {
+        try
+        {
+            _ = SHEmptyRecycleBinW(ownerHwnd, null, 0);
+        }
+        catch { }
+    }
+
+    public static int MoveFilesToRecycleBin(IEnumerable<string> paths)
+    {
+        int count = 0;
+        foreach (var path in paths)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
+                        path,
+                        Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                    count++;
+                }
+                else if (Directory.Exists(path))
+                {
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(
+                        path,
+                        Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                    count++;
+                }
+            }
+            catch { }
+        }
+        return count;
     }
 }

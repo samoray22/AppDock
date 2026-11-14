@@ -43,6 +43,39 @@ public sealed record ContainerTile(AppFolder Folder, ImageSource Icon)
     public string CountText => Folder.Applications.Count == 1 ? LocalizationService.Get("Launcher.Badge.Apps.Single") : LocalizationService.Format("Launcher.Badge.Apps.Multiple", Folder.Applications.Count);
 }
 
+public sealed class DesktopContainerTile : ObservableObject
+{
+    public AppFolder Folder { get; }
+    public ImageSource Icon { get; }
+    public ObservableCollection<AppTile> Applications { get; } = [];
+    public int Count => Folder.Applications.Count;
+    public string CountText => Folder.Applications.Count == 1
+        ? LocalizationService.Get("Launcher.Badge.Apps.Single")
+        : LocalizationService.Format("Launcher.Badge.Apps.Multiple", Folder.Applications.Count);
+    public bool IsEmpty => Applications.Count == 0;
+    public bool IsCollapsed
+    {
+        get => Folder.IsDesktopCollapsed;
+        set
+        {
+            if (Folder.IsDesktopCollapsed == value) return;
+            Folder.IsDesktopCollapsed = value;
+            Changed();
+            Changed(nameof(IsExpanded));
+            Changed(nameof(CollapseGlyph));
+        }
+    }
+    public bool IsExpanded => !Folder.IsDesktopCollapsed;
+    public string CollapseGlyph => Folder.IsDesktopCollapsed ? "□" : "−";
+
+    public DesktopContainerTile(AppFolder folder, ImageSource icon, IEnumerable<AppTile> applications)
+    {
+        Folder = folder;
+        Icon = icon;
+        foreach (var app in applications) Applications.Add(app);
+    }
+}
+
 public sealed class LauncherViewModel : ObservableObject
 {
     private readonly Configuration config;
@@ -58,6 +91,8 @@ public sealed class LauncherViewModel : ObservableObject
     private bool externalDrop;
     private int? viewportColumnLimit;
     public ObservableCollection<ContainerTile> Containers { get; } = [];
+    public ObservableCollection<DesktopContainerTile> DesktopContainers { get; } = [];
+    public bool HasDesktopContainers => DesktopContainers.Count > 0;
     private bool overview; private bool canReturnToOverview;
     public bool IsOverview
     {
@@ -124,6 +159,10 @@ public sealed class LauncherViewModel : ObservableObject
         searchQuery = "";
         Changed(nameof(SearchQuery));
         Changed(nameof(HasSearchQuery));
+        if (selected is not null && config.DesktopFolders.Contains(selected))
+        {
+            selected = config.Folders.FirstOrDefault(f => f.Id == config.SelectedFolderId) ?? config.Folders.FirstOrDefault();
+        }
         canReturnToOverview = config.Settings.LayoutMode == LayoutMode.SingleAppBox; IsOverview = config.Settings.LayoutMode == LayoutMode.SingleAppBox;
         Refresh();
     }
@@ -151,7 +190,7 @@ public sealed class LauncherViewModel : ObservableObject
         runningAppsCts?.Cancel();
         var cts = new CancellationTokenSource();
         runningAppsCts = cts;
-        var tiles = Applications.Concat(SidebarRecentApps).ToArray();
+        var tiles = Applications.Concat(SidebarRecentApps).Concat(DesktopContainers.SelectMany(c => c.Applications)).ToArray();
         if (tiles.Length == 0) return;
 
         var token = cts.Token;
@@ -188,18 +227,11 @@ public sealed class LauncherViewModel : ObservableObject
         });
     }
 
-
     public void LaunchApp(AppEntry entry, LaunchOptions? options = null)
-
     {
-
         if (!Interaction.CanLaunch) return;
-
         launchWithOptions(entry, options ?? new());
-
     }
-
-
 
     public void ToggleActive() => ChangeContainer(f => f.IsActive = !f.IsActive);
     public void RenameContainer(string name) => ChangeContainer(f => manager.Rename(f, name));
@@ -213,7 +245,9 @@ public sealed class LauncherViewModel : ObservableObject
     }
 
     public ObservableCollection<AppFolder> Folders { get; } = [];
-    public ObservableCollection<AppTile> Applications { get; } = []; public ObservableCollection<AppTile> SidebarRecentApps { get; } = []; public bool HasSidebarRecentApps => SidebarRecentApps.Count > 0;
+    public ObservableCollection<AppTile> Applications { get; } = [];
+    public ObservableCollection<AppTile> SidebarRecentApps { get; } = [];
+    public bool HasSidebarRecentApps => SidebarRecentApps.Count > 0;
     public bool IsEmpty => IsOverview ? Containers.Count == 0 : Applications.Count == 0;
     public bool HasFolders => Folders.Count > 0;
     public bool IsEditing => Interaction.IsEditing;
@@ -263,7 +297,10 @@ public sealed class LauncherViewModel : ObservableObject
         set
         {
             selected = value;
-            config.SelectedFolderId = value?.Id;
+            if (value is null || config.Folders.Contains(value))
+                config.SelectedFolderId = value?.Id;
+            else if (config.DesktopFolders.Contains(value))
+                config.SelectedDesktopFolderId = value.Id;
             RefreshApps();
             Changed();
             Changed(nameof(HeaderTitle));
@@ -355,10 +392,24 @@ public sealed class LauncherViewModel : ObservableObject
         });
     }
 
-    public bool ImportIntoFolder(AppFolder? folder, IEnumerable<string> items) { return Edit(() => { var targetFolder = folder ?? selected ?? config.Folders.FirstOrDefault(f => f.IsActive) ?? manager.Create(LocalizationService.Get("Dialog.NewContainerDefault")); selected = targetFolder; var result = importer.Import(config, targetFolder, items); return result.Rejected.Count == 0 ? LocalizationService.Format("Launcher.StatusAddedTo", result.Added.Count, targetFolder.Name) : LocalizationService.Format("Launcher.StatusAddedSkipped", result.Added.Count, result.Rejected.Count, string.Join("\n", result.Rejected.Select(r => r.Item + ": " + r.Reason))); }); }
+    public bool ImportIntoFolder(AppFolder? folder, IEnumerable<string> items, bool isDesktopSeparate = false)
+    {
+        return Edit(() =>
+        {
+            var targetManager = new FolderManager(config, isDesktopSeparate);
+            var sourceList = isDesktopSeparate ? config.DesktopFolders : config.Folders;
+            var targetFolder = folder ?? selected ?? sourceList.FirstOrDefault(f => f.IsActive) ?? targetManager.Create(LocalizationService.Get("Dialog.NewContainerDefault"));
+            selected = targetFolder;
+            var result = importer.Import(config, targetFolder, items);
+            return result.Rejected.Count == 0
+                ? LocalizationService.Format("Launcher.StatusAddedTo", result.Added.Count, targetFolder.Name)
+                : LocalizationService.Format("Launcher.StatusAddedSkipped", result.Added.Count, result.Rejected.Count, string.Join("\n", result.Rejected.Select(r => r.Item + ": " + r.Reason)));
+        });
+    }
+
     public bool Reorder(Guid folderId, Guid appId, int index)
     {
-        if (!IsEditing || selected?.Id != folderId || config.Settings.SortMode == SortMode.RecentFirst) return false;
+        if (!IsEditing || selected?.Id != folderId || EffectiveSortMode == SortMode.RecentFirst) return false;
         return Edit(() => { var app = selected.Applications.FirstOrDefault(a => a.Id == appId) ?? throw new ArgumentException("This dragged application is no longer in the container."); manager.Reorder(selected, app, index); return LocalizationService.Get("Launcher.StatusOrderSaved"); });
     }
 
@@ -386,21 +437,31 @@ public sealed class LauncherViewModel : ObservableObject
 
     private bool Edit(Func<string> change)
     {
-        var folders = config.Folders.ToArray(); var previous = selected; var id = config.SelectedFolderId;
+        var folders = config.Folders.ToArray();
+        var desktopFolders = config.DesktopFolders.ToArray();
+        var previous = selected;
+        var id = config.SelectedFolderId;
+        var desktopId = config.SelectedDesktopFolderId;
         var apps = previous?.Applications.ToArray() ?? [];
         var names = apps.ToDictionary(a => a.Id, a => a.Name);
         try
         {
             var message = change();
-            config.SelectedFolderId = selected?.Id;
+            if (selected is null || config.Folders.Contains(selected))
+                config.SelectedFolderId = selected?.Id;
+            else if (config.DesktopFolders.Contains(selected))
+                config.SelectedDesktopFolderId = selected.Id;
             persist(); Refresh(); Status = message;
             return true;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             config.Folders.Clear(); config.Folders.AddRange(folders);
+            config.DesktopFolders.Clear(); config.DesktopFolders.AddRange(desktopFolders);
             if (previous is not null) { previous.Applications.Clear(); previous.Applications.AddRange(apps); foreach (var app in apps) app.Name = names[app.Id]; }
-            config.SelectedFolderId = id; Refresh(); Status = "Changes were not saved: " + ex.Message;
+            config.SelectedFolderId = id;
+            config.SelectedDesktopFolderId = desktopId;
+            Refresh(); Status = "Changes were not saved: " + ex.Message;
             return false;
         }
     }
@@ -408,13 +469,16 @@ public sealed class LauncherViewModel : ObservableObject
     public void Refresh()
     {
         var selectedId = config.SelectedFolderId;
+        var activeDesktopSelection = selected is not null ? config.DesktopFolders.FirstOrDefault(f => f.Id == selected.Id) : null;
         Folders.Clear(); Containers.Clear();
         foreach (var folder in config.Folders.Where(f => f.IsActive))
         {
             Folders.Add(folder);
             Containers.Add(new(folder, containerIcons.Get(folder.Icon)));
         }
-        SelectedFolder = (IsEditing ? config.Folders : Folders.AsEnumerable()).FirstOrDefault(f => f.Id == selectedId) ?? Folders.FirstOrDefault(); RefreshSidebarRecentApps();
+        SelectedFolder = activeDesktopSelection ?? (IsEditing ? config.Folders : Folders.AsEnumerable()).FirstOrDefault(f => f.Id == selectedId) ?? Folders.FirstOrDefault();
+        RefreshSidebarRecentApps();
+        RefreshDesktopContainers();
         viewportColumnLimit = null;
         Changed(nameof(IconSize)); Changed(nameof(MaxColumns)); Changed(nameof(MaxRows)); Changed(nameof(ShowPopupPointer)); Changed(nameof(UseWindows11Style)); Changed(nameof(ShowContainerBorder));
         Changed(nameof(AnimationsEnabled)); Changed(nameof(AnimationStyle)); Changed(nameof(AnimationDurationMs));
@@ -425,33 +489,43 @@ public sealed class LauncherViewModel : ObservableObject
         Changed(nameof(EffectiveColumns)); Changed(nameof(WrapWidth)); Changed(nameof(DesiredWidth)); Changed(nameof(GridHeight)); Changed(nameof(ContentHeight)); Changed(nameof(DesiredHeight));
     }
 
+    private IReadOnlyList<AppTile> BuildFolderAppTiles(AppFolder folder, string filter = "")
+    {
+        var list = new List<AppTile>();
+        var sortMode = folder.SortModeOverride ?? config.Settings.SortMode;
+        var apps = folder.Applications.AsEnumerable();
+        if (sortMode == SortMode.RecentFirst)
+        {
+            apps = apps
+                .OrderByDescending(a => a.LastLaunchedUtc.HasValue)
+                .ThenByDescending(a => a.LastLaunchedUtc)
+                .ThenBy(a => folder.Applications.IndexOf(a));
+        }
+
+        var lastLaunched = folder.Applications
+            .Where(a => a.LastLaunchedUtc.HasValue)
+            .OrderByDescending(a => a.LastLaunchedUtc)
+            .FirstOrDefault();
+
+        foreach (var app in apps)
+        {
+            if (filter.Length > 0 && !app.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
+                continue;
+            var label = config.Settings.ShortenAppNames ? AppLabel.Shorten(app.Name) : app.Name;
+            bool isLast = lastLaunched is not null && app.Id == lastLaunched.Id;
+            list.Add(new(app, ShellIcon.Get(app), config.Settings.ShowApplicationNames, label, isLast));
+        }
+        return list;
+    }
+
     private void RefreshApps()
     {
         Applications.Clear();
         if (selected is not null)
         {
-            var filter = searchQuery.Trim();
-            var apps = selected.Applications.AsEnumerable();
-            if (EffectiveSortMode == SortMode.RecentFirst)
+            foreach (var tile in BuildFolderAppTiles(selected, searchQuery.Trim()))
             {
-                apps = apps
-                    .OrderByDescending(a => a.LastLaunchedUtc.HasValue)
-                    .ThenByDescending(a => a.LastLaunchedUtc)
-                    .ThenBy(a => selected.Applications.IndexOf(a));
-            }
-
-            var lastLaunched = selected.Applications
-                .Where(a => a.LastLaunchedUtc.HasValue)
-                .OrderByDescending(a => a.LastLaunchedUtc)
-                .FirstOrDefault();
-
-            foreach (var app in apps)
-            {
-                if (filter.Length > 0 && !app.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase))
-                    continue;
-                var label = config.Settings.ShortenAppNames ? AppLabel.Shorten(app.Name) : app.Name;
-                bool isLast = lastLaunched is not null && app.Id == lastLaunched.Id;
-                Applications.Add(new(app, ShellIcon.Get(app), config.Settings.ShowApplicationNames, label, isLast));
+                Applications.Add(tile);
             }
         }
         viewportColumnLimit = null;
@@ -462,6 +536,48 @@ public sealed class LauncherViewModel : ObservableObject
         Changed(nameof(EffectiveColumns)); Changed(nameof(WrapWidth)); Changed(nameof(DesiredWidth));
         Changed(nameof(GridHeight)); Changed(nameof(ContentHeight));
         Changed(nameof(DesiredHeight));
-        CheckRunningApps(); } public void RefreshSidebarRecentApps() { SidebarRecentApps.Clear(); if (config.Settings.SidebarShowRecentApps) { int maxCount = Math.Clamp(config.Settings.SidebarRecentAppsCount, 1, 5); var seenTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase); var candidates = config.Folders.Where(f => f.IsActive).SelectMany(f => f.Applications).Where(a => seenTargets.Add(a.Target)).OrderByDescending(a => a.LastLaunchedUtc.HasValue).ThenByDescending(a => a.LastLaunchedUtc).Take(maxCount).ToList(); var mostRecent = candidates.FirstOrDefault(a => a.LastLaunchedUtc.HasValue); foreach (var app in candidates) { var label = config.Settings.ShortenAppNames ? AppLabel.Shorten(app.Name) : app.Name; bool isLast = mostRecent is not null && app.Id == mostRecent.Id; SidebarRecentApps.Add(new(app, ShellIcon.Get(app), false, label, isLast)); } } Changed(nameof(HasSidebarRecentApps)); CheckRunningApps();
+        CheckRunningApps();
+    }
+
+    public void RefreshSidebarRecentApps()
+    {
+        SidebarRecentApps.Clear();
+        if (config.Settings.SidebarShowRecentApps)
+        {
+            int maxCount = Math.Clamp(config.Settings.SidebarRecentAppsCount, 1, 5);
+            var seenTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var candidates = config.Folders.Where(f => f.IsActive)
+                .SelectMany(f => f.Applications)
+                .Where(a => seenTargets.Add(a.Target))
+                .OrderByDescending(a => a.LastLaunchedUtc.HasValue)
+                .ThenByDescending(a => a.LastLaunchedUtc)
+                .Take(maxCount)
+                .ToList();
+            var mostRecent = candidates.FirstOrDefault(a => a.LastLaunchedUtc.HasValue);
+            foreach (var app in candidates)
+            {
+                var label = config.Settings.ShortenAppNames ? AppLabel.Shorten(app.Name) : app.Name;
+                bool isLast = mostRecent is not null && app.Id == mostRecent.Id;
+                SidebarRecentApps.Add(new(app, ShellIcon.Get(app), false, label, isLast));
+            }
+        }
+        Changed(nameof(HasSidebarRecentApps));
+        CheckRunningApps();
+    }
+
+    public void RefreshDesktopContainers()
+    {
+        DesktopContainers.Clear();
+        var source = config.Settings.DesktopContentSource == DesktopContentSource.SeparateDesktopContainers
+            ? config.DesktopFolders
+            : config.Folders;
+
+        foreach (var folder in source.Where(f => f.IsActive))
+        {
+            var tiles = BuildFolderAppTiles(folder);
+            DesktopContainers.Add(new DesktopContainerTile(folder, containerIcons.Get(folder.Icon), tiles));
+        }
+        Changed(nameof(HasDesktopContainers));
+        CheckRunningApps();
     }
 }

@@ -1,0 +1,15 @@
+<Window x:Class="AppBox.App.Views.TaskbarMagnifierWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AppDock Taskbar Magnifier"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        IsHitTestVisible="False"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+</Window>

@@ -1,119 +1,223 @@
-using System.IO;
-using System.Windows;
+using System.IO;
+using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using Microsoft.Win32;
-using AppBox.Core;
-using AppBox.Infrastructure;
-using AppBox.App.Services;
-using AppBox.App.ViewModels;
-
-namespace AppBox.App.Views;
-
-public partial class SettingsWindow : Window
-{
-    public string LaunchersDirectory { get; set; } = "";
-    public Action<AppFolder>? ChangeIcon { get; set; }
-    public Action<AppFolder>? EditContainer { get; set; }
-    private SettingsViewModel Model => (SettingsViewModel)DataContext;
-    public SettingsWindow(SettingsViewModel model, string section)
-    {
-        InitializeComponent(); DataContext = model;
-        SelectSection(section);
-        SyncThemes();
-        SourceInitialized += (_, _) => ApplyWindowStyle();
-        Loaded += (_, _) => WindowPlacement.FitSettingsToWorkArea(this);
-        DpiChanged += (_, _) => Dispatcher.BeginInvoke(new Action(() => WindowPlacement.FitSettingsToWorkArea(this)));
-        model.PropertyChanged += ModelChanged;
-        Closed += (_, _) => { StopAnimationPreview(); model.PropertyChanged -= ModelChanged; };
-    }
-    public Guid? SelectedContainerId => Model.SelectedFolder?.Id;
-    public void SelectContainer(AppFolder container) => Model.SelectedFolder = container;
-    public void SelectSection(string section) => Sections.SelectedIndex = section switch { "Containers" or "Folders" => 1, "Appearance" => 2, "Taskbar Interaction" or "Taskbar" => 3, "Sidebar" or "Edge Sidebar" => 4, "Portable" or "Portable Behavior" => 5, "Help" or "Guide" => 6, "About" => 7, _ => 0 };
-    private void Guard(Action action) { try { action(); } catch (Exception ex) { AppDockDialog.Show(this, ex.Message, "AppDock", MessageBoxImage.Information); } }
-    private void NewFolder_Click(object sender, RoutedEventArgs e) { var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.CreateContainerTitle"), LocalizationService.Get("Dialog.NewContainerDefault")); if (name is not null) Guard(() => Model.Create(name)); }
-    private void Rename_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is null) return; var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.RenameContainerTitle"), Model.SelectedFolder.Name); if (name is not null) Guard(() => Model.Rename(name)); }
-    private void Delete_Click(object sender, RoutedEventArgs e)
-    {
-        if (Model.SelectedFolder is { } folder && AppDockDialog.Confirm(this, LocalizationService.Format("Dialog.DeleteContainerPrompt", folder.Name), LocalizationService.Get("Dialog.DeleteContainerTitle"), LocalizationService.Get("Common.Delete"), isDanger: true))
-        {
-            Guard(() =>
-            {
-                var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
-                new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
-                Model.Delete();
-            });
-        }
-    }
-    private void Browse_Click(object sender, RoutedEventArgs e)
-    {
-        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateContainerFirst"), "AppDock"); return; }
-        var dialog = new OpenFileDialog { Filter = LocalizationService.Get("Dialog.BrowseFilter"), Multiselect = true, DereferenceLinks = false };
-        if (dialog.ShowDialog(this) != true) return;
-        foreach (var file in dialog.FileNames) Guard(() => Model.Add(new AppEntry { Name = Path.GetFileNameWithoutExtension(file), Target = file, Kind = Path.GetExtension(file).Equals(".lnk", StringComparison.OrdinalIgnoreCase) ? TargetKind.Shortcut : TargetKind.Executable }));
-    }
-    private void Discover_Click(object sender, RoutedEventArgs e)
-    {
-        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateContainerFirst"), "AppDock"); return; }
-        var picker = new ApplicationPicker { Owner = this };
-        if (picker.ShowDialog() == true && picker.Selected is not null) Guard(() => Model.Add(picker.Selected));
-    }
-    private void Remove_Click(object sender, RoutedEventArgs e) => Guard(Model.Remove);
-    private void Top_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveToTop(); ScrollSelectedAppIntoView(); });
-    private void Up_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.Move(-1); ScrollSelectedAppIntoView(); });
-    private void Down_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.Move(1); ScrollSelectedAppIntoView(); });
-    private void Bottom_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveToBottom(); ScrollSelectedAppIntoView(); });
-    private void ScrollSelectedAppIntoView() { if (ApplicationsList.SelectedItem is not null) ApplicationsList.ScrollIntoView(ApplicationsList.SelectedItem); }
-    private void Preference_Click(object sender, RoutedEventArgs e) => Guard(Model.Persist);
-    public WindowStyleResult? NativeStyleState { get; private set; }
-    public void ApplyWindowStyle()
-    {
-        if (DataContext is not SettingsViewModel || new System.Windows.Interop.WindowInteropHelper(this).Handle == IntPtr.Zero) return;
-        NativeStyleState = NativeWindowStyle.Apply(this, Model.UseWindows11Style, ThemeService.Dark);
-        StyleToggle.ToolTip = NativeStyleState.Detail;
-        StyleFeedback.Text = LocalizationService.Get("General.BackdropUnavailable");
-        StyleFeedback.Visibility = Model.UseWindows11Style && !NativeStyleState.SystemBackdropApplied ? Visibility.Visible : Visibility.Collapsed;
-    }
-    private void ModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) { if (e.PropertyName == nameof(SettingsViewModel.UseWindows11Style)) ApplyWindowStyle(); }
-    private void Theme_Click(object sender, RoutedEventArgs e) => Guard(() =>
-    {
-        var settings = Model.Config.Settings;
-        settings.Theme = sender == FollowSystem ? (FollowSystem.IsChecked == true ? AppTheme.System : AppTheme.Light) : sender == DarkTheme ? AppTheme.Dark : AppTheme.Light;
-        SyncThemes(); ThemeService.Apply(settings.Theme); Model.Persist();
-    });
-    private void SyncThemes() { var theme = Model.Config.Settings.Theme; FollowSystem.IsChecked = theme == AppTheme.System; LightTheme.IsChecked = theme == AppTheme.Light; DarkTheme.IsChecked = theme == AppTheme.Dark; }
-    private void Icon_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) { ChangeIcon?.Invoke(folder); Model.Persist(); } }
-    private void Active_Click(object sender, RoutedEventArgs e) => Guard(() =>
-    {
-        var folder = Model.SelectedFolder;
-        Model.ToggleActive();
-        if (folder is { IsActive: false })
-        {
-            var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
-            new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
-        }
-    });
-    private void PinTaskbar_Click(object sender, RoutedEventArgs e) => Guard(() =>
-    {
-        if (Model.SelectedFolder is not { } folder) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateOrSelectContainerFirst"), "AppDock"); return; }
-        if (!folder.IsActive) folder.IsActive = true; Model.Config.Settings.EnableTaskbar = true;
-        Model.Config.Settings.LayoutMode = LayoutMode.MultipleAppBoxes;
-        Model.Persist();
-        var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
-        var launchers = new ContainerLaunchers(rootDir, AppPaths.Executable);
-        if (launchers.PinToTaskbar(folder))
-            AppDockDialog.Show(this, LocalizationService.Format("Dialog.PinnedSuccess", folder.Name), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Information);
-        else
-            AppDockDialog.Show(this, LocalizationService.Get("Dialog.PinnedManual"), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Warning);
-    });
-    private void Edit_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) EditContainer?.Invoke(folder); }
-    private void Launchers_Click(object sender, RoutedEventArgs e) => Guard(() => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + LaunchersDirectory + "\"") { UseShellExecute = true }));
-    private void RefreshIcons_Click(object sender, RoutedEventArgs e) => Guard(() =>
-    {
-        Model.Persist();
-        ContainerLaunchers.NotifyShellUpdate();
-        AppDockDialog.Show(this, LocalizationService.Get("Dialog.IconsRefreshed"), "AppDock", MessageBoxImage.Information);
-    });
+using System.Windows.Input;
+using Microsoft.Win32;
+using AppBox.Core;
+using AppBox.Infrastructure;
+using AppBox.App.Services;
+using AppBox.App.ViewModels;
+
+namespace AppBox.App.Views;
+
+public partial class SettingsWindow : Window
+{
+    public string LaunchersDirectory { get; set; } = "";
+    public Action<AppFolder>? ChangeIcon { get; set; }
+    public Action<AppFolder>? EditContainer { get; set; }
+    private SettingsViewModel Model => (SettingsViewModel)DataContext;
+    public SettingsWindow(SettingsViewModel model, string section)
+    {
+        InitializeComponent(); DataContext = model;
+        SelectSection(section);
+        SyncThemes();
+        SourceInitialized += (_, _) => ApplyWindowStyle();
+        Loaded += (_, _) => WindowPlacement.FitSettingsToWorkArea(this);
+        DpiChanged += (_, _) => Dispatcher.BeginInvoke(new Action(() => WindowPlacement.FitSettingsToWorkArea(this)));
+        model.PropertyChanged += ModelChanged;
+        Closed += (_, _) => { StopAnimationPreview(); model.PropertyChanged -= ModelChanged; };
+    }
+    public Guid? SelectedContainerId => Model.SelectedFolder?.Id;
+    public void SelectContainer(AppFolder container)
+    {
+        if (Model.Config.DesktopFolders.Contains(container))
+        {
+            Model.SelectedDesktopFolder = container;
+        }
+        else
+        {
+            Model.SelectedFolder = container;
+        }
+    }
+    public void SelectSection(string section) => Sections.SelectedIndex = section switch
+    {
+        "Containers" or "Folders" => 1,
+        "Appearance" => 2,
+        "Taskbar Interaction" or "Taskbar" => 3,
+        "Sidebar" or "Edge Sidebar" => 4,
+        "Desktop" or "Desktop Containers" => 5,
+        "Portable" or "Portable Behavior" => 6,
+        "Help" or "Guide" => 7,
+        "About" => 8,
+        _ => 0
+    };
+    private void Guard(Action action) { try { action(); } catch (Exception ex) { AppDockDialog.Show(this, ex.Message, "AppDock", MessageBoxImage.Information); } }
+    private void NewFolder_Click(object sender, RoutedEventArgs e) { var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.CreateContainerTitle"), LocalizationService.Get("Dialog.NewContainerDefault")); if (name is not null) Guard(() => Model.Create(name)); }
+    private void Rename_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is null) return; var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.RenameContainerTitle"), Model.SelectedFolder.Name); if (name is not null) Guard(() => Model.Rename(name)); }
+    private void Delete_Click(object sender, RoutedEventArgs e)
+    {
+        if (Model.SelectedFolder is { } folder && AppDockDialog.Confirm(this, LocalizationService.Format("Dialog.DeleteContainerPrompt", folder.Name), LocalizationService.Get("Dialog.DeleteContainerTitle"), LocalizationService.Get("Common.Delete"), isDanger: true))
+        {
+            Guard(() =>
+            {
+                var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
+                new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
+                Model.Delete();
+            });
+        }
+    }
+    private void Browse_Click(object sender, RoutedEventArgs e)
+    {
+        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateContainerFirst"), "AppDock"); return; }
+        var dialog = new OpenFileDialog { Filter = LocalizationService.Get("Dialog.BrowseFilter"), Multiselect = true, DereferenceLinks = false };
+        if (dialog.ShowDialog(this) != true) return;
+        foreach (var file in dialog.FileNames) Guard(() => Model.Add(new AppEntry { Name = Path.GetFileNameWithoutExtension(file), Target = file, Kind = Path.GetExtension(file).Equals(".lnk", StringComparison.OrdinalIgnoreCase) ? TargetKind.Shortcut : TargetKind.Executable }));
+    }
+    private void Discover_Click(object sender, RoutedEventArgs e)
+    {
+        if (Model.SelectedFolder is null) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateContainerFirst"), "AppDock"); return; }
+        var picker = new ApplicationPicker { Owner = this };
+        if (picker.ShowDialog() == true && picker.Selected is not null) Guard(() => Model.Add(picker.Selected));
+    }
+    private void Remove_Click(object sender, RoutedEventArgs e) => Guard(Model.Remove);
+    private void Top_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveToTop(); ScrollSelectedAppIntoView(); });
+    private void Up_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.Move(-1); ScrollSelectedAppIntoView(); });
+    private void Down_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.Move(1); ScrollSelectedAppIntoView(); });
+    private void Bottom_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveToBottom(); ScrollSelectedAppIntoView(); });
+    private void ScrollSelectedAppIntoView() { if (ApplicationsList.SelectedItem is not null) ApplicationsList.ScrollIntoView(ApplicationsList.SelectedItem); }
+
+    // --- Separate Desktop Containers Handlers ---
+    private void NewDesktopFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.CreateContainerTitle"), LocalizationService.Get("Dialog.NewContainerDefault"));
+        if (name is not null) Guard(() => Model.CreateDesktopFolder(name));
+    }
+    private void RenameDesktopFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (Model.SelectedDesktopFolder is null) return;
+        var name = TextPrompt.Ask(this, LocalizationService.Get("Dialog.RenameContainerTitle"), Model.SelectedDesktopFolder.Name);
+        if (name is not null) Guard(() => Model.RenameDesktopFolder(name));
+    }
+    private void DesktopIcon_Click(object sender, RoutedEventArgs e)
+    {
+        if (Model.SelectedDesktopFolder is { } folder)
+        {
+            ChangeIcon?.Invoke(folder);
+            Model.Persist();
+        }
+    }
+    private void DesktopActive_Click(object sender, RoutedEventArgs e) => Guard(Model.ToggleDesktopFolderActive);
+    private void DesktopFolderUp_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        Model.MoveDesktopFolder(-1);
+        if (DesktopFoldersList.SelectedItem is not null) DesktopFoldersList.ScrollIntoView(DesktopFoldersList.SelectedItem);
+    });
+    private void DesktopFolderDown_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        Model.MoveDesktopFolder(1);
+        if (DesktopFoldersList.SelectedItem is not null) DesktopFoldersList.ScrollIntoView(DesktopFoldersList.SelectedItem);
+    });
+    private void DeleteDesktopFolder_Click(object sender, RoutedEventArgs e)
+    {
+        if (Model.SelectedDesktopFolder is { } folder &&
+            AppDockDialog.Confirm(this, LocalizationService.Format("Dialog.DeleteContainerPrompt", folder.Name), LocalizationService.Get("Dialog.DeleteContainerTitle"), LocalizationService.Get("Common.Delete"), isDanger: true))
+        {
+            Guard(Model.DeleteDesktopFolder);
+        }
+    }
+    private void DesktopBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Filter = LocalizationService.Get("Dialog.BrowseFilter"), Multiselect = true, DereferenceLinks = false };
+        if (dialog.ShowDialog(this) != true) return;
+        foreach (var file in dialog.FileNames)
+        {
+            Guard(() => Model.AddDesktopApp(new AppEntry
+            {
+                Name = Path.GetFileNameWithoutExtension(file),
+                Target = file,
+                Kind = Path.GetExtension(file).Equals(".lnk", StringComparison.OrdinalIgnoreCase) ? TargetKind.Shortcut : TargetKind.Executable
+            }));
+        }
+    }
+    private void DesktopDiscover_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new ApplicationPicker { Owner = this };
+        if (picker.ShowDialog() == true && picker.Selected is not null)
+        {
+            Guard(() => Model.AddDesktopApp(picker.Selected));
+        }
+    }
+    private void DesktopRemoveApp_Click(object sender, RoutedEventArgs e) => Guard(Model.RemoveDesktopApp);
+    private void DesktopAppTop_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveDesktopAppToTop(); ScrollSelectedDesktopAppIntoView(); });
+    private void DesktopAppUp_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveDesktopApp(-1); ScrollSelectedDesktopAppIntoView(); });
+    private void DesktopAppDown_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveDesktopApp(1); ScrollSelectedDesktopAppIntoView(); });
+    private void DesktopAppBottom_Click(object sender, RoutedEventArgs e) => Guard(() => { Model.MoveDesktopAppToBottom(); ScrollSelectedDesktopAppIntoView(); });
+    private void ScrollSelectedDesktopAppIntoView() { if (DesktopApplicationsList.SelectedItem is not null) DesktopApplicationsList.ScrollIntoView(DesktopApplicationsList.SelectedItem); }
+    private void ImportDesktopShortcuts_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        var (added, _) = Model.ImportDesktopShortcuts();
+        var msg = added > 0
+            ? LocalizationService.Format("Desktop.ImportShortcutsSuccess", added)
+            : LocalizationService.Get("Desktop.ImportShortcutsNone");
+        AppDockDialog.Show(this, msg, "AppDock", MessageBoxImage.Information);
+    });
+    private void CopyFromSidebar_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        int count = Model.CopyFromSidebarContainers();
+        AppDockDialog.Show(this, LocalizationService.Format("Desktop.CopyFromSidebarSuccess", count), "AppDock", MessageBoxImage.Information);
+    });
+    private void ResetDesktopPosition_Click(object sender, RoutedEventArgs e) => Guard(Model.ResetDesktopPosition);
+
+    private void Preference_Click(object sender, RoutedEventArgs e) => Guard(Model.Persist);
+    public WindowStyleResult? NativeStyleState { get; private set; }
+    public void ApplyWindowStyle()
+    {
+        if (DataContext is not SettingsViewModel || new System.Windows.Interop.WindowInteropHelper(this).Handle == IntPtr.Zero) return;
+        NativeStyleState = NativeWindowStyle.Apply(this, Model.UseWindows11Style, ThemeService.Dark);
+        StyleToggle.ToolTip = NativeStyleState.Detail;
+        StyleFeedback.Text = LocalizationService.Get("General.BackdropUnavailable");
+        StyleFeedback.Visibility = Model.UseWindows11Style && !NativeStyleState.SystemBackdropApplied ? Visibility.Visible : Visibility.Collapsed;
+    }
+    private void ModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) { if (e.PropertyName == nameof(SettingsViewModel.UseWindows11Style)) ApplyWindowStyle(); }
+    private void Theme_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        var settings = Model.Config.Settings;
+        settings.Theme = sender == FollowSystem ? (FollowSystem.IsChecked == true ? AppTheme.System : AppTheme.Light) : sender == DarkTheme ? AppTheme.Dark : AppTheme.Light;
+        SyncThemes(); ThemeService.Apply(settings.Theme); Model.Persist();
+    });
+    private void SyncThemes() { var theme = Model.Config.Settings.Theme; FollowSystem.IsChecked = theme == AppTheme.System; LightTheme.IsChecked = theme == AppTheme.Light; DarkTheme.IsChecked = theme == AppTheme.Dark; }
+    private void Icon_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) { ChangeIcon?.Invoke(folder); Model.Persist(); } }
+    private void Active_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        var folder = Model.SelectedFolder;
+        Model.ToggleActive();
+        if (folder is { IsActive: false })
+        {
+            var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
+            new ContainerLaunchers(rootDir, AppPaths.Executable).UnpinFromTaskbar(folder);
+        }
+    });
+    private void PinTaskbar_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        if (Model.SelectedFolder is not { } folder) { AppDockDialog.Show(this, LocalizationService.Get("Dialog.CreateOrSelectContainerFirst"), "AppDock"); return; }
+        if (!folder.IsActive) folder.IsActive = true; Model.Config.Settings.EnableTaskbar = true;
+        Model.Config.Settings.LayoutMode = LayoutMode.MultipleAppBoxes;
+        Model.Persist();
+        var rootDir = !string.IsNullOrEmpty(LaunchersDirectory) ? Path.GetDirectoryName(LaunchersDirectory)! : AppPaths.ActiveDataDirectory;
+        var launchers = new ContainerLaunchers(rootDir, AppPaths.Executable);
+        if (launchers.PinToTaskbar(folder))
+            AppDockDialog.Show(this, LocalizationService.Format("Dialog.PinnedSuccess", folder.Name), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Information);
+        else
+            AppDockDialog.Show(this, LocalizationService.Get("Dialog.PinnedManual"), LocalizationService.Get("Dialog.PinnedTitle"), MessageBoxImage.Warning);
+    });
+    private void Edit_Click(object sender, RoutedEventArgs e) { if (Model.SelectedFolder is { } folder) EditContainer?.Invoke(folder); }
+    private void Launchers_Click(object sender, RoutedEventArgs e) => Guard(() => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + LaunchersDirectory + "\"") { UseShellExecute = true }));
+    private void RefreshIcons_Click(object sender, RoutedEventArgs e) => Guard(() =>
+    {
+        Model.Persist();
+        ContainerLaunchers.NotifyShellUpdate();
+        AppDockDialog.Show(this, LocalizationService.Get("Dialog.IconsRefreshed"), "AppDock", MessageBoxImage.Information);
+    });
     public Action<bool>? SwitchStorageLocation { get; set; }
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => Guard(() =>
     {
@@ -324,5 +428,5 @@ public partial class SettingsWindow : Window
         previewRenderHandler = handler;
         System.Windows.Media.CompositionTarget.Rendering += handler;
     }
-    private void Done_Click(object sender, RoutedEventArgs e) => Close();
-}
+    private void Done_Click(object sender, RoutedEventArgs e) => Close();
+}

@@ -294,7 +294,7 @@ internal static class Program
             var config = new Configuration();
             var vm = new SettingsViewModel(config, () => { });
             Check(vm.AvailableLanguages.Count == LocalizationService.SupportedLanguages.Length);
-            Check(vm.AppVersionText.Contains("3.0.1"), $"Expected version 3.0.1, got {vm.AppVersionText}");
+            Check(vm.AppVersionText.Contains("3.1.0"), $"Expected version 3.1.0, got {vm.AppVersionText}");
 
             var deOption = vm.AvailableLanguages.FirstOrDefault(l => l.Language == AppLanguage.German);
             Check(deOption != null, "German option missing in AvailableLanguages");
@@ -429,6 +429,319 @@ internal static class Program
             Check(reloaded.Folders.Count == 1);
             Check(string.Equals(reloaded.Folders[0].Icon.ResourcePath, Path.Combine(movedPortableDir, "Icons", "mycustom.ico"), StringComparison.OrdinalIgnoreCase),
                 $"Custom icon path did not self-heal after moving portable folder: {reloaded.Folders[0].Icon.ResourcePath}");
+        });
+
+        Test("ConfigurationStore persists and reloads Taskbar Magnification settings", () =>
+        {
+            var dir = Path.Combine(Root, "test-taskbar-mag");
+            var testStore = new ConfigurationStore(dir);
+            var initial = testStore.Load();
+            Check(!initial.Settings.EnableTaskbarMagnification, "Default EnableTaskbarMagnification should be false");
+            Check(initial.Settings.TaskbarMagnificationScope == TaskbarMagnificationScope.AllTaskbarIcons, "Default Scope should be AllTaskbarIcons");
+            Check(Math.Abs(initial.Settings.TaskbarMagnificationScale - 1.55) < 0.01, "Default Scale should be 1.55");
+            Check(initial.Settings.ShowTaskbarMagnificationLabel, "Default ShowTaskbarMagnificationLabel should be true");
+
+            initial.Settings.EnableTaskbarMagnification = true;
+            initial.Settings.TaskbarMagnificationScope = TaskbarMagnificationScope.AppDockOnly;
+            initial.Settings.TaskbarMagnificationScale = 1.70;
+            initial.Settings.ShowTaskbarMagnificationLabel = false;
+            testStore.Save(initial);
+
+            var loaded = testStore.Load();
+            Check(loaded.Settings.EnableTaskbarMagnification, "EnableTaskbarMagnification was not persisted");
+            Check(loaded.Settings.TaskbarMagnificationScope == TaskbarMagnificationScope.AppDockOnly, "TaskbarMagnificationScope was not persisted");
+            Check(Math.Abs(loaded.Settings.TaskbarMagnificationScale - 1.70) < 0.01, "TaskbarMagnificationScale was not persisted");
+            Check(!loaded.Settings.ShowTaskbarMagnificationLabel, "ShowTaskbarMagnificationLabel was not persisted");
+
+            loaded.Settings.TaskbarMagnificationScale = 5.0;
+            testStore.Save(loaded);
+            var reloaded = testStore.Load();
+            Check(reloaded.Settings.TaskbarMagnificationScale <= 2.0, "Scale was not clamped to max 2.0");
+        });
+
+        Test("TaskbarIconResolver clean name extraction", () =>
+        {
+            Check(TaskbarIconResolver.ExtractCleanName("Google Chrome - 1 running window") == "Google Chrome", "Failed on Google Chrome suffix");
+            Check(TaskbarIconResolver.ExtractCleanName("Visual Studio Code - 3 running windows") == "Visual Studio Code", "Failed on VS Code suffix");
+            Check(TaskbarIconResolver.ExtractCleanName("Explorateur de fichiers - 2 fenêtres actives") == "Explorateur de fichiers", "Failed on French suffix");
+            Check(TaskbarIconResolver.ExtractCleanName("File Explorer") == "File Explorer", "Failed on unsuffixed name");
+            Check(TaskbarIconResolver.ExtractCleanName("AppDock - Utilities") == "AppDock - Utilities", "Failed on AppDock container name");
+        });
+
+        Test("ContainerWarpMesh.ComputeDockMagnificationScale bell curve behavior", () =>
+        {
+            double peak = ContainerWarpMesh.ComputeDockMagnificationScale(0.0, influenceRadiusDip: 100.0, maxExtraScale: 0.55);
+            Check(Math.Abs(peak - 1.55) < 0.001, $"Peak scale at d=0 should be 1.55, got {peak}");
+
+            double mid = ContainerWarpMesh.ComputeDockMagnificationScale(50.0, influenceRadiusDip: 100.0, maxExtraScale: 0.55);
+            Check(mid > 1.0 && mid < 1.55, $"Mid scale should be between 1.0 and 1.55, got {mid}");
+
+            double edge = ContainerWarpMesh.ComputeDockMagnificationScale(100.0, influenceRadiusDip: 100.0, maxExtraScale: 0.55);
+            Check(Math.Abs(edge - 1.0) < 0.001, $"Edge scale at d=influence should be 1.0, got {edge}");
+
+            double far = ContainerWarpMesh.ComputeDockMagnificationScale(150.0, influenceRadiusDip: 100.0, maxExtraScale: 0.55);
+            Check(Math.Abs(far - 1.0) < 0.0001, $"Far scale beyond influence should be 1.0, got {far}");
+        });
+
+        Test("ConfigurationStore persists and reloads Desktop Containers settings and Separate DesktopFolders", () =>
+        {
+            var dir = Path.Combine(Root, "test-desktop-containers");
+            var testStore = new ConfigurationStore(dir);
+            var initial = testStore.Load();
+            Check(!initial.Settings.EnableDesktopContainers, "Default EnableDesktopContainers should be false");
+            Check(!initial.Settings.HideDesktopIcons, "Default HideDesktopIcons should be false");
+            Check(initial.Settings.RestoreDesktopIconsOnExit, "Default RestoreDesktopIconsOnExit should be true");
+            Check(initial.Settings.DesktopContentSource == DesktopContentSource.SharedWithSidebar, "Default DesktopContentSource should be SharedWithSidebar");
+            Check(initial.Settings.DesktopDisplayStyle == DesktopDisplayStyle.CompactFlyout, "Default DesktopDisplayStyle should be CompactFlyout");
+
+            var desktopManager = new FolderManager(initial, useDesktopFolders: true);
+            var folder = desktopManager.Create("Desktop Tools");
+            desktopManager.Add(folder, Entry());
+            initial.Settings.EnableDesktopContainers = true;
+            initial.Settings.DesktopContentSource = DesktopContentSource.SeparateDesktopContainers;
+            initial.Settings.DesktopDisplayStyle = DesktopDisplayStyle.ExpandedBoxes;
+            initial.Settings.DesktopContainerOpacity = 0.80;
+            initial.Settings.LockDesktopContainers = true;
+            testStore.Save(initial);
+
+            var loaded = testStore.Load();
+            Check(loaded.Settings.EnableDesktopContainers, "EnableDesktopContainers was not persisted");
+            Check(loaded.Settings.DesktopContentSource == DesktopContentSource.SeparateDesktopContainers, "DesktopContentSource was not persisted");
+            Check(loaded.Settings.DesktopDisplayStyle == DesktopDisplayStyle.ExpandedBoxes, "DesktopDisplayStyle was not persisted");
+            Check(Math.Abs(loaded.Settings.DesktopContainerOpacity - 0.80) < 0.01, "DesktopContainerOpacity was not persisted");
+            Check(loaded.Settings.LockDesktopContainers, "LockDesktopContainers was not persisted");
+            Check(loaded.DesktopFolders.Count == 1 && loaded.DesktopFolders[0].Name == "Desktop Tools", "DesktopFolders was not persisted");
+            Check(loaded.DesktopFolders[0].Applications.Count == 1, "DesktopFolders applications were not persisted");
+        });
+
+        Test("SettingsViewModel manages Shared vs Separate Desktop Containers and CopyFromSidebarContainers", () =>
+        {
+            var config = new Configuration();
+            var sidebarManager = new FolderManager(config);
+            var devFolder = sidebarManager.Create("Dev");
+            sidebarManager.Add(devFolder, Entry());
+
+            var vm = new SettingsViewModel(config, () => { });
+            Check(vm.IsDesktopSharedContent, "Should start in SharedWithSidebar mode");
+
+            vm.IsDesktopSeparateContent = true;
+            Check(config.Settings.DesktopContentSource == DesktopContentSource.SeparateDesktopContainers, "Should switch to SeparateDesktopContainers");
+            Check(vm.DesktopFolders.Count == 1, "Switching to empty SeparateDesktopContainers should auto-create a default desktop container");
+
+            int copied = vm.CopyFromSidebarContainers();
+            Check(copied == 1, $"Expected 1 copied container, got {copied}");
+            Check(vm.DesktopFolders.Any(f => f.Name == "Dev" && f.Applications.Count == 1), "Copied container should include applications");
+
+            var bounds = PopupPlacement.CalculateDesktopContainers(new(0, 0, 1920, 1040), 0.99, 0.99, 1.0, 320, 240);
+            Check(bounds.X + bounds.Width <= 1920 && bounds.Y + bounds.Height <= 1040, "Desktop container bounds should clamp inside work area");
+        });
+
+        Test("DesktopIconsService.EvaluateTransition safeguards Stardock Fences and external desktop icon state", () =>
+        {
+            // 1. If Fences or Explorer already hid desktop icons (currentlyVisible: false), AppDock should not mark hiddenByApp=true
+            var alreadyHidden = DesktopIconsService.EvaluateTransition(
+                hideRequested: true,
+                currentlyVisible: false,
+                wasHiddenByApp: false,
+                explicitUserAction: false,
+                fencesRunning: true);
+            Check(alreadyHidden.Action == DesktopIconsService.DesktopVisibilityAction.None && !alreadyHidden.NewHiddenByApp,
+                "Should not claim ownership when desktop icons were already hidden externally");
+
+            // 2. On automatic startup/sync (explicitUserAction: false), if Fences hid icons and AppDock has HideDesktopIcons=false, AppDock must NOT unhide Fences' icons
+            var doNotOverrideExternalHide = DesktopIconsService.EvaluateTransition(
+                hideRequested: false,
+                currentlyVisible: false,
+                wasHiddenByApp: false,
+                explicitUserAction: false,
+                fencesRunning: true);
+            Check(doNotOverrideExternalHide.Action == DesktopIconsService.DesktopVisibilityAction.None && !doNotOverrideExternalHide.NewHiddenByApp,
+                "Background sync with HideDesktopIcons=false must not unhide icons hidden by Fences");
+
+            // 3. On automatic startup/sync when Fences is running, do not forcefully hide SysListView32 behind Fences' back
+            var avoidAutoHideUnderFences = DesktopIconsService.EvaluateTransition(
+                hideRequested: true,
+                currentlyVisible: true,
+                wasHiddenByApp: false,
+                explicitUserAction: false,
+                fencesRunning: true);
+            Check(avoidAutoHideUnderFences.Action == DesktopIconsService.DesktopVisibilityAction.None && !avoidAutoHideUnderFences.NewHiddenByApp,
+                "Automatic startup sync should not forcefully hide SysListView32 when Fences is running");
+
+            // 4. Explicit user toggle in AppDock always works and tracks ownership properly
+            var explicitHide = DesktopIconsService.EvaluateTransition(
+                hideRequested: true,
+                currentlyVisible: true,
+                wasHiddenByApp: false,
+                explicitUserAction: true,
+                fencesRunning: true);
+            Check(explicitHide.Action == DesktopIconsService.DesktopVisibilityAction.Hide && explicitHide.NewHiddenByApp,
+                "Explicit user toggle should hide icons and mark hiddenByApp=true");
+
+            // 5. Restore on exit unhides icons when hiddenByApp=true
+            var restoreOwned = DesktopIconsService.EvaluateTransition(
+                hideRequested: false,
+                currentlyVisible: false,
+                wasHiddenByApp: true,
+                explicitUserAction: false,
+                fencesRunning: false);
+            Check(restoreOwned.Action == DesktopIconsService.DesktopVisibilityAction.Show && !restoreOwned.NewHiddenByApp,
+                "RestoreOnExit should unhide icons when AppDock was the one that hid them");
+        });
+
+        Test("AppFolder per-container DesktopX/DesktopY clamping, IsDesktopCollapsed, and ResetDesktopPosition", () =>
+        {
+            var store = new ConfigurationStore(Path.Combine(Root, "desktop_box_pos.json"));
+            var folder1 = new AppFolder
+            {
+                Name = "Tools",
+                DesktopX = 1.5,
+                DesktopY = -0.2,
+                IsDesktopCollapsed = false
+            };
+            var folder2 = new AppFolder
+            {
+                Name = "Media",
+                DesktopX = 0.42,
+                DesktopY = 0.65
+            };
+            var cfg = new Configuration
+            {
+                Folders = new List<AppFolder> { folder1 },
+                DesktopFolders = new List<AppFolder> { folder2 }
+            };
+            store.Save(cfg);
+            var loaded = store.Load();
+            Check(loaded.Folders[0].DesktopX == 1.0 && loaded.Folders[0].DesktopY == 0.0,
+                "DesktopX/DesktopY should clamp to [0.0, 1.0]");
+            Check(!loaded.Folders[0].IsDesktopCollapsed,
+                "IsDesktopCollapsed=false should persist");
+            Check(loaded.DesktopFolders[0].IsDesktopCollapsed,
+                "IsDesktopCollapsed should default to true");
+            Check(Math.Abs((loaded.DesktopFolders[0].DesktopX ?? 0) - 0.42) < 1e-6,
+                "DesktopFolders DesktopX should persist");
+
+            loaded.Folders[0].DesktopX = null;
+            loaded.Folders[0].DesktopY = null;
+            loaded.DesktopFolders[0].DesktopX = null;
+            loaded.DesktopFolders[0].DesktopY = null;
+            store.Save(loaded);
+            var resetLoaded = store.Load();
+            Check(resetLoaded.Folders[0].DesktopX == null && resetLoaded.Folders[0].DesktopY == null,
+                "Cleared per-container DesktopX/DesktopY should persist as null");
+            Check(resetLoaded.DesktopFolders[0].DesktopX == null && resetLoaded.DesktopFolders[0].DesktopY == null,
+                "Cleared DesktopFolders DesktopX/DesktopY should persist as null");
+        });
+
+        Test("SingleInstance WaitOne acquisition and secondary disposal do not block primary re-acquisition", () =>
+        {
+            var scope = Guid.NewGuid().ToString();
+            var primary = new SingleInstance(scope);
+            Check(primary.IsPrimary, "First instance should acquire primary lock");
+
+            SingleInstance? secondary = null;
+            Task.Run(() =>
+            {
+                secondary = new SingleInstance(scope);
+            }).Wait();
+            Check(secondary is not null && !secondary.IsPrimary,
+                "Concurrent instance on another thread should not become primary");
+
+            // Even if secondary still holds its handle when primary releases, a new instance can become primary
+            primary.Dispose();
+            primary.Dispose(); // idempotent
+
+            SingleInstance? nextPrimary = null;
+            Task.Run(() =>
+            {
+                nextPrimary = new SingleInstance(scope);
+                nextPrimary.Dispose();
+            }).Wait();
+            Check(nextPrimary is not null && nextPrimary.IsPrimary,
+                "Disposed secondary should not block subsequent primary acquisition");
+
+            secondary!.Dispose();
+            secondary.Dispose(); // idempotent
+        });
+
+        Test("DesktopRecycleBinX/Y persistence, clamping, Recycle Bin status and icons", () =>
+        {
+            var store = new ConfigurationStore(Path.Combine(Root, "recycle_bin_pos.json"));
+            var cfg = new Configuration
+            {
+                Settings = new Preferences
+                {
+                    DesktopRecycleBinX = 1.4,
+                    DesktopRecycleBinY = -0.3
+                }
+            };
+            store.Save(cfg);
+            var clamped = store.Load();
+            Check(clamped.Settings.DesktopRecycleBinX == 1.0 && clamped.Settings.DesktopRecycleBinY == 0.0,
+                "DesktopRecycleBinX/Y should clamp to [0.0, 1.0]");
+
+            clamped.Settings.DesktopRecycleBinX = 0.25;
+            clamped.Settings.DesktopRecycleBinY = 0.75;
+            store.Save(clamped);
+            var loaded = store.Load();
+            Check(Math.Abs(loaded.Settings.DesktopRecycleBinX - 0.25) < 1e-6 &&
+                  Math.Abs(loaded.Settings.DesktopRecycleBinY - 0.75) < 1e-6,
+                "DesktopRecycleBinX/Y should persist valid coordinates");
+
+            var (itemCount, totalBytes) = DesktopIconsService.GetRecycleBinStatus();
+            Check(itemCount >= 0 && totalBytes >= 0,
+                "GetRecycleBinStatus should return non-negative metrics");
+
+            var emptyIcon = ShellIcon.GetRecycleBinIcon(false);
+            var fullIcon = ShellIcon.GetRecycleBinIcon(true);
+            Check(emptyIcon is not null && emptyIcon.IsFrozen,
+                "Empty Recycle Bin stock icon should load and be frozen");
+            Check(fullIcon is not null && fullIcon.IsFrozen,
+                "Full Recycle Bin stock icon should load and be frozen");
+        });
+
+        Test("DesktopBoxWindow grid layout maintains aligned tops, equal spacing, and clean norm round-trip", () =>
+        {
+            var work = new PixelRect(0, 0, 1920, 1032);
+            double scale = 1.0;
+
+            var (l0, t0) = AppBox.App.Views.DesktopBoxWindow.GridCellToDip(0, 0, work, scale);
+            var (l1, t1) = AppBox.App.Views.DesktopBoxWindow.GridCellToDip(1, 0, work, scale);
+            var (l2, t2) = AppBox.App.Views.DesktopBoxWindow.GridCellToDip(2, 0, work, scale);
+            var (l0r1, t0r1) = AppBox.App.Views.DesktopBoxWindow.GridCellToDip(0, 1, work, scale);
+
+            Check(Math.Abs(t0 - t1) < 1e-6 && Math.Abs(t1 - t2) < 1e-6,
+                "Containers in the same row should have perfectly aligned tops");
+            double gap01 = l1 - (l0 + AppBox.App.Views.DesktopBoxWindow.IconSizeDip);
+            double gap12 = l2 - (l1 + AppBox.App.Views.DesktopBoxWindow.IconSizeDip);
+            double vGap = t0r1 - (t0 + AppBox.App.Views.DesktopBoxWindow.IconSizeDip);
+            Check(Math.Abs(gap01 - AppBox.App.Views.DesktopBoxWindow.GridMarginDip) < 1e-6 &&
+                  Math.Abs(gap12 - gap01) < 1e-6 &&
+                  Math.Abs(vGap - gap01) < 1e-6,
+                "Horizontal and vertical gaps between grid cells should be equal");
+
+            var (nx, ny) = AppBox.App.Views.DesktopBoxWindow.GridCellToNorm(4, 2, work, scale);
+            var snapped = AppBox.App.Views.DesktopBoxWindow.SnapNormToGridCell(nx, ny, work, scale);
+            Check(snapped.Col == 4 && snapped.Row == 2,
+                $"GridCellToNorm should snap back to exact cell (4, 2), got ({snapped.Col}, {snapped.Row})");
+        });
+
+        Test("DesktopBoxWindow.DoesExpandedBoxOverlapIcon detects overlapping vs clear neighbor icons", () =>
+        {
+            var expanded = new System.Windows.Rect(20, 20, 320, 260);
+            var neighborInside = new System.Windows.Rect(104, 20, 64, 64);
+            var neighborRightOutside = new System.Windows.Rect(356, 20, 64, 64);
+            var neighborEdgeTouching = new System.Windows.Rect(340, 20, 64, 64);
+            var neighborBelow = new System.Windows.Rect(20, 288, 64, 64);
+
+            Check(AppBox.App.Views.DesktopBoxWindow.DoesExpandedBoxOverlapIcon(expanded, neighborInside),
+                "Neighbor icon at (104, 20) inside (20, 20, 320x260) should be detected as overlapping");
+            Check(!AppBox.App.Views.DesktopBoxWindow.DoesExpandedBoxOverlapIcon(expanded, neighborRightOutside),
+                "Neighbor icon to the right at (356, 20) should not overlap");
+            Check(!AppBox.App.Views.DesktopBoxWindow.DoesExpandedBoxOverlapIcon(expanded, neighborEdgeTouching),
+                "Edge-touching neighbor at x=340 should not count as overlapping");
+            Check(!AppBox.App.Views.DesktopBoxWindow.DoesExpandedBoxOverlapIcon(expanded, neighborBelow),
+                "Neighbor icon below at y=288 should not overlap");
         });
 
         Console.WriteLine("\n========================================");

@@ -79,27 +79,119 @@ public sealed class SettingsViewModel : ObservableObject
     public bool EnableTaskbar
     {
         get => Config.Settings.EnableTaskbar;
-        set => SetActivationSurfaces(value, (!value && !Config.Settings.EnableEdgeSidebar) ? true : Config.Settings.EnableEdgeSidebar);
+        set => SetActivationSurfaces(value, (!value && !Config.Settings.EnableEdgeSidebar && !Config.Settings.EnableDesktopContainers) ? true : Config.Settings.EnableEdgeSidebar, Config.Settings.EnableDesktopContainers);
     }
     public bool EnableEdgeSidebar
     {
         get => Config.Settings.EnableEdgeSidebar;
-        set => SetActivationSurfaces((!value && !Config.Settings.EnableTaskbar) ? true : Config.Settings.EnableTaskbar, value);
+        set => SetActivationSurfaces((!value && !Config.Settings.EnableTaskbar && !Config.Settings.EnableDesktopContainers) ? true : Config.Settings.EnableTaskbar, value, Config.Settings.EnableDesktopContainers);
+    }
+    public bool EnableDesktopContainers
+    {
+        get => Config.Settings.EnableDesktopContainers;
+        set => SetActivationSurfaces((!value && !Config.Settings.EnableTaskbar && !Config.Settings.EnableEdgeSidebar) ? true : Config.Settings.EnableTaskbar, Config.Settings.EnableEdgeSidebar, value);
+    }
+    public bool HideDesktopIcons
+    {
+        get => Config.Settings.HideDesktopIcons;
+        set
+        {
+            if (Config.Settings.HideDesktopIcons == value) return;
+            DesktopIconsService.SetDesktopIconsHidden(value, explicitUserAction: true);
+            SetPreference(Config.Settings.HideDesktopIcons, value, v => Config.Settings.HideDesktopIcons = v);
+        }
+    }
+    public bool IsFencesDetected { get; }
+    public bool RestoreDesktopIconsOnExit
+    {
+        get => Config.Settings.RestoreDesktopIconsOnExit;
+        set => SetPreference(Config.Settings.RestoreDesktopIconsOnExit, value, v => Config.Settings.RestoreDesktopIconsOnExit = v);
+    }
+    public DesktopDisplayStyle DesktopDisplayStyle
+    {
+        get => Config.Settings.DesktopDisplayStyle;
+        set => SetPreference(Config.Settings.DesktopDisplayStyle, value, v => Config.Settings.DesktopDisplayStyle = v);
+    }
+    public bool IsDesktopCompactFlyout
+    {
+        get => Config.Settings.DesktopDisplayStyle == DesktopDisplayStyle.CompactFlyout;
+        set { if (value) DesktopDisplayStyle = DesktopDisplayStyle.CompactFlyout; }
+    }
+    public bool IsDesktopExpandedBoxes
+    {
+        get => Config.Settings.DesktopDisplayStyle == DesktopDisplayStyle.ExpandedBoxes;
+        set { if (value) DesktopDisplayStyle = DesktopDisplayStyle.ExpandedBoxes; }
+    }
+    public DesktopContentSource DesktopContentSource
+    {
+        get => Config.Settings.DesktopContentSource;
+        set
+        {
+            if (Config.Settings.DesktopContentSource == value) return;
+            if (value == DesktopContentSource.SeparateDesktopContainers && Config.DesktopFolders.Count == 0)
+            {
+                desktopManager.Create(LocalizationService.Get("Desktop.DefaultContainerName"));
+            }
+            SetPreference(Config.Settings.DesktopContentSource, value, v => Config.Settings.DesktopContentSource = v);
+            RefreshDesktop();
+        }
+    }
+    public bool IsDesktopSharedContent
+    {
+        get => Config.Settings.DesktopContentSource == DesktopContentSource.SharedWithSidebar;
+        set { if (value) DesktopContentSource = DesktopContentSource.SharedWithSidebar; }
+    }
+    public bool IsDesktopSeparateContent
+    {
+        get => Config.Settings.DesktopContentSource == DesktopContentSource.SeparateDesktopContainers;
+        set { if (value) DesktopContentSource = DesktopContentSource.SeparateDesktopContainers; }
+    }
+    public ContainerOpeningBehavior DesktopOpeningBehavior
+    {
+        get => Config.Settings.DesktopOpeningBehavior;
+        set => SetPreference(Config.Settings.DesktopOpeningBehavior, value, v => Config.Settings.DesktopOpeningBehavior = v);
+    }
+    public bool IsDesktopClickOpen { get => Config.Settings.DesktopOpeningBehavior == ContainerOpeningBehavior.Click; set { if (value) DesktopOpeningBehavior = ContainerOpeningBehavior.Click; } }
+    public bool IsDesktopHoverOpen { get => Config.Settings.DesktopOpeningBehavior == ContainerOpeningBehavior.Hover; set { if (value) DesktopOpeningBehavior = ContainerOpeningBehavior.Hover; } }
+    public bool IsDesktopClickOrHoverOpen { get => Config.Settings.DesktopOpeningBehavior == ContainerOpeningBehavior.ClickOrHover; set { if (value) DesktopOpeningBehavior = ContainerOpeningBehavior.ClickOrHover; } }
+    public int DesktopContainerOpacityPercent
+    {
+        get => (int)Math.Round(Config.Settings.DesktopContainerOpacity * 100);
+        set => SetPreference(Config.Settings.DesktopContainerOpacity, Math.Clamp(value, 30, 100) / 100.0, v => Config.Settings.DesktopContainerOpacity = v);
+    }
+    public string DesktopContainerOpacityText => $"{DesktopContainerOpacityPercent}%";
+    public bool LockDesktopContainers
+    {
+        get => Config.Settings.LockDesktopContainers;
+        set => SetPreference(Config.Settings.LockDesktopContainers, value, v => Config.Settings.LockDesktopContainers = v);
+    }
+    public void ResetDesktopPosition()
+    {
+        Config.Settings.DesktopDockX = 0.82;
+        Config.Settings.DesktopDockY = 0.12;
+        Config.Settings.DesktopRecycleBinX = 0.015;
+        Config.Settings.DesktopRecycleBinY = 0.02;
+        foreach (var folder in Config.Folders.Concat(Config.DesktopFolders))
+        {
+            folder.DesktopX = null;
+            folder.DesktopY = null;
+        }
+        Persist();
     }
     public bool IsTaskbarOnlyActive
     {
         get => Config.Settings.EnableTaskbar && !Config.Settings.EnableEdgeSidebar;
-        set { if (value) SetActivationSurfaces(true, false); }
+        set { if (value) SetActivationSurfaces(true, false, Config.Settings.EnableDesktopContainers); }
     }
     public bool IsSidebarOnlyActive
     {
         get => !Config.Settings.EnableTaskbar && Config.Settings.EnableEdgeSidebar;
-        set { if (value) SetActivationSurfaces(false, true); }
+        set { if (value) SetActivationSurfaces(false, true, Config.Settings.EnableDesktopContainers); }
     }
     public bool IsBothSurfacesActive
     {
         get => Config.Settings.EnableTaskbar && Config.Settings.EnableEdgeSidebar;
-        set { if (value) SetActivationSurfaces(true, true); }
+        set { if (value) SetActivationSurfaces(true, true, Config.Settings.EnableDesktopContainers); }
     }
     public LayoutMode SidebarLayoutMode
     {
@@ -216,6 +308,59 @@ public sealed class SettingsViewModel : ObservableObject
     public bool IsTaskbarClickOpen { get => Config.Settings.OpeningBehavior == ContainerOpeningBehavior.Click; set { if (value) TaskbarOpeningBehavior = ContainerOpeningBehavior.Click; } }
     public bool IsTaskbarHoverOpen { get => Config.Settings.OpeningBehavior == ContainerOpeningBehavior.Hover; set { if (value) TaskbarOpeningBehavior = ContainerOpeningBehavior.Hover; } }
     public bool IsTaskbarClickOrHoverOpen { get => Config.Settings.OpeningBehavior == ContainerOpeningBehavior.ClickOrHover; set { if (value) TaskbarOpeningBehavior = ContainerOpeningBehavior.ClickOrHover; } }
+
+    public bool EnableTaskbarMagnification
+    {
+        get => Config.Settings.EnableTaskbarMagnification;
+        set => SetPreference(Config.Settings.EnableTaskbarMagnification, value, v => Config.Settings.EnableTaskbarMagnification = v);
+    }
+    public bool IsTaskbarMagnifyAll
+    {
+        get => Config.Settings.TaskbarMagnificationScope == TaskbarMagnificationScope.AllTaskbarIcons;
+        set
+        {
+            if (value && Config.Settings.TaskbarMagnificationScope != TaskbarMagnificationScope.AllTaskbarIcons)
+            {
+                SetPreference(Config.Settings.TaskbarMagnificationScope, TaskbarMagnificationScope.AllTaskbarIcons, v => Config.Settings.TaskbarMagnificationScope = v);
+                Changed(nameof(IsTaskbarMagnifyAll));
+                Changed(nameof(IsTaskbarMagnifyAppDockOnly));
+            }
+        }
+    }
+    public bool IsTaskbarMagnifyAppDockOnly
+    {
+        get => Config.Settings.TaskbarMagnificationScope == TaskbarMagnificationScope.AppDockOnly;
+        set
+        {
+            if (value && Config.Settings.TaskbarMagnificationScope != TaskbarMagnificationScope.AppDockOnly)
+            {
+                SetPreference(Config.Settings.TaskbarMagnificationScope, TaskbarMagnificationScope.AppDockOnly, v => Config.Settings.TaskbarMagnificationScope = v);
+                Changed(nameof(IsTaskbarMagnifyAll));
+                Changed(nameof(IsTaskbarMagnifyAppDockOnly));
+            }
+        }
+    }
+    public double TaskbarMagnificationScale
+    {
+        get => Config.Settings.TaskbarMagnificationScale;
+        set
+        {
+            double clamped = Math.Clamp(value, 1.25, 1.85);
+            SetPreference(Config.Settings.TaskbarMagnificationScale, clamped, v =>
+            {
+                Config.Settings.TaskbarMagnificationScale = v;
+                Changed(nameof(TaskbarMagnificationScaleText));
+            });
+        }
+    }
+    public string TaskbarMagnificationScaleText =>
+        LocalizationService.Format("Taskbar.MagnificationScale", TaskbarMagnificationScale);
+
+    public bool ShowTaskbarMagnificationLabel
+    {
+        get => Config.Settings.ShowTaskbarMagnificationLabel;
+        set => SetPreference(Config.Settings.ShowTaskbarMagnificationLabel, value, v => Config.Settings.ShowTaskbarMagnificationLabel = v);
+    }
     public ContainerOpeningBehavior SidebarOpeningBehavior
     {
         get => Config.Settings.SidebarOpeningBehavior;
@@ -259,28 +404,35 @@ public sealed class SettingsViewModel : ObservableObject
         catch (Exception ex) when (ex is not OutOfMemoryException) { assign(previous); PreferenceError = "This setting could not be saved: " + ex.Message; }
         NotifyPreferences();
     }
-    private void SetActivationSurfaces(bool taskbar, bool sidebar)
+    private void SetActivationSurfaces(bool taskbar, bool sidebar, bool? desktop = null)
     {
-        if (!taskbar && !sidebar) taskbar = true;
-        if (Config.Settings.EnableTaskbar == taskbar && Config.Settings.EnableEdgeSidebar == sidebar) return;
+        bool desktopVal = desktop ?? Config.Settings.EnableDesktopContainers;
+        if (!taskbar && !sidebar && !desktopVal) taskbar = true;
+        if (Config.Settings.EnableTaskbar == taskbar
+            && Config.Settings.EnableEdgeSidebar == sidebar
+            && Config.Settings.EnableDesktopContainers == desktopVal) return;
         var prevTaskbar = Config.Settings.EnableTaskbar;
         var prevSidebar = Config.Settings.EnableEdgeSidebar;
+        var prevDesktop = Config.Settings.EnableDesktopContainers;
         Config.Settings.EnableTaskbar = taskbar;
         Config.Settings.EnableEdgeSidebar = sidebar;
+        Config.Settings.EnableDesktopContainers = desktopVal;
         try { save(); PreferenceError = ""; }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             Config.Settings.EnableTaskbar = prevTaskbar;
             Config.Settings.EnableEdgeSidebar = prevSidebar;
+            Config.Settings.EnableDesktopContainers = prevDesktop;
             PreferenceError = "This setting could not be saved: " + ex.Message;
         }
         NotifyPreferences();
     }
     private void NotifyPreferences()
     {
-        foreach (var property in new[] { nameof(Language), nameof(SelectedLanguageOption), nameof(IsSingleLayout), nameof(IsMultipleLayout), nameof(ShowAppNames), nameof(ShortenAppNames), nameof(SortMode), nameof(IsManualSort), nameof(IsRecentFirstSort), nameof(GridColumns), nameof(GridRows), nameof(AutoCloseAfterLaunch), nameof(EnableAnimations), nameof(AnimationStyle), nameof(IsGenieAnimation), nameof(IsSuckAnimation), nameof(IsScaleAnimation), nameof(IsMagicLampAnimation), nameof(IsOrigamiAnimation), nameof(IsPageCurlAnimation), nameof(IsBlackHoleAnimation), nameof(IsFlip3DAnimation), nameof(IsJellyAnimation), nameof(IsRandomAnimation), nameof(AnimationDurationMs), nameof(EnableDockMagnification), nameof(EnableLaunchBounce), nameof(EnableCardTiltOnHover), nameof(EnablePoofOnRemove), nameof(AnimationStyleTitle), nameof(AnimationStyleTagline), nameof(AnimationStyleDescription), nameof(StartWithWindows), nameof(UseWindows11Style), nameof(ShowContainerBorder), nameof(AllowCommandLineShells), nameof(EnableTaskbar), nameof(EnableEdgeSidebar), nameof(IsTaskbarOnlyActive), nameof(IsSidebarOnlyActive), nameof(IsBothSurfacesActive), nameof(TaskbarOpeningBehavior), nameof(IsTaskbarClickOpen), nameof(IsTaskbarHoverOpen), nameof(IsTaskbarClickOrHoverOpen), nameof(SidebarLayoutMode), nameof(IsSidebarSingleLayout), nameof(IsSidebarMultipleLayout), nameof(SidebarEdge), nameof(IsSidebarRightEdge), nameof(IsSidebarLeftEdge), nameof(SidebarVerticalPercent), nameof(SidebarHandleHeight), nameof(SidebarHandleWidth), nameof(SidebarHandleOpacityPercent), nameof(SidebarHandleOpacityText), nameof(SidebarHandleColorMode), nameof(IsHandleColorThemeAccent), nameof(IsHandleColorContainerTint), nameof(IsHandleColorCustom), nameof(SidebarHandleCustomColor), nameof(SidebarAutoHideOnFullscreen), nameof(SidebarMonitorMode), nameof(IsSidebarPrimaryMonitor), nameof(IsSidebarCursorMonitor), nameof(IsSidebarSpecificMonitor), nameof(SidebarMonitorIndex), nameof(SelectedMonitorOption), nameof(SidebarShowRecentApps), nameof(SidebarRecentAppsCount), nameof(SidebarOpeningBehavior), nameof(IsSidebarClickOpen), nameof(IsSidebarHoverOpen), nameof(IsSidebarClickOrHoverOpen), nameof(HoverOpeningDelayMs), nameof(HoverClosingDelayMs) }) Changed(property);
+        foreach (var property in new[] { nameof(Language), nameof(SelectedLanguageOption), nameof(IsSingleLayout), nameof(IsMultipleLayout), nameof(ShowAppNames), nameof(ShortenAppNames), nameof(SortMode), nameof(IsManualSort), nameof(IsRecentFirstSort), nameof(GridColumns), nameof(GridRows), nameof(AutoCloseAfterLaunch), nameof(EnableAnimations), nameof(AnimationStyle), nameof(IsGenieAnimation), nameof(IsSuckAnimation), nameof(IsScaleAnimation), nameof(IsMagicLampAnimation), nameof(IsOrigamiAnimation), nameof(IsPageCurlAnimation), nameof(IsBlackHoleAnimation), nameof(IsFlip3DAnimation), nameof(IsJellyAnimation), nameof(IsRandomAnimation), nameof(AnimationDurationMs), nameof(EnableDockMagnification), nameof(EnableLaunchBounce), nameof(EnableCardTiltOnHover), nameof(EnablePoofOnRemove), nameof(AnimationStyleTitle), nameof(AnimationStyleTagline), nameof(AnimationStyleDescription), nameof(StartWithWindows), nameof(UseWindows11Style), nameof(ShowContainerBorder), nameof(AllowCommandLineShells), nameof(EnableTaskbar), nameof(EnableEdgeSidebar), nameof(EnableDesktopContainers), nameof(HideDesktopIcons), nameof(RestoreDesktopIconsOnExit), nameof(DesktopDisplayStyle), nameof(IsDesktopCompactFlyout), nameof(IsDesktopExpandedBoxes), nameof(DesktopContentSource), nameof(IsDesktopSharedContent), nameof(IsDesktopSeparateContent), nameof(DesktopOpeningBehavior), nameof(IsDesktopClickOpen), nameof(IsDesktopHoverOpen), nameof(IsDesktopClickOrHoverOpen), nameof(DesktopContainerOpacityPercent), nameof(DesktopContainerOpacityText), nameof(LockDesktopContainers), nameof(IsTaskbarOnlyActive), nameof(IsSidebarOnlyActive), nameof(IsBothSurfacesActive), nameof(TaskbarOpeningBehavior), nameof(IsTaskbarClickOpen), nameof(IsTaskbarHoverOpen), nameof(IsTaskbarClickOrHoverOpen), nameof(EnableTaskbarMagnification), nameof(IsTaskbarMagnifyAll), nameof(IsTaskbarMagnifyAppDockOnly), nameof(TaskbarMagnificationScale), nameof(TaskbarMagnificationScaleText), nameof(ShowTaskbarMagnificationLabel), nameof(SidebarLayoutMode), nameof(IsSidebarSingleLayout), nameof(IsSidebarMultipleLayout), nameof(SidebarEdge), nameof(IsSidebarRightEdge), nameof(IsSidebarLeftEdge), nameof(SidebarVerticalPercent), nameof(SidebarHandleHeight), nameof(SidebarHandleWidth), nameof(SidebarHandleOpacityPercent), nameof(SidebarHandleOpacityText), nameof(SidebarHandleColorMode), nameof(IsHandleColorThemeAccent), nameof(IsHandleColorContainerTint), nameof(IsHandleColorCustom), nameof(SidebarHandleCustomColor), nameof(SidebarAutoHideOnFullscreen), nameof(SidebarMonitorMode), nameof(IsSidebarPrimaryMonitor), nameof(IsSidebarCursorMonitor), nameof(IsSidebarSpecificMonitor), nameof(SidebarMonitorIndex), nameof(SelectedMonitorOption), nameof(SidebarShowRecentApps), nameof(SidebarRecentAppsCount), nameof(SidebarOpeningBehavior), nameof(IsSidebarClickOpen), nameof(IsSidebarHoverOpen), nameof(IsSidebarClickOrHoverOpen), nameof(HoverOpeningDelayMs), nameof(HoverClosingDelayMs) }) Changed(property);
     }
     private readonly FolderManager manager;
+    private readonly FolderManager desktopManager;
     private readonly Action save;
     private AppFolder? selectedFolder;
     public ObservableCollection<AppFolder> Folders { get; } = [];
@@ -420,12 +572,92 @@ public sealed class SettingsViewModel : ObservableObject
         set => SelectedFolderRowsOverride = value is >= 1 and <= 8 ? value : null;
     }
 
+    // --- Separate Desktop Containers Management ---
+    private AppFolder? selectedDesktopFolder;
+    public ObservableCollection<AppFolder> DesktopFolders { get; } = [];
+    private AppItemViewModel? selectedDesktopApplication;
+    public ObservableCollection<AppItemViewModel> DesktopApplications { get; } = [];
+
+    public AppFolder? SelectedDesktopFolder
+    {
+        get => selectedDesktopFolder;
+        set
+        {
+            selectedDesktopFolder = value;
+            Config.SelectedDesktopFolderId = value?.Id;
+            Changed();
+            Changed(nameof(DesktopFolderName));
+            Changed(nameof(HasSelectedDesktopFolder));
+            Changed(nameof(SelectedDesktopContainerAppsText));
+            Changed(nameof(SelectedDesktopContainerStatusText));
+            Changed(nameof(IsSelectedDesktopContainerActive));
+            Changed(nameof(CanMoveDesktopFolderUp));
+            Changed(nameof(CanMoveDesktopFolderDown));
+            Changed(nameof(SelectedDesktopContainerPositionText));
+            RefreshDesktopApps();
+        }
+    }
+    public bool HasSelectedDesktopFolder => selectedDesktopFolder is not null;
+    public bool IsSelectedDesktopContainerActive => selectedDesktopFolder?.IsActive == true;
+    public string DesktopFolderName
+    {
+        get => selectedDesktopFolder?.Name ?? "";
+        set
+        {
+            if (selectedDesktopFolder is not null)
+            {
+                desktopManager.Rename(selectedDesktopFolder, value);
+                Changed();
+            }
+        }
+    }
+    public string SelectedDesktopContainerAppsText => selectedDesktopFolder is null
+        ? LocalizationService.Get("Containers.AppsCount.Zero")
+        : (selectedDesktopFolder.Applications.Count == 1
+            ? LocalizationService.Get("Containers.AppsCount.Single")
+            : LocalizationService.Format("Containers.AppsCount.Multiple", selectedDesktopFolder.Applications.Count));
+    public string SelectedDesktopContainerStatusText => selectedDesktopFolder is null
+        ? LocalizationService.Get("Containers.Status.NotActivated")
+        : (selectedDesktopFolder.IsActive
+            ? LocalizationService.Get("Containers.Status.Activated")
+            : LocalizationService.Get("Containers.Status.NotActivated"));
+    public bool CanMoveDesktopFolderUp => selectedDesktopFolder is not null && Config.DesktopFolders.IndexOf(selectedDesktopFolder) > 0;
+    public bool CanMoveDesktopFolderDown => selectedDesktopFolder is not null && Config.DesktopFolders.IndexOf(selectedDesktopFolder) >= 0 && Config.DesktopFolders.IndexOf(selectedDesktopFolder) < Config.DesktopFolders.Count - 1;
+    public string SelectedDesktopContainerPositionText =>
+        (selectedDesktopFolder is not null && Config.DesktopFolders.Count > 0 && Config.DesktopFolders.IndexOf(selectedDesktopFolder) >= 0)
+            ? LocalizationService.Format("Containers.ContainerPos.Format", Config.DesktopFolders.IndexOf(selectedDesktopFolder) + 1, Config.DesktopFolders.Count)
+            : "—";
+
+    public AppItemViewModel? SelectedDesktopApplication
+    {
+        get => selectedDesktopApplication;
+        set
+        {
+            if (!ReferenceEquals(selectedDesktopApplication, value))
+            {
+                selectedDesktopApplication = value;
+                Changed();
+                Changed(nameof(HasSelectedDesktopApplication));
+                Changed(nameof(SelectedDesktopAppPositionText));
+                Changed(nameof(CanMoveDesktopAppUp));
+                Changed(nameof(CanMoveDesktopAppDown));
+            }
+        }
+    }
+    public bool HasSelectedDesktopApplication => selectedDesktopApplication is not null;
+    public string SelectedDesktopAppPositionText =>
+        (selectedDesktopFolder is not null && selectedDesktopApplication is not null && selectedDesktopFolder.Applications.Count > 0)
+            ? LocalizationService.Format("Containers.AppPos.Format", selectedDesktopApplication.Index, selectedDesktopFolder.Applications.Count)
+            : "—";
+    public bool CanMoveDesktopAppUp => selectedDesktopApplication is not null && selectedDesktopApplication.Index > 1;
+    public bool CanMoveDesktopAppDown => selectedDesktopApplication is not null && selectedDesktopFolder is not null && selectedDesktopApplication.Index < selectedDesktopFolder.Applications.Count;
+
     public string AppVersionText
     {
         get
         {
             var v = typeof(SettingsViewModel).Assembly.GetName().Version;
-            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 3.0.1";
+            return v is not null ? $"Version {v.Major}.{v.Minor}.{Math.Max(0, v.Build)}" : "Version 3.1.0";
         }
     }
 
@@ -449,10 +681,14 @@ public sealed class SettingsViewModel : ObservableObject
 
     public SettingsViewModel(Configuration config, Action save, Action<bool>? writeStartup = null, Func<bool>? readStartup = null, bool? windows11StyleAvailable = null)
     {
-        Config = config; manager = new(config); this.save = save;
+        Config = config;
+        manager = new(config);
+        desktopManager = new(config, useDesktopFolders: true);
+        this.save = save;
         this.writeStartup = writeStartup ?? StartupRegistration.SetEnabled;
         this.readStartup = readStartup ?? StartupRegistration.IsEnabled;
         Windows11StyleAvailable = windows11StyleAvailable ?? OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22621);
+        IsFencesDetected = DesktopIconsService.IsStardockFencesDetected();
         PopulateLanguages();
         PopulateMonitors();
         LocalizationService.LanguageChanged += OnLanguageChanged;
@@ -495,7 +731,12 @@ public sealed class SettingsViewModel : ObservableObject
         Changed(nameof(SelectedContainerStatusText));
         Changed(nameof(SelectedContainerPositionText));
         Changed(nameof(SelectedAppPositionText));
+        Changed(nameof(SelectedDesktopContainerAppsText));
+        Changed(nameof(SelectedDesktopContainerStatusText));
+        Changed(nameof(SelectedDesktopContainerPositionText));
+        Changed(nameof(SelectedDesktopAppPositionText));
         Changed(nameof(SidebarHandleOpacityText));
+        Changed(nameof(DesktopContainerOpacityText));
         Changed(nameof(AppVersionText));
         Changed(nameof(AnimationStyleTitle));
         Changed(nameof(AnimationStyleTagline));
@@ -584,6 +825,163 @@ public sealed class SettingsViewModel : ObservableObject
         Config.SelectedFolderId = source.Id;
         Persist();
     }
+
+    // --- Separate Desktop Containers Commands ---
+    public void ToggleDesktopFolderActive()
+    {
+        if (SelectedDesktopFolder is not null)
+        {
+            SelectedDesktopFolder.IsActive = !SelectedDesktopFolder.IsActive;
+            Persist();
+        }
+    }
+    public void CreateDesktopFolder(string name)
+    {
+        desktopManager.Create(name);
+        Persist();
+    }
+    public void RenameDesktopFolder(string name)
+    {
+        if (SelectedDesktopFolder is not null)
+        {
+            desktopManager.Rename(SelectedDesktopFolder, name);
+            Persist();
+        }
+    }
+    public void DeleteDesktopFolder()
+    {
+        if (SelectedDesktopFolder is not null)
+        {
+            desktopManager.Delete(SelectedDesktopFolder);
+            Persist();
+        }
+    }
+    public void MoveDesktopFolder(int offset)
+    {
+        if (SelectedDesktopFolder is not { } folder) return;
+        desktopManager.MoveFolder(folder, offset);
+        Persist();
+    }
+    public void ReorderDesktopFolder(AppFolder source, AppFolder target)
+    {
+        if (ReferenceEquals(source, target)) return;
+        var targetIndex = Config.DesktopFolders.IndexOf(target);
+        if (targetIndex < 0) return;
+        desktopManager.ReorderFolder(source, targetIndex);
+        Config.SelectedDesktopFolderId = source.Id;
+        Persist();
+    }
+    public void AddDesktopApp(AppEntry entry)
+    {
+        if (SelectedDesktopFolder is null)
+        {
+            SelectedDesktopFolder = desktopManager.Create(LocalizationService.Get("Desktop.DefaultContainerName"));
+        }
+        var result = new ApplicationImportService(new WindowsShortcutResolver(), null, () => Config.Settings.AllowCommandLineShells)
+            .Import(Config, SelectedDesktopFolder, [entry.Kind == TargetKind.Packaged ? "shell:AppsFolder\\" + entry.Target : entry.Target]);
+        if (result.Rejected.Count > 0) throw new ArgumentException(result.Rejected[0].Reason);
+        Persist();
+    }
+    public void RemoveDesktopApp()
+    {
+        if (SelectedDesktopFolder is not null && SelectedDesktopApplication is not null)
+        {
+            var entry = SelectedDesktopApplication.Entry;
+            var oldIndex = SelectedDesktopFolder.Applications.IndexOf(entry);
+            desktopManager.Remove(SelectedDesktopFolder, entry);
+            save();
+            var nextIndex = Math.Min(oldIndex, SelectedDesktopFolder.Applications.Count - 1);
+            var nextTarget = nextIndex >= 0 ? SelectedDesktopFolder.Applications[nextIndex] : null;
+            RefreshDesktopAppsRetainingSelection(nextTarget);
+        }
+    }
+    public void MoveDesktopApp(int offset)
+    {
+        if (SelectedDesktopFolder is not null && SelectedDesktopApplication is not null)
+        {
+            var entry = SelectedDesktopApplication.Entry;
+            desktopManager.Move(SelectedDesktopFolder, entry, offset);
+            save();
+            RefreshDesktopAppsRetainingSelection(entry);
+        }
+    }
+    public void MoveDesktopAppToTop()
+    {
+        if (SelectedDesktopFolder is not null && SelectedDesktopApplication is not null)
+        {
+            var entry = SelectedDesktopApplication.Entry;
+            desktopManager.MoveToTop(SelectedDesktopFolder, entry);
+            save();
+            RefreshDesktopAppsRetainingSelection(entry);
+        }
+    }
+    public void MoveDesktopAppToBottom()
+    {
+        if (SelectedDesktopFolder is not null && SelectedDesktopApplication is not null)
+        {
+            var entry = SelectedDesktopApplication.Entry;
+            desktopManager.MoveToBottom(SelectedDesktopFolder, entry);
+            save();
+            RefreshDesktopAppsRetainingSelection(entry);
+        }
+    }
+    public int CopyFromSidebarContainers()
+    {
+        int copiedContainers = 0;
+        var existingNames = new HashSet<string>(Config.DesktopFolders.Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
+        foreach (var src in Config.Folders)
+        {
+            var baseName = src.Name;
+            var candidate = baseName;
+            int suffix = 2;
+            while (existingNames.Contains(candidate))
+            {
+                candidate = $"{baseName} ({suffix++})";
+            }
+            existingNames.Add(candidate);
+            var clone = new AppFolder
+            {
+                Id = Guid.NewGuid(),
+                Name = candidate,
+                IsActive = src.IsActive,
+                Icon = new ContainerIcon
+                {
+                    Kind = src.Icon.Kind,
+                    BuiltIn = src.Icon.BuiltIn,
+                    ResourcePath = src.Icon.ResourcePath
+                },
+                SortModeOverride = src.SortModeOverride,
+                GridColumnsOverride = src.GridColumnsOverride,
+                GridRowsOverride = src.GridRowsOverride,
+                Applications = src.Applications.Select(a => new AppEntry
+                {
+                    Id = Guid.NewGuid(),
+                    Name = a.Name,
+                    Target = a.Target,
+                    Kind = a.Kind
+                }).ToList()
+            };
+            Config.DesktopFolders.Add(clone);
+            Config.SelectedDesktopFolderId = clone.Id;
+            copiedContainers++;
+        }
+        Persist();
+        return copiedContainers;
+    }
+    public (int Added, int Rejected) ImportDesktopShortcuts()
+    {
+        var files = DesktopIconsService.DiscoverDesktopShortcutFiles();
+        if (files.Count == 0) return (0, 0);
+        if (SelectedDesktopFolder is null)
+        {
+            SelectedDesktopFolder = desktopManager.Create(LocalizationService.Get("Desktop.DefaultContainerName"));
+        }
+        var importer = new ApplicationImportService(new WindowsShortcutResolver(), null, () => Config.Settings.AllowCommandLineShells);
+        var result = importer.Import(Config, SelectedDesktopFolder, files);
+        Persist();
+        return (result.Added.Count, result.Rejected.Count);
+    }
+
     public void ExportBackup(string destinationPath, string? storeDirectory = null)
     {
         var backupStore = new ConfigurationStore(storeDirectory);
@@ -617,6 +1015,10 @@ public sealed class SettingsViewModel : ObservableObject
         Config.Settings.ShowContainerBorder = imported.Settings.ShowContainerBorder;
         Config.Settings.AllowCommandLineShells = imported.Settings.AllowCommandLineShells;
         Config.Settings.EnableTaskbar = imported.Settings.EnableTaskbar;
+        Config.Settings.EnableTaskbarMagnification = imported.Settings.EnableTaskbarMagnification;
+        Config.Settings.TaskbarMagnificationScope = imported.Settings.TaskbarMagnificationScope;
+        Config.Settings.TaskbarMagnificationScale = imported.Settings.TaskbarMagnificationScale;
+        Config.Settings.ShowTaskbarMagnificationLabel = imported.Settings.ShowTaskbarMagnificationLabel;
         Config.Settings.EnableEdgeSidebar = imported.Settings.EnableEdgeSidebar;
         Config.Settings.SidebarLayoutMode = imported.Settings.SidebarLayoutMode;
         Config.Settings.SidebarEdge = imported.Settings.SidebarEdge;
@@ -632,12 +1034,26 @@ public sealed class SettingsViewModel : ObservableObject
         Config.Settings.SidebarShowRecentApps = imported.Settings.SidebarShowRecentApps;
         Config.Settings.SidebarRecentAppsCount = imported.Settings.SidebarRecentAppsCount;
         Config.Settings.SidebarOpeningBehavior = imported.Settings.SidebarOpeningBehavior;
+        Config.Settings.EnableDesktopContainers = imported.Settings.EnableDesktopContainers;
+        Config.Settings.HideDesktopIcons = imported.Settings.HideDesktopIcons;
+        Config.Settings.RestoreDesktopIconsOnExit = imported.Settings.RestoreDesktopIconsOnExit;
+        Config.Settings.DesktopContentSource = imported.Settings.DesktopContentSource;
+        Config.Settings.DesktopDisplayStyle = imported.Settings.DesktopDisplayStyle;
+        Config.Settings.DesktopOpeningBehavior = imported.Settings.DesktopOpeningBehavior;
+        Config.Settings.DesktopContainerOpacity = imported.Settings.DesktopContainerOpacity;
+        Config.Settings.LockDesktopContainers = imported.Settings.LockDesktopContainers;
+        Config.Settings.DesktopDockX = imported.Settings.DesktopDockX;
+        Config.Settings.DesktopDockY = imported.Settings.DesktopDockY;
         Config.Settings.Theme = imported.Settings.Theme;
         Config.Settings.Language = imported.Settings.Language;
 
         Config.Folders.Clear();
         Config.Folders.AddRange(imported.Folders);
         Config.SelectedFolderId = imported.SelectedFolderId;
+
+        Config.DesktopFolders.Clear();
+        Config.DesktopFolders.AddRange(imported.DesktopFolders);
+        Config.SelectedDesktopFolderId = imported.SelectedDesktopFolderId;
 
         Persist();
         LanguageResourceService.Apply(Config.Settings.Language);
@@ -649,6 +1065,14 @@ public sealed class SettingsViewModel : ObservableObject
         var id = Config.SelectedFolderId;
         Folders.Clear(); foreach (var folder in Config.Folders) Folders.Add(folder);
         SelectedFolder = Config.Folders.FirstOrDefault(f => f.Id == id) ?? Config.Folders.FirstOrDefault();
+        RefreshDesktop();
+    }
+    private void RefreshDesktop()
+    {
+        var id = Config.SelectedDesktopFolderId;
+        DesktopFolders.Clear();
+        foreach (var folder in Config.DesktopFolders) DesktopFolders.Add(folder);
+        SelectedDesktopFolder = Config.DesktopFolders.FirstOrDefault(f => f.Id == id) ?? Config.DesktopFolders.FirstOrDefault();
     }
     private void RefreshApps() => RefreshAppsRetainingSelection(null);
     private void RefreshAppsRetainingSelection(AppEntry? target)
@@ -673,6 +1097,29 @@ public sealed class SettingsViewModel : ObservableObject
 
         Changed(nameof(SelectedContainerStatusText));
         Changed(nameof(IsSelectedContainerActive));
+    }
+    private void RefreshDesktopApps() => RefreshDesktopAppsRetainingSelection(null);
+    private void RefreshDesktopAppsRetainingSelection(AppEntry? target)
+    {
+        DesktopApplications.Clear();
+        AppItemViewModel? match = null;
+        if (SelectedDesktopFolder is not null)
+        {
+            int idx = 1;
+            foreach (var app in SelectedDesktopFolder.Applications)
+            {
+                var item = new AppItemViewModel(app, idx++);
+                DesktopApplications.Add(item);
+                if (target is not null && app.Id == target.Id)
+                {
+                    match = item;
+                }
+            }
+        }
+        SelectedDesktopApplication = match;
+        Changed(nameof(SelectedDesktopContainerAppsText));
+        Changed(nameof(SelectedDesktopContainerStatusText));
+        Changed(nameof(IsSelectedDesktopContainerActive));
     }
 }
 

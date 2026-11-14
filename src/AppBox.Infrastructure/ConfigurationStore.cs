@@ -78,7 +78,7 @@ public sealed class ConfigurationStore
     {
         if (config?.Folders is null || string.IsNullOrWhiteSpace(dataDirectory)) return;
         var iconsDir = Path.Combine(dataDirectory, "Icons");
-        foreach (var folder in config.Folders)
+        foreach (var folder in config.Folders.Concat(config.DesktopFolders ?? []))
         {
             if (folder?.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } && !string.IsNullOrWhiteSpace(resPath))
             {
@@ -139,7 +139,7 @@ public sealed class ConfigurationStore
         }
 
         // Also copy any custom icon referenced by a folder if it exists elsewhere
-        foreach (var folder in config.Folders)
+        foreach (var folder in config.Folders.Concat(config.DesktopFolders ?? []))
         {
             if (folder.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } &&
                 !string.IsNullOrWhiteSpace(resPath) && File.Exists(resPath))
@@ -192,22 +192,50 @@ public sealed class ConfigurationStore
         // Inaccessible settings are not equivalent to a new installation.
     }
 
+    private static void ValidateFolderList(List<AppFolder> folders, HashSet<Guid> ids)
+    {
+        foreach (var folder in folders)
+        {
+            if (folder is null || folder.Id == Guid.Empty || !ids.Add(folder.Id) || string.IsNullOrWhiteSpace(folder.Name) || folder.Name.Length > 60 || folder.Applications is null)
+                throw new JsonException("Invalid folder.");
+            folder.Icon ??= new();
+            if (!Enum.IsDefined(folder.Icon.Kind)) folder.Icon = new();
+            if (folder.SortModeOverride is { } sortOverride && !Enum.IsDefined(sortOverride)) folder.SortModeOverride = null;
+            if (folder.GridColumnsOverride is { } colsOverride) folder.GridColumnsOverride = Math.Clamp(colsOverride, 2, 8);
+            if (folder.GridRowsOverride is { } rowsOverride) folder.GridRowsOverride = Math.Clamp(rowsOverride, 1, 8);
+            if (folder.DesktopX is { } dx) folder.DesktopX = double.IsFinite(dx) ? Math.Clamp(dx, 0.0, 1.0) : null;
+            if (folder.DesktopY is { } dy) folder.DesktopY = double.IsFinite(dy) ? Math.Clamp(dy, 0.0, 1.0) : null;
+            var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var app in folder.Applications)
+            {
+                if (app is null || app.Id == Guid.Empty || !ids.Add(app.Id) || !targets.Add(app.Target)) throw new JsonException("Duplicate application.");
+                // Missing files remain visible and removable; launch validates existence again.
+                TargetPolicy.Validate(app, _ => true);
+            }
+        }
+    }
+
     private static void Validate(Configuration config)
     {
         if (config.SchemaVersion != 1 || config.Settings is null || config.Folders is null ||
             !Enum.IsDefined(config.Settings.LayoutMode) || !Enum.IsDefined(config.Settings.Theme)) throw new JsonException("Unsupported configuration.");
+        config.DesktopFolders ??= [];
         if (!Enum.IsDefined(config.Settings.Language)) config.Settings.Language = AppLanguage.System;
         config.Settings.OpeningBehavior = TaskbarCapabilities.EffectiveBehavior(config.Settings.OpeningBehavior);
         config.Settings.HoverOpeningDelayMs = Math.Clamp(config.Settings.HoverOpeningDelayMs, 100, 2000);
         config.Settings.HoverClosingDelayMs = Math.Clamp(config.Settings.HoverClosingDelayMs, 100, 2000);
         config.Settings.IconSize = Math.Clamp(config.Settings.IconSize, 24, 64);
         config.Settings.GridColumns = Math.Clamp(config.Settings.GridColumns, 2, 8);
-        config.Settings.GridRows = Math.Clamp(config.Settings.GridRows, 1, 8);
+        config.Settings.GridRows = Math.Clamp(config.Settings.GridRows, 1, 8);
         if (!Enum.IsDefined(config.Settings.SortMode)) config.Settings.SortMode = SortMode.Manual;
         if (!Enum.IsDefined(config.Settings.AnimationStyle)) config.Settings.AnimationStyle = ContainerAnimationStyle.Genie;
         config.Settings.AnimationDurationMs = config.Settings.AnimationDurationMs is >= 50 and <= 2000 ? config.Settings.AnimationDurationMs : 320;
         if (!Enum.IsDefined(config.Settings.SidebarLayoutMode)) config.Settings.SidebarLayoutMode = LayoutMode.MultipleAppBoxes;
-        if (!config.Settings.EnableTaskbar && !config.Settings.EnableEdgeSidebar) config.Settings.EnableTaskbar = true;
+        if (!config.Settings.EnableTaskbar && !config.Settings.EnableEdgeSidebar && !config.Settings.EnableDesktopContainers) config.Settings.EnableTaskbar = true;
+        if (!Enum.IsDefined(config.Settings.TaskbarMagnificationScope)) config.Settings.TaskbarMagnificationScope = TaskbarMagnificationScope.AllTaskbarIcons;
+        config.Settings.TaskbarMagnificationScale = double.IsFinite(config.Settings.TaskbarMagnificationScale)
+            ? Math.Clamp(config.Settings.TaskbarMagnificationScale, 1.20, 2.00)
+            : 1.55;
         if (!Enum.IsDefined(config.Settings.SidebarEdge)) config.Settings.SidebarEdge = ScreenEdge.Right;
         if (!Enum.IsDefined(config.Settings.SidebarOpeningBehavior)) config.Settings.SidebarOpeningBehavior = ContainerOpeningBehavior.ClickOrHover;
         config.Settings.SidebarVerticalPosition = double.IsFinite(config.Settings.SidebarVerticalPosition)
@@ -226,25 +254,33 @@ public sealed class ConfigurationStore
         if (!Enum.IsDefined(config.Settings.SidebarMonitorMode)) config.Settings.SidebarMonitorMode = SidebarMonitorMode.PrimaryMonitor;
         config.Settings.SidebarMonitorIndex = Math.Clamp(config.Settings.SidebarMonitorIndex, 0, 15);
         config.Settings.SidebarRecentAppsCount = Math.Clamp(config.Settings.SidebarRecentAppsCount, 1, 5);
+        if (!Enum.IsDefined(config.Settings.DesktopContentSource)) config.Settings.DesktopContentSource = DesktopContentSource.SharedWithSidebar;
+        if (!Enum.IsDefined(config.Settings.DesktopDisplayStyle)) config.Settings.DesktopDisplayStyle = DesktopDisplayStyle.CompactFlyout;
+        if (!Enum.IsDefined(config.Settings.DesktopOpeningBehavior)) config.Settings.DesktopOpeningBehavior = ContainerOpeningBehavior.Click;
+        config.Settings.DesktopContainerOpacity = double.IsFinite(config.Settings.DesktopContainerOpacity)
+            ? Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00)
+            : 0.90;
+        config.Settings.DesktopDockX = double.IsFinite(config.Settings.DesktopDockX)
+            ? Math.Clamp(config.Settings.DesktopDockX, 0.01, 0.96)
+            : 0.04;
+        config.Settings.DesktopDockY = double.IsFinite(config.Settings.DesktopDockY)
+            ? Math.Clamp(config.Settings.DesktopDockY, 0.02, 0.94)
+            : 0.08;
+        config.Settings.DesktopRecycleBinX = double.IsFinite(config.Settings.DesktopRecycleBinX)
+            ? Math.Clamp(config.Settings.DesktopRecycleBinX, 0.0, 1.0)
+            : 0.015;
+        config.Settings.DesktopRecycleBinY = double.IsFinite(config.Settings.DesktopRecycleBinY)
+            ? Math.Clamp(config.Settings.DesktopRecycleBinY, 0.0, 1.0)
+            : 0.02;
+
         var ids = new HashSet<Guid>();
-        foreach (var folder in config.Folders)
-        {
-            if (folder is null || folder.Id == Guid.Empty || !ids.Add(folder.Id) || string.IsNullOrWhiteSpace(folder.Name) || folder.Name.Length > 60 || folder.Applications is null)
-                throw new JsonException("Invalid folder.");
-            folder.Icon ??= new();
-            if (!Enum.IsDefined(folder.Icon.Kind)) folder.Icon = new();
-            if (folder.SortModeOverride is { } sortOverride && !Enum.IsDefined(sortOverride)) folder.SortModeOverride = null;
-            if (folder.GridColumnsOverride is { } colsOverride) folder.GridColumnsOverride = Math.Clamp(colsOverride, 2, 8);
-            if (folder.GridRowsOverride is { } rowsOverride) folder.GridRowsOverride = Math.Clamp(rowsOverride, 1, 8);
-            var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var app in folder.Applications)
-            {
-                if (app is null || app.Id == Guid.Empty || !ids.Add(app.Id) || !targets.Add(app.Target)) throw new JsonException("Duplicate application.");
-                // Missing files remain visible and removable; launch validates existence again.
-                TargetPolicy.Validate(app, _ => true);
-            }
-        }
-        if (config.SelectedFolderId is not null && !config.Folders.Any(f => f.Id == config.SelectedFolderId)) config.SelectedFolderId = config.Folders.FirstOrDefault()?.Id;
+        ValidateFolderList(config.Folders, ids);
+        ValidateFolderList(config.DesktopFolders, ids);
+
+        if (config.SelectedFolderId is not null && !config.Folders.Any(f => f.Id == config.SelectedFolderId))
+            config.SelectedFolderId = config.Folders.FirstOrDefault()?.Id;
+        if (config.SelectedDesktopFolderId is not null && !config.DesktopFolders.Any(f => f.Id == config.SelectedDesktopFolderId))
+            config.SelectedDesktopFolderId = config.DesktopFolders.FirstOrDefault()?.Id;
     }
 
     public void ExportBackup(Configuration config, string destinationPath)
@@ -274,7 +310,7 @@ public sealed class ConfigurationStore
                 }
 
                 var addedIcons = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var folder in config.Folders)
+                foreach (var folder in config.Folders.Concat(config.DesktopFolders ?? []))
                 {
                     if (folder.Icon is { Kind: ContainerIconKind.Custom, ResourcePath: { } resPath } &&
                         !string.IsNullOrWhiteSpace(resPath) && File.Exists(resPath))

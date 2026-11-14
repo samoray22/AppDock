@@ -86,6 +86,12 @@ Pinning is manual. Windows may cache a copied pin's icon or label; unpin and rep
 
 Positioning uses the pointer's monitor/taskbar edge, clamps to screen boundaries and accounts for DPI. Windows does not expose the exact pinned-button rectangle through the APIs used here.
 
+## Desktop Containers
+
+Open **Settings → Desktop Containers** to place animated container icons directly on your Windows Desktop wallpaper. Each container can be dragged freely on a uniform desktop snap grid and expands smoothly toward available screen space on click or hover, automatically hiding any overlapping desktop icons and restoring them when closed.
+
+You can optionally hide native Windows desktop icons while keeping a standalone grid-snapped Recycle Bin visible on the desktop, and choose between mirroring your Sidebar containers or maintaining a separate set of desktop-only containers (with one-click desktop shortcut import).
+
 ## Validation
 
 ```powershell

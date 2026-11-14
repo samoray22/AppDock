@@ -37,6 +37,7 @@ public partial class LauncherWindow : Window
     public Action<AppFolder>? ChangeIcon { get; set; }
     public Action<string>? OpenSettings { get; set; }
     public Func<bool>? IsPointerOverSidebar { get; set; }
+    public Func<bool>? IsPointerOverDesktopContainer { get; set; }
     public Func<bool>? IsPointerOverTaskbarButton { get; set; }
     public Func<bool>? IsTaskbarEnabled { get; set; }
     public Action? ClosedFromLaunchOrDismiss { get; set; }
@@ -67,7 +68,7 @@ public partial class LauncherWindow : Window
             if (e.NewValue is LauncherViewModel newModel) newModel.PropertyChanged += ModelChanged;
             QueueResize();
         };
-        Deactivated += (_, _) => { if (Model.Interaction.DismissOnFocusLost(SuppressDismiss || contextMenuOpen || (IsPointerOverSidebar?.Invoke() ?? false) || (IsPointerOverTaskbarButton?.Invoke() ?? false) || OwnedWindows.Cast<Window>().Any(w => w.IsVisible))) Hide(); };
+        Deactivated += (_, _) => { if (Model.Interaction.DismissOnFocusLost(SuppressDismiss || contextMenuOpen || (IsPointerOverSidebar?.Invoke() ?? false) || (IsPointerOverDesktopContainer?.Invoke() ?? false) || (IsPointerOverTaskbarButton?.Invoke() ?? false) || OwnedWindows.Cast<Window>().Any(w => w.IsVisible))) Hide(); };
         PreviewKeyDown += OnPreviewKeyDown;
 
         PreviewTextInput += OnPreviewTextInput;

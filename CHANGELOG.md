@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.1.0] - 2026-11-14
+
+### Added
+- **🖥️ Desktop Containers (`DesktopContainersWindow`, `DesktopBoxWindow`)**:
+  - Added a dedicated **Desktop Containers** tab in **Settings** (`SettingsWindow`) to place animated application containers directly on your Windows Desktop wallpaper (`HWND_BOTTOM` Z-order with `WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE`).
+  - **Independent Desktop Boxes & Snap Grid**: Each container renders as a clean borderless `64×64` DIP square icon arranged on a uniform `84×84` DIP Android-style desktop grid with free drag-and-drop placement.
+  - **Directional 3-D Warp Expansion & Automatic Overlap Hiding**: Hovering or clicking a desktop container expands it smoothly via `WarpMeshRenderer` toward available screen space, automatically hiding any overlapping neighbor container icons and the Recycle Bin until the container closes.
+  - **Desktop Recycle Bin (`DesktopRecycleBinWindow`)**: Keeps a standalone, grid-snapped Recycle Bin icon visible on the desktop when Windows Desktop Icons are hidden, complete with status tooltip and Open / Empty Recycle Bin context menu actions.
+  - **Display Style & Opening Behavior**: Supports **Compact Flyout Dock** vs. **Expanded Desktop Boxes**, plus configurable **Click**, **Hover**, or **Click or Hover** opening behavior and **Shared** (`Configuration.Folders`) or **Separate** (`Configuration.DesktopFolders`) container sets with one-click **Import Desktop Shortcuts** and **Copy from Sidebar**.
+  - **Windows Desktop Icon Visibility & Stardock Fences Safeguards**: Added **Hide Windows Desktop Icons** and **Restore Windows Desktop icons automatically when AppDock exits** toggles (`DesktopIconsService`), with automatic detection and non-intrusive safeguards when **Stardock Fences** is installed/running.
+- **🔍 Taskbar Magnification (`TaskbarMagnifierService`, `TaskbarMagnifierWindow`)**:
+  - Added optional macOS-style bell-curve taskbar icon magnification (`TaskbarIconResolver` + `ContainerWarpMesh.ComputeDockMagnificationScale`) configurable in Settings.
+- **🌐 13-Language Localization**:
+  - Added 53 new localization keys (513 total keys per language) across all 13 supported languages (`en`, `es`, `fr`, `de`, `it`, `pt`, `nl`, `tr`, `ru`, `zh`, `zh-Hant`, `ja`, `ko`) with 100% dictionary parity.
+
+### Fixed
+- **Startup Hang & Single-Instance Recovery**: Fixed recursive layout invocation in `DesktopContainersWindow` during startup and updated `SingleInstance` to use `WaitOne(0)` with clean mutex disposal so stale processes never block relaunch.
+
+---
+
 ## [3.0.1] - 2026-11-05
 
 ### Added

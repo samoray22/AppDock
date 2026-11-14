@@ -27,6 +27,14 @@ public static class ThemeService
     private static void ApplyWindowStyles()
     {
         foreach (Window window in System.Windows.Application.Current.Windows)
-            if (window is SettingsWindow settings) settings.ApplyWindowStyle(); else if (window is LauncherWindow launcher) launcher.ApplyWindowStyle(); else WindowPlacement.Round(window, Dark);
+        {
+            if (window is SettingsWindow settings) settings.ApplyWindowStyle();
+            else if (window is LauncherWindow launcher) launcher.ApplyWindowStyle();
+            else if (window is DesktopBoxWindow boxWin) boxWin.ApplyWindowStyle();
+            else if (window is DesktopRecycleBinWindow binWin) binWin.ApplyWindowStyle();
+            else if (window is DesktopContainersWindow desktopWin) desktopWin.ApplyWindowStyle();
+            else if (window is EdgeSidebarWindow sidebarWin) sidebarWin.ApplyWindowStyle();
+            else WindowPlacement.Round(window, Dark);
+        }
     }
 }

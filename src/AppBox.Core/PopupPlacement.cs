@@ -1,6 +1,10 @@
 namespace AppBox.Core;
 
-public readonly record struct PixelRect(int Left, int Top, int Right, int Bottom);
+public readonly record struct PixelRect(int Left, int Top, int Right, int Bottom)
+{
+    public int Width => Math.Max(0, Right - Left);
+    public int Height => Math.Max(0, Bottom - Top);
+}
 public readonly record struct PixelPoint(int X, int Y);
 public readonly record struct PopupBounds(int X, int Y, int Width, int Height);
 
@@ -59,6 +63,23 @@ public static class PopupPlacement
             ? sidebarBounds.X + sidebarBounds.Width + gap
             : sidebarBounds.X - width - gap;
         var y = anchorCenterY - height / 2;
+        return new(
+            Math.Clamp(x, work.Left + 8, Math.Max(work.Left + 8, work.Right - width - 8)),
+            Math.Clamp(y, work.Top + 8, Math.Max(work.Top + 8, work.Bottom - height - 8)),
+            width,
+            height);
+    }
+
+    public static PopupBounds CalculateDesktopContainers(PixelRect work, double normX, double normY, double dpiScale, double widthDip, double heightDip)
+    {
+        if (work.Right - work.Left < 32 || work.Bottom - work.Top < 32 || dpiScale <= 0 || !double.IsFinite(dpiScale))
+            throw new ArgumentException("Invalid monitor geometry.");
+        var rx = double.IsFinite(normX) ? Math.Clamp(normX, 0.01, 0.96) : 0.04;
+        var ry = double.IsFinite(normY) ? Math.Clamp(normY, 0.02, 0.94) : 0.08;
+        var width = Math.Min((int)Math.Ceiling(widthDip * dpiScale), Math.Max(64, work.Right - work.Left - 16));
+        var height = Math.Min((int)Math.Ceiling(heightDip * dpiScale), Math.Max(64, work.Bottom - work.Top - 16));
+        var x = work.Left + (int)Math.Round((work.Right - work.Left - width) * rx);
+        var y = work.Top + (int)Math.Round((work.Bottom - work.Top - height) * ry);
         return new(
             Math.Clamp(x, work.Left + 8, Math.Max(work.Left + 8, work.Right - width - 8)),
             Math.Clamp(y, work.Top + 8, Math.Max(work.Top + 8, work.Bottom - height - 8)),

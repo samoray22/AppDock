@@ -14,6 +14,7 @@ public sealed class SingleInstance : IDisposable
     private readonly string pipeName;
     private readonly CancellationTokenSource cancellation = new();
     private Task? listener;
+    private bool disposed;
     public bool IsPrimary { get; }
     [DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(int processId);
     public SingleInstance(string? diagnosticScope = null)
@@ -21,8 +22,15 @@ public sealed class SingleInstance : IDisposable
         var suffix = WindowsIdentity.GetCurrent().User!.Value + "-" + Process.GetCurrentProcess().SessionId;
         if (diagnosticScope is not null && !Guid.TryParse(diagnosticScope, out _)) throw new ArgumentException("Invalid diagnostic session.");
         pipeName = "AppBox-" + suffix + (diagnosticScope is null ? "" : "-Diagnostics-" + diagnosticScope);
-        mutex = new Mutex(true, @"Local\" + pipeName, out var created);
-        IsPrimary = created;
+        mutex = new Mutex(false, @"Local\" + pipeName);
+        try
+        {
+            IsPrimary = mutex.WaitOne(0);
+        }
+        catch (AbandonedMutexException)
+        {
+            IsPrimary = true;
+        }
     }
     public void Listen(Action<ActivationRequest> activate)
     {
@@ -57,8 +65,13 @@ public sealed class SingleInstance : IDisposable
     }
     public void Dispose()
     {
+        if (disposed) return;
+        disposed = true;
         cancellation.Cancel();
-        if (IsPrimary) mutex.ReleaseMutex();
+        if (IsPrimary)
+        {
+            try { mutex.ReleaseMutex(); } catch (ApplicationException) { }
+        }
         mutex.Dispose();
         // Do not dispose the cancellation source while the asynchronous listener is unwinding.
         if (listener is null) cancellation.Dispose();
