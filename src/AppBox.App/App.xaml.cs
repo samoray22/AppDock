@@ -27,6 +27,7 @@ public partial class App : System.Windows.Application
     private ContainerLaunchers launchers = null!;
     private bool diagnosticRun;
     private ApplicationLaunchService launchService = null!;
+    private System.Windows.Threading.DispatcherTimer? desktopIconHideRetryTimer;
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] private static extern int SetCurrentProcessExplicitAppUserModelID(string id);
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -111,19 +112,110 @@ public partial class App : System.Windows.Application
             {
                 try { store.Save(config); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
             }
+            if (!diagnosticRun && config.Settings.HideDesktopIcons && !DesktopIconsService.TrySetDesktopIconsHidden(true))
+            {
+                ScheduleDesktopIconHideRetry();
+            }
             launchService = new(new WindowsShortcutResolver(), new WindowsProcessLauncher(), () => config.Settings.AllowCommandLineShells);
             if (!e.Args.Contains("--smoke-test"))
             {
-                // The exe may have been moved or renamed since "Start with Windows" was enabled.
-                try { StartupRegistration.RepairPath(); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
                 config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
             }
             ThemeService.ConfigureWindows11Style(config.Settings.UseWindows11Style);
             ThemeService.Apply(config.Settings.Theme);
             LanguageResourceService.Apply(config.Settings.Language);
             launchers = new(store.DirectoryPath, AppPaths.Executable);
-            launchers.Sync(config);
+            model = new(config, (Action<AppEntry, LaunchOptions>)Launch, Persist, iconDirectory: store.DirectoryPath);
+            launcher = new() { DataContext = model, OpenSettings = OpenSettings, ChangeIcon = ChangeIcon, IsTaskbarEnabled = () => config.Settings.EnableTaskbar };
+            launcher.SourceInitialized += (_, _) => UpdateIdentity();
+            model.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LauncherViewModel.SelectedFolder) && launcher.IsLoaded) UpdateIdentity(); };
+            MainWindow = launcher;
             if (!diagnosticRun)
+            {
+                edgeSidebar = new(config, model, launcher, Persist, OpenSettings);
+                desktopContainers = new(config, model, launcher, Persist, OpenSettings);
+                launcher.IsVisibleChanged += (_, _) =>
+                {
+                    if (launcher.IsVisible && !launcher.IsLateralFlyout)
+                        taskbarMagnifier?.NotifyLauncherOpened();
+                    else
+                        taskbarMagnifier?.NotifyLauncherClosed();
+                };
+                launcher.IsPointerOverSidebar = () => edgeSidebar.IsCursorOverSidebar();
+                launcher.IsPointerOverDesktopContainer = () => desktopContainers.IsCursorOverDesktopContainers();
+                launcher.IsPointerOverTaskbarButton = () => taskbarHover?.IsCursorOverHoveredTaskbarButton() ?? false;
+                launcher.ClosedFromLaunchOrDismiss = () =>
+                {
+                    edgeSidebar.CollapseAfterLaunch();
+                    desktopContainers.NotifyLauncherClosed();
+                    taskbarHover?.NotifyLauncherClosed();
+                    taskbarMagnifier?.NotifyLauncherClosed();
+                };
+                desktopContainers.SyncWithConfig();
+                edgeSidebar.SyncWithConfig();
+            }
+            SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
+            if (!e.Args.Contains("--background")) HandleActivation(request);
+            if (store.RecoveryMessage is not null) ShowMessage(store.RecoveryMessage);
+
+            if (diagnosticRun)
+            {
+                CompleteDeferredStartup(isSmokeTest: true);
+            }
+            else
+            {
+                _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () => CompleteDeferredStartup(isSmokeTest: false));
+            }
+            if (e.Args.Contains("--smoke-test")) await SmokeTest.RunAsync(this, config, store, launcher, model, OpenSettings);
+        }
+        catch (Exception ex)
+        {
+            try { instance?.Dispose(); } catch { }
+            instance = null;
+            if (e.Args.Contains("--smoke-test") || e.Args.Contains("--smoke-secondary"))
+            {
+                Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "artifacts"));
+                File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "artifacts", e.Args.Contains("--smoke-secondary") ? "secondary-error.txt" : "smoke-error.txt"), ex.ToString());
+                Shutdown(1); return;
+            }
+            AppDockDialog.Show(null, LocalizationService.Format("Dialog.StartFailed", ex.Message), "AppDock", MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    private void ScheduleDesktopIconHideRetry()
+    {
+        desktopIconHideRetryTimer?.Stop();
+        int remainingAttempts = 67; // ~10s at 150ms while Explorer initializes the desktop list view.
+        desktopIconHideRetryTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(150)
+        };
+        desktopIconHideRetryTimer.Tick += (_, _) =>
+        {
+            if (config is null || !config.Settings.HideDesktopIcons || remainingAttempts-- <= 0 || DesktopIconsService.TrySetDesktopIconsHidden(true))
+            {
+                desktopIconHideRetryTimer?.Stop();
+                desktopIconHideRetryTimer = null;
+            }
+        };
+        desktopIconHideRetryTimer.Start();
+    }
+
+    private void CompleteDeferredStartup(bool isSmokeTest)
+    {
+        try
+        {
+            if (!isSmokeTest)
+            {
+                // The exe may have been moved or renamed since "Start with Windows" was enabled.
+                try { StartupRegistration.RepairPath(); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
+                StartupRegistration.SyncLogonTaskWithCurrentState();
+                config.Settings.StartWithWindows = StartupRegistration.IsEnabled();
+            }
+
+            launchers.Sync(config);
+            if (!isSmokeTest)
             {
                 if (!config.Settings.EnableTaskbar)
                 {
@@ -140,71 +232,28 @@ public partial class App : System.Windows.Application
                     foreach (var inactive in config.Folders.Where(f => !f.IsActive && File.Exists(launchers.ShortcutPath(f.Id))))
                         launchers.UnpinFromTaskbar(inactive);
                 }
-            }
-            model = new(config, (Action<AppEntry, LaunchOptions>)Launch, Persist, iconDirectory: store.DirectoryPath);
-            launcher = new() { DataContext = model, OpenSettings = OpenSettings, ChangeIcon = ChangeIcon, IsTaskbarEnabled = () => config.Settings.EnableTaskbar };
-            launcher.SourceInitialized += (_, _) => UpdateIdentity();
-            model.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LauncherViewModel.SelectedFolder) && launcher.IsLoaded) UpdateIdentity(); };
-            MainWindow = launcher;
-            if (!diagnosticRun)
-            {
-                if (config.Settings.HideDesktopIcons)
-                {
-                    DesktopIconsService.SetDesktopIconsHidden(true);
-                }
-                edgeSidebar = new(config, model, launcher, Persist, OpenSettings);
-                desktopContainers = new(config, model, launcher, Persist, OpenSettings);
+
                 taskbarHover = new(config, model, launcher, launchers, () => settings is not null, ActivateLauncherFromTaskbarHover);
                 taskbarMagnifier = new(config, store.DirectoryPath, launchers, () => settings is not null, () => launcher.IsVisible && !launcher.IsLateralFlyout);
-                launcher.IsVisibleChanged += (_, _) =>
-                {
-                    if (launcher.IsVisible && !launcher.IsLateralFlyout)
-                        taskbarMagnifier.NotifyLauncherOpened();
-                    else
-                        taskbarMagnifier.NotifyLauncherClosed();
-                };
-                launcher.IsPointerOverSidebar = () => edgeSidebar.IsCursorOverSidebar();
-                launcher.IsPointerOverDesktopContainer = () => desktopContainers.IsCursorOverDesktopContainers();
-                launcher.IsPointerOverTaskbarButton = () => taskbarHover.IsCursorOverHoveredTaskbarButton();
-                launcher.ClosedFromLaunchOrDismiss = () =>
-                {
-                    edgeSidebar.CollapseAfterLaunch();
-                    desktopContainers.NotifyLauncherClosed();
-                    taskbarHover.NotifyLauncherClosed();
-                    taskbarMagnifier.NotifyLauncherClosed();
-                };
-                edgeSidebar.SyncWithConfig();
-                desktopContainers.SyncWithConfig();
                 taskbarHover.SyncWithConfig();
                 taskbarMagnifier.SyncWithConfig();
             }
+
             CreateTray();
             try { launchers.UpdateMain(new ContainerIcons(store.DirectoryPath).ProductIconPath); }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             { tray?.ShowBalloonTip(5000, "AppDock", LocalizationService.Format("Tray.MainShortcutError", ex.Message), Forms.ToolTipIcon.Info); }
-            if (!diagnosticRun)
+
+            if (!isSmokeTest)
             {
                 PublishJumpLists();
                 ShellIcon.PreloadInBackground(config.Folders.SelectMany(f => f.Applications).Concat(config.DesktopFolders.SelectMany(f => f.Applications)));
                 ApplicationDiscovery.WarmUpInBackground();
             }
-            SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
-            if (!e.Args.Contains("--background")) HandleActivation(request);
-            if (store.RecoveryMessage is not null) ShowMessage(store.RecoveryMessage);
-            if (e.Args.Contains("--smoke-test")) await SmokeTest.RunAsync(this, config, store, launcher, model, OpenSettings);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            try { instance?.Dispose(); } catch { }
-            instance = null;
-            if (e.Args.Contains("--smoke-test") || e.Args.Contains("--smoke-secondary"))
-            {
-                Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, "artifacts"));
-                File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "artifacts", e.Args.Contains("--smoke-secondary") ? "secondary-error.txt" : "smoke-error.txt"), ex.ToString());
-                Shutdown(1); return;
-            }
-            AppDockDialog.Show(null, LocalizationService.Format("Dialog.StartFailed", ex.Message), "AppDock", MessageBoxImage.Error);
-            Shutdown(1);
+            System.Diagnostics.Debug.WriteLine($"Deferred startup error: {ex}");
         }
     }
 
@@ -566,6 +615,7 @@ public partial class App : System.Windows.Application
     }
     protected override void OnExit(ExitEventArgs e)
     {
+        desktopIconHideRetryTimer?.Stop();
         SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
         if (config is not null)
         {

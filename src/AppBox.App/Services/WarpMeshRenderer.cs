@@ -127,7 +127,8 @@ public sealed class WarpMeshRenderer
         double anchorU,
         double anchorV,
         ScreenEdge? lateralEdge,
-        double collapseProgress)
+        double collapseProgress,
+        double opacityScale = 1.0)
     {
         mesh.Positions = null;
         int idx = 0;
@@ -142,6 +143,6 @@ public sealed class WarpMeshRenderer
             }
         }
         mesh.Positions = positionsBuffer;
-        viewport.Opacity = ContainerWarpMesh.ComputeOpacity(style, collapseProgress);
+        viewport.Opacity = ContainerWarpMesh.ComputeOpacity(style, collapseProgress) * Math.Clamp(opacityScale, 0.0, 1.0);
     }
 }

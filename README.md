@@ -36,7 +36,7 @@ Edit Mode stays open during focus changes. Drop `.exe`, `.lnk`, or HTTP/HTTPS `.
 
 General follows the approved reference: a compact icon sidebar, two full-card layout selectors with graphical taskbar previews, and four row-wide toggle switches. Single/Multiple selection uses the existing layout setting and preserves containers, activation states, applications and custom icons. Multiple mode creates shortcuts; pinning still requires the Windows Pin to taskbar action.
 
-**Other Options** controls Show app names, Auto close after launching an app, Start AppDock with Windows, and Use Windows 11 style (rounded corners, Mica effect). Changes save automatically; failures restore the prior preference and show an inline error. Startup uses the existing current-user registration service; the Startup page mirrors the same setting. Application icon size is now on Appearance. Navigation remains General, Containers, Appearance, Taskbar, Startup and About; the Taskbar page retains all Phase 2B interaction controls.
+**Other Options** controls Show app names, Auto close after launching an app, Start AppDock with Windows, and Use Windows 11 style (rounded corners, Mica effect). Changes save automatically; failures restore the prior preference and show an inline error. Startup uses the current-user registration service (`HKCU\...\Run` paired with a least-privilege per-user Task Scheduler `ONLOGON` task for immediate sign-in launch without elevation); the Startup page mirrors the same setting. Application icon size is now on Appearance. Navigation remains General, Containers, Appearance, Taskbar, Startup and About; the Taskbar page retains all Phase 2B interaction controls.
 
 On supported Windows 11 builds, the style option requests rounded corners and the documented system backdrop through DWM, verifies API read-back, and enables the required WPF transparent client surface. Windows may render its own solid fallback depending on system conditions. If unavailable, AppDock uses the normal theme surface and explains the fallback; the full option is disabled on Windows versions that lack the supported backdrop API. Layered floating popups use AppDock's own corner/pointer rendering rather than claiming a DWM Mica backdrop. Settings fits the target monitor's working area; constrained layouts scroll instead of losing controls.
 
@@ -90,7 +90,7 @@ Positioning uses the pointer's monitor/taskbar edge, clamps to screen boundaries
 
 Open **Settings → Desktop Containers** to place animated container icons directly on your Windows Desktop wallpaper. Each container can be dragged freely on a uniform desktop snap grid and expands smoothly toward available screen space on click or hover, automatically hiding any overlapping desktop icons and restoring them when closed.
 
-You can optionally hide native Windows desktop icons while keeping a standalone grid-snapped Recycle Bin visible on the desktop, and choose between mirroring your Sidebar containers or maintaining a separate set of desktop-only containers (with one-click desktop shortcut import).
+You can optionally hide native Windows desktop icons while keeping a standalone grid-snapped Recycle Bin visible on the desktop, and choose between mirroring your Sidebar containers or maintaining a separate set of desktop-only containers (with one-click desktop shortcut import). At startup, AppDock hides native desktop icons and lays out desktop containers before running background shortcut/taskbar synchronization so the desktop is ready immediately.
 
 ## Validation
 

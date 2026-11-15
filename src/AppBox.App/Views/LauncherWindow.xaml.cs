@@ -172,9 +172,11 @@ public partial class LauncherWindow : Window
     public void Present(bool animations, WindowPlacement.Anchor? requestedAnchor = null)
     {
         var opening = Model.Interaction.TryBeginOpen();
-        StopWarpAnimation(restoreContent: true);
+        bool shouldAnimate = animations && Model.AnimationsEnabled && SystemParameters.ClientAreaAnimation;
+        StopWarpAnimation(restoreContent: !shouldAnimate);
         BeginAnimation(OpacityProperty, null);
         Opacity = 1;
+        ContentVisibilityHost.Opacity = shouldAnimate ? 0.0 : 1.0;
         lastPresentedWithAnimations = animations;
         anchor = requestedAnchor ?? WindowPlacement.CaptureAnchor(); SetLateralMode(anchor.LateralEdge is not null);
         ApplySizing();
@@ -184,7 +186,6 @@ public partial class LauncherWindow : Window
         UpdateHeaderActionsVisibility(immediate: true);
         ResetTileTransforms();
         Model.CheckRunningApps();
-        bool shouldAnimate = animations && Model.AnimationsEnabled && SystemParameters.ClientAreaAnimation;
         if (!shouldAnimate) AnimateTilesIn();
         Show(); SetLateralMode(anchor.LateralEdge is not null); Activate(); WindowPlacement.SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle);
         UpdateLayout();
@@ -269,7 +270,7 @@ public partial class LauncherWindow : Window
         if (restoreContent)
         {
             WarpViewport.Visibility = Visibility.Collapsed;
-            RootGrid.Opacity = 1.0;
+            ContentVisibilityHost.Opacity = 1.0;
         }
     }
 
@@ -289,12 +290,14 @@ public partial class LauncherWindow : Window
 
     private void StartWarpAnimation(bool isOpening, long? completionToken, Point? customOrigin)
     {
-        StopWarpAnimation(restoreContent: true);
+        StopWarpAnimation(restoreContent: false);
+        ContentVisibilityHost.Opacity = 0.0;
 
         double w = ActualWidth > 0 ? ActualWidth : Width;
         double h = ActualHeight > 0 ? ActualHeight : Height;
         if (w < 8 || h < 8)
         {
+            ContentVisibilityHost.Opacity = 1.0;
             if (isOpening && completionToken is { } tok) Model.Interaction.CompleteOpen(tok);
             else if (!isOpening) { base.Hide(); Model.Interaction.CompleteClose(); }
             return;
@@ -304,8 +307,9 @@ public partial class LauncherWindow : Window
         WindowRoot.UpdateLayout();
 
         warpRenderer ??= new WarpMeshRenderer(WarpViewport, WarpCamera, WarpGeometryModel, WarpMesh);
-        if (!warpRenderer.CaptureAndBindMaterial(WindowRoot, w, h))
+        if (!warpRenderer.CaptureAndBindMaterial(ContentCaptureHost, w, h))
         {
+            ContentVisibilityHost.Opacity = 1.0;
             if (isOpening && completionToken is { } tok) Model.Interaction.CompleteOpen(tok);
             else if (!isOpening) { base.Hide(); Model.Interaction.CompleteClose(); }
             return;
@@ -337,7 +341,6 @@ public partial class LauncherWindow : Window
         double initialCollapse = ContainerWarpMesh.ComputeCollapseProgress(style, 0.0, isOpening);
         warpRenderer.UpdatePositions(style, w, h, anchorU, anchorV, lateralEdge, initialCollapse);
         WarpViewport.Visibility = Visibility.Visible;
-        RootGrid.Opacity = 0.0;
 
         long startTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
         EventHandler? handler = null;
@@ -358,14 +361,14 @@ public partial class LauncherWindow : Window
 
                 if (isOpening)
                 {
-                    RootGrid.Opacity = 1.0;
+                    ContentVisibilityHost.Opacity = 1.0;
                     WarpViewport.Visibility = Visibility.Collapsed;
                     if (completionToken is { } tok) Model.Interaction.CompleteOpen(tok);
                 }
                 else
                 {
                     WarpViewport.Visibility = Visibility.Collapsed;
-                    RootGrid.Opacity = 1.0;
+                    ContentVisibilityHost.Opacity = 1.0;
                     base.Hide();
                     Model.Interaction.CompleteClose();
                 }

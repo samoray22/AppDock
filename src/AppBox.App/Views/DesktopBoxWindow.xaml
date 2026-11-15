@@ -76,9 +76,9 @@
       </Border>
 
       <!-- Expanded Container Card (Hover / Click State) -->
-      <Border x:Name="BoxCard"
-              Visibility="Collapsed"
-              Background="{DynamicResource Surface}"
+      <Grid x:Name="BoxCardCaptureHost" Visibility="Collapsed" Background="Transparent">
+        <Border x:Name="BoxCard"
+                Background="{DynamicResource Surface}"
               BorderBrush="{DynamicResource Line}"
               BorderThickness="1"
               CornerRadius="16"
@@ -187,7 +187,8 @@
             </ScrollViewer>
           </Grid>
         </StackPanel>
-      </Border>
+        </Border>
+      </Grid>
     </Grid>
 
     <!-- 3-D Mesh Warp Viewport for Individual Box Expand/Collapse -->

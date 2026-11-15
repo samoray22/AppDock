@@ -188,13 +188,13 @@ public partial class DesktopBoxWindow : Window
     private void ApplyVisualState()
     {
         CompactBadge.Visibility = isExpanded ? Visibility.Collapsed : Visibility.Visible;
-        BoxCard.Visibility = isExpanded ? Visibility.Visible : Visibility.Collapsed;
+        BoxCardCaptureHost.Visibility = isExpanded ? Visibility.Visible : Visibility.Collapsed;
 
         var cursor = config.Settings.LockDesktopContainers ? Cursors.Hand : Cursors.SizeAll;
         CompactBadge.Cursor = cursor;
         HeaderBar.Cursor = cursor;
 
-        if (!IsMouseOver && !isContextMenuOpen && !isDragging)
+        if (warpRenderHandler is null && !IsMouseOver && !isContextMenuOpen && !isDragging)
         {
             RootContent.Opacity = Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
         }
@@ -356,7 +356,7 @@ public partial class DesktopBoxWindow : Window
         {
             RootContent.Visibility = Visibility.Visible;
             RootContent.IsHitTestVisible = true;
-            if (!IsMouseOver && !isContextMenuOpen && !isDragging && !isExpanded)
+            if (warpRenderHandler is null && !IsMouseOver && !isContextMenuOpen && !isDragging && !isExpanded)
             {
                 RootContent.Opacity = Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
             }
@@ -374,7 +374,10 @@ public partial class DesktopBoxWindow : Window
             ApplyVisualState();
             ApplyPlacement();
         }
-        RootContent.Opacity = 1.0;
+        if (warpRenderHandler is null)
+        {
+            RootContent.Opacity = 1.0;
+        }
         if (!isExpanded)
         {
             AnimateCompactIconScale(1.08);
@@ -394,7 +397,7 @@ public partial class DesktopBoxWindow : Window
     {
         hoverExpandTimer.Stop();
         AnimateCompactIconScale(1.0);
-        if (!isContextMenuOpen && !isDragging)
+        if (warpRenderHandler is null && !isContextMenuOpen && !isDragging)
         {
             RootContent.Opacity = Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
         }
@@ -437,6 +440,11 @@ public partial class DesktopBoxWindow : Window
 
         isExpanded = true;
         AnimateCompactIconScale(1.0);
+        if (config.Settings.EnableAnimations && SystemParameters.ClientAreaAnimation)
+        {
+            // Hide live content before resizing/moving the HWND so the un-animated expanded card never flashes.
+            RootContent.Opacity = 0.0;
+        }
         ApplyVisualState();
         ApplyPlacement();
         onExpansionStateChanged?.Invoke();
@@ -653,24 +661,36 @@ public partial class DesktopBoxWindow : Window
     private void PlayBoxWarpTransition(bool isOpening, Action? onComplete = null)
     {
         StopWarpAnimation();
-        if (!config.Settings.EnableAnimations)
+        if (!config.Settings.EnableAnimations || !SystemParameters.ClientAreaAnimation)
         {
             onComplete?.Invoke();
             return;
         }
 
+        // Keep live content hidden during layout and capture so there is no two-step flash.
+        RootContent.Opacity = 0.0;
         UpdateLayout();
         double w = ActualWidth > 0 ? ActualWidth : Width;
         double h = ActualHeight > 0 ? ActualHeight : Height;
         if (w < 20 || h < 20)
         {
+            RootContent.Opacity = IsMouseOver
+                ? 1.0
+                : Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
             onComplete?.Invoke();
             return;
         }
 
+        Visual captureTarget = BoxCardCaptureHost.Visibility == Visibility.Visible
+            ? BoxCardCaptureHost
+            : RootContent;
+
         warpRenderer ??= new WarpMeshRenderer(BoxWarpViewport, BoxWarpCamera, BoxWarpGeometryModel, BoxWarpMesh);
-        if (!warpRenderer.CaptureAndBindMaterial(RootContent, w, h))
+        if (!warpRenderer.CaptureAndBindMaterial(captureTarget, w, h))
         {
+            RootContent.Opacity = IsMouseOver
+                ? 1.0
+                : Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
             onComplete?.Invoke();
             return;
         }
@@ -682,11 +702,14 @@ public partial class DesktopBoxWindow : Window
         if (configuredStyle == ContainerAnimationStyle.Random) lastRandomStyle = style;
 
         int durationMs = ContainerWarpMesh.GetDurationMs(style, isOpening, config.Settings.AnimationDurationMs);
+        double targetOpacity = IsMouseOver
+            ? 1.0
+            : Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
+
         double initialCollapse = ContainerWarpMesh.ComputeCollapseProgress(style, 0.0, isOpening);
-        warpRenderer.UpdatePositions(style, w, h, currentAnchorU, currentAnchorV, currentLateralEdge, initialCollapse);
+        warpRenderer.UpdatePositions(style, w, h, currentAnchorU, currentAnchorV, currentLateralEdge, initialCollapse, targetOpacity);
 
         BoxWarpViewport.Visibility = Visibility.Visible;
-        RootContent.Opacity = 0.0;
 
         long startTimestamp = Stopwatch.GetTimestamp();
         EventHandler? handler = null;
@@ -695,7 +718,10 @@ public partial class DesktopBoxWindow : Window
             double elapsedMs = (Stopwatch.GetTimestamp() - startTimestamp) * 1000.0 / Stopwatch.Frequency;
             double t = Math.Clamp(elapsedMs / durationMs, 0.0, 1.0);
             double collapse = ContainerWarpMesh.ComputeCollapseProgress(style, t, isOpening);
-            warpRenderer.UpdatePositions(style, w, h, currentAnchorU, currentAnchorV, currentLateralEdge, collapse);
+            double liveTargetOpacity = IsMouseOver
+                ? 1.0
+                : Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
+            warpRenderer.UpdatePositions(style, w, h, currentAnchorU, currentAnchorV, currentLateralEdge, collapse, liveTargetOpacity);
 
             if (t >= 1.0)
             {
@@ -740,7 +766,7 @@ public partial class DesktopBoxWindow : Window
     private void ContextMenu_Closed(object sender, RoutedEventArgs e)
     {
         isContextMenuOpen = false;
-        if (!IsMouseOver && !isDragging)
+        if (warpRenderHandler is null && !IsMouseOver && !isDragging)
         {
             RootContent.Opacity = Math.Clamp(config.Settings.DesktopContainerOpacity, 0.30, 1.00);
             if (isExpanded)

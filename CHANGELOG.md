@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.0] - 2026-11-15
+
+### Fixed
+- **Seamless Single-Step Container Opening (`DesktopBoxWindow`, `LauncherWindow`, `WarpMeshRenderer`)**:
+  - Eliminated the two-step opening flash where expanded container cards or popups briefly appeared/resized at full size before the 3-D warp animation started.
+  - Wrapped capture targets (`BoxCardCaptureHost` / `ContentCaptureHost`) so `WarpMeshRenderer` captures full-opacity offscreen textures while keeping live content hidden (`Opacity = 0.0`) before window resizing or `Show()`, and guarded mouse-hover opacity handlers during active warp transitions.
+  - Added `opacityScale` support to `WarpMeshRenderer.UpdatePositions` so desktop boxes match `DesktopContainerOpacity` cleanly when the warp finishes.
+- **Faster Startup Desktop Layout & Early Icon Hiding (`App.xaml.cs`, `WindowsServices.cs`)**:
+  - Moved Windows desktop icon hiding (`DesktopIconsService.TrySetDesktopIconsHidden`) to the very start of `App.OnStartup` with a short `DispatcherTimer` retry in case `explorer.exe` has not yet created `SysListView32` at logon.
+  - Prioritized `DesktopContainersWindow` and `EdgeSidebarWindow` layout before non-critical startup work (`StartupRegistration.RepairPath`, shortcut/taskbar sync, tray icon, Jump Lists, and background icon warm-up), which now run at `DispatcherPriority.Background`.
+
+### Changed
+- **Fast Per-User Logon Startup (`StartupRegistration`)**:
+  - Added a least-privilege (`RL LIMITED`) per-user Task Scheduler `ONLOGON` task (`AppDockLogon`) alongside the existing `HKCU\...\Run` entry so AppDock launches immediately at Windows sign-in without requiring administrator privileges.
+
+---
+
 ## [3.1.0] - 2026-11-14
 
 ### Added

@@ -294,7 +294,7 @@ internal static class Program
             var config = new Configuration();
             var vm = new SettingsViewModel(config, () => { });
             Check(vm.AvailableLanguages.Count == LocalizationService.SupportedLanguages.Length);
-            Check(vm.AppVersionText.Contains("3.1.0"), $"Expected version 3.1.0, got {vm.AppVersionText}");
+            Check(vm.AppVersionText.Contains("3.2.0"), $"Expected version 3.2.0, got {vm.AppVersionText}");
 
             var deOption = vm.AvailableLanguages.FirstOrDefault(l => l.Language == AppLanguage.German);
             Check(deOption != null, "German option missing in AvailableLanguages");

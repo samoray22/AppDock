@@ -118,6 +118,7 @@ public static class StartupRegistration
     private const string KeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     // Task Manager / Settings > Startup apps store their on/off state here; an odd first byte means disabled.
     private const string ApprovedKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+    private const string LogonTaskName = "AppDockLogon";
 
     /// <summary>True only when Windows will actually start AppDock at sign-in.</summary>
     public static bool IsEnabled()
@@ -140,7 +141,7 @@ public static class StartupRegistration
         // An explicit opt-in from AppDock settings overrides an earlier "Disabled" from Task Manager.
         if (enabled) approved.SetValue("AppDock", new byte[] { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, RegistryValueKind.Binary);
         else approved.DeleteValue("AppDock", false);
-        approved.DeleteValue("AppBox", false);
+        approved.DeleteValue("AppBox", false); _ = Task.Run(() => SyncFastLogonTask(enabled));
     }
 
     /// <summary>Points a broken startup entry (target moved, renamed or deleted) at the running executable.</summary>
@@ -151,9 +152,35 @@ public static class StartupRegistration
         var current = key.GetValue("AppDock") as string ?? key.GetValue("AppBox") as string;
         if (current is null || string.Equals(current, Command(), StringComparison.OrdinalIgnoreCase)) return;
         // Only heal broken entries; a second copy (e.g. a debug build) must not take over a working one.
-        if (TargetExists(current) != false) return;
-        key.SetValue("AppDock", Command());
-        key.DeleteValue("AppBox", false);
+        if (TargetExists(current) == false) { key.SetValue("AppDock", Command()); key.DeleteValue("AppBox", false); }
+    }
+
+    private static void SyncFastLogonTask(bool enabled)
+    {
+        try
+        {
+            var args = enabled
+                ? $"/Create /TN \"{LogonTaskName}\" /TR \"\\\"{AppPaths.Executable}\\\" --background\" /SC ONLOGON /RL LIMITED /F"
+                : $"/Delete /TN \"{LogonTaskName}\" /F";
+
+            using var proc = Process.Start(new ProcessStartInfo("schtasks.exe", args)
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+            proc?.WaitForExit(3000);
+        }
+        catch
+        {
+        }
+    }
+
+    public static void SyncLogonTaskWithCurrentState()
+    {
+        bool enabled = IsEnabled();
+        _ = Task.Run(() => SyncFastLogonTask(enabled));
     }
 
     private static bool IsDisabledByUser(string name)
@@ -619,12 +646,15 @@ public static class DesktopIconsService
         }
     }
 
-    public static void SetDesktopIconsHidden(bool hide, bool explicitUserAction = false)
+    public static void SetDesktopIconsHidden(bool hide, bool explicitUserAction = false) =>
+        _ = TrySetDesktopIconsHidden(hide, explicitUserAction);
+
+    public static bool TrySetDesktopIconsHidden(bool hide, bool explicitUserAction = false)
     {
         try
         {
             var hwnd = FindDesktopListView();
-            if (hwnd == IntPtr.Zero) return;
+            if (hwnd == IntPtr.Zero) return false;
 
             bool currentlyVisible = IsWindowVisible(hwnd);
             bool fencesRunning = IsStardockFencesRunning();
@@ -639,9 +669,11 @@ public static class DesktopIconsService
             {
                 ShowWindow(hwnd, SW_SHOW);
             }
+            return true;
         }
         catch
         {
+            return false;
         }
     }
 
